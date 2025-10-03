@@ -107,6 +107,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -135,6 +136,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -145,7 +147,12 @@
   <ItemGroup>
     <ClCompile Include="includes\glm\detail\glm.cpp" />
     <ClCompile Include="includes\glm\glm.cppm" />
-    <None Include="shaders\ligthningVertexShader.vs">
+    <ClCompile Include="src\Scenes\diffuseAndSpecularMapScene.cpp" />
+    <ClCompile Include="src\Scenes\directionalLight.cpp" />
+    <ClCompile Include="src\Scenes\directionalLightScene.h" />
+    <None Include="shaders\lightning\lightCubeFragmentShader.fs" />
+    <None Include="shaders\lightning\lightCubeVertexShader.vs" />
+    <None Include="shaders\lightning\ligthningVertexShader.vs">
       <FileType>Document</FileType>
     </None>
     <ClCompile Include="src\Helpers\shaderClass.cpp" />
@@ -449,6 +456,8 @@
     <ClInclude Include="includes\stb_image.h" />
     <ClInclude Include="src\Helpers\camera.h" />
     <ClInclude Include="src\Helpers\shaderClass.h" />
+    <ClInclude Include="src\Scenes\diffuseAndSpecularMapScene.h" />
+    <ClInclude Include="src\Scenes\scene.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitattributes" />
@@ -606,11 +615,11 @@
     <None Include="pyre\x64\Debug\pyre.tlog\pyre.lastbuildstate" />
     <None Include="pyre\x64\Debug\vc143.idb" />
     <None Include="pyre\x64\Debug\vc143.pdb" />
-    <None Include="shaders\cubeFragmentShader.fs" />
+    <None Include="shaders\lightning\cubeFragmentShader.fs" />
     <None Include="shaders\cubeLightFragmentShader.fs" />
     <None Include="shaders\cubeLightVertexShader.vs" />
-    <None Include="shaders\cubeVertexShader.vs" />
-    <None Include="shaders\lightningFragmentShader.fs" />
+    <None Include="shaders\lightning\cubeVertexShader.vs" />
+    <None Include="shaders\lightning\lightningFragmentShader.fs" />
     <None Include="x64\Debug\pyre.exe" />
     <None Include="x64\Debug\pyre.pdb" />
   </ItemGroup>
@@ -634,7 +643,7 @@
     <Image Include="resources\container3.png" />
     <Image Include="resources\container3Spec.png" />
     <Image Include="resources\dirt.jpg" />
-    <Image Include="resources\logo.jpg" />
+    <Image Include="resources\icon.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

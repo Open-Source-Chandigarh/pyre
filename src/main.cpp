@@ -1,334 +1,185 @@
-#define STB_IMAGE_IMPLEMENTATION
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+﻿// main.cpp
+// -------------------------
+// Entry point of the application.
+// Manages window creation, OpenGL initialization, 
+// scene switching, and input handling.
+//
+// NOTE for contributors:
+// - Each "Scene" (like DirectionalLightScene, DiffuseAndSpecularMapScene)
+//   handles its own setup (shaders, models, uniforms, etc).
+// - main.cpp is only responsible for high-level orchestration
+//   (switching scenes, handling inputs, maintaining timing, etc).
+// -------------------------
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "stb_image.h"
-
-#include "Helpers/shaderClass.h"
-#include "Helpers/camera.h"
-
 #include <iostream>
+#include <vector>
 
+#include "Helpers/camera.h"
+#include "Scenes/directionalLightScene.h"
+#include "Scenes/diffuseAndSpecularMapScene.h"
+
+// -------------------------
+// Global settings
+// -------------------------
+unsigned int SCR_WIDTH = 800;
+unsigned int SCR_HEIGHT = 600;
+
+// Global camera object
+// NOTE: Camera is shared across all scenes
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
+bool firstMouse = true;   // tracks if mouse moved for the first time
+bool mouseCaptured = true; // controls mouse lock state
+
+// Timing values for smooth animations
+float deltaTime = 0.0f;  // time between frames
+float lastFrame = 0.0f;  // timestamp of last frame
+
+// -------------------------
+// Input callback declarations
+// (implemented at bottom of file)
+// -------------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
-unsigned int loadTexture(const char* path);
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
-// settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+// -------------------------
+// Scene management
+// -------------------------
+int currentSceneIndex = 0;         // which scene we are currently displaying
+std::vector<Scene*> scenes;        // list of scenes
 
-// camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-float lastX = SCR_WIDTH / 2.0f;
-float lastY = SCR_HEIGHT / 2.0f;
-bool firstMouse = true;
-bool mouseCaptured = true;
-
-// timing
-float deltaTime = 0.0f;	// time between current frame and last frame
-float lastFrame = 0.0f;
-
-
-// lighting
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+// Struct for sharing state between callbacks
+// Instead of using many globals, we put state here
+struct AppState {
+    std::vector<Scene*>* scenes;
+    int* currentSceneIndex;
+    bool* mouseCaptured;
+    bool* firstMouse;
+    Camera* camera;
+};
 
 int main()
 {
-    // glfw: initialize and configure
-    // ------------------------------
-    glfwInit();
+    // -------------------------
+    // 1. Initialize GLFW
+    // -------------------------
+    if (!glfwInit()) {
+        std::cerr << "Failed to init GLFW\n";
+        return -1;
+    }
+
+    // We use OpenGL 3.3 Core profile
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 #ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // required on macOS
 #endif
 
-    // glfw window creation
-    // --------------------
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Graphics Engine", NULL, NULL);
+    // -------------------------
+    // 2. Create a window
+    // -------------------------
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Scene", NULL, NULL);
     if (window == NULL)
     {
-        std::cout << "Failed to create GLFW window" << std::endl;
+        std::cout << "Failed to create GLFW window\n";
         glfwTerminate();
         return -1;
     }
     glfwMakeContextCurrent(window);
+
+    // -------------------------
+    // 3. Register callbacks
+    // -------------------------
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetKeyCallback(window, key_callback);
 
-    // tell GLFW to capture our mouse
+    // Lock the mouse to the window initially
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    // glad: load all OpenGL function pointers
-    // ---------------------------------------
+    // -------------------------
+    // 4. Initialize GLAD
+    // -------------------------
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
-        std::cout << "Failed to initialize GLAD" << std::endl;
+        std::cout << "Failed to initialize GLAD\n";
         return -1;
     }
 
-    // configure global opengl state
-    // -----------------------------
-    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST); // enable 3D depth testing
 
-    // build and compile our shader zprogram
-    // ------------------------------------
-    Shader lightCubeShader(
-        "shaders\\cubeLightVertexShader.vs",
-        "shaders\\cubeLightFragmentShader.fs");
+    // -------------------------
+    // 5. Create and init scenes
+    // -------------------------
+    DirectionalLightScene* scene1 = new DirectionalLightScene();
+    DiffuseAndSpecularMapScene* scene2 = new DiffuseAndSpecularMapScene();
+    scenes.push_back(scene1);
+    scenes.push_back(scene2);
 
-    Shader lightShader(
-        "shaders\\ligthningVertexShader.vs",
-        "shaders\\lightningFragmentShader.fs"
-    );
+    // NOTE: We init all scenes up front so switching is instant
+    scenes[0]->init();
+    scenes[1]->init();
 
+    // Store state for use in callbacks
+    AppState appState{ &scenes, &currentSceneIndex, &mouseCaptured, &firstMouse, &camera };
+    glfwSetWindowUserPointer(window, &appState);
 
-
-
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
-    float vertices[] = {
-        // Positions          // Normals           // Texture Coords
-
-        // Back face
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-
-        // Front face
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,
-
-        // Left face
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-        // Right face
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-         // Bottom face
-         -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-          0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
-          0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-          0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-         -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
-         -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-
-         // Top face
-         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
-          0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-          0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-          0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-         -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
-    };
-    unsigned int VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    // normal attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    // Tex Coords
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    unsigned int lightCubeVAO;
-    glGenVertexArrays(1, &lightCubeVAO);
-    glBindVertexArray(lightCubeVAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    // load and create a texture
-    unsigned int diffuseMap = loadTexture("resources\\container3.png");
-    unsigned int specularMap = loadTexture("resources\\container3Spec.png");
-
-    lightShader.use();
-    lightShader.setInt("material.diffuse", 0);
-    lightShader.setInt("material.specular", 1);
-    lightShader.setFloat("material.shininess", 32.0f);
-    lightShader.setVec3("lightPos", lightPos);
-
-
-    // render loop
-    // -----------
+    // -------------------------
+    // 6. Main render loop
+    // -------------------------
     while (!glfwWindowShouldClose(window))
     {
-        // per-frame time logic
-        // --------------------
+        // Timing logic
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        // input
-        // -----
-        processInput(window);
-
-        // render
-        // ------
+        // Clear screen before rendering
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // be sure to activate shader when setting uniforms/drawing objects
-        lightShader.use();
-        glm::vec3 lightColor;
-        lightColor = glm::vec3(
-            1.0f,
-            1.0f,
-            1.0f
-        );
-        glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
-        glm::vec3 ambientColor = lightColor * glm::vec3(0.2f);
-        lightShader.setVec3("light.ambient", ambientColor);
-        lightShader.setVec3("light.diffuse", diffuseColor); 
-        lightShader.setVec3("light.specular", lightColor);
-        lightShader.setVec3("lightPos", lightPos);
-
-        // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = camera.GetViewMatrix();
-        lightShader.setMat4("projection", projection);
-        lightShader.setMat4("view", view);
-
-        // world transformation
-        glm::mat4 model = glm::mat4(1.0f);
-        lightShader.setMat4("model", model);
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, diffuseMap);
-
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, specularMap);
-
-        // render the cube
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
-        // also draw the lamp object
-        lightCubeShader.use();
-        lightCubeShader.setMat4("projection", projection);
-        lightCubeShader.setMat4("view", view);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, lightPos);
-        model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-        lightCubeShader.setMat4("model", model);
-        lightCubeShader.setVec3("lightCubeColor", lightColor);
-
-        glBindVertexArray(lightCubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
-        lightPos.x = sin(glfwGetTime());
-        lightPos.z = cos((glfwGetTime()));
-
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
-        glfwSwapBuffers(window);
+        // Poll events + process continuous input
         glfwPollEvents();
+        processInput(window);
+
+        // Update and render the active scene
+        if (!scenes.empty()) {
+            scenes[currentSceneIndex]->update(deltaTime);
+            scenes[currentSceneIndex]->render();
+        }
+
+        glfwSwapBuffers(window);
     }
 
-    // optional: de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
+    // -------------------------
+    // 7. Cleanup memory
+    // -------------------------
+    for (Scene* s : scenes) {
+        delete s;
+    }
 
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
     glfwTerminate();
     return 0;
 }
 
-unsigned int loadTexture(const char* path)
-{
-    unsigned int texture;
-    glGenTextures(1, &texture);
+// -------------------------
+// Input handling functions
+// -------------------------
 
-    int width, height, nrChannels;
-
-    stbi_set_flip_vertically_on_load(true);
-
-    unsigned char* data = stbi_load(path, &width, &height, &nrChannels, 0);
-    if (data)
-    {
-        GLenum format;
-        if (nrChannels == 1)
-            format = GL_RED;
-        else if (nrChannels == 3)
-            format = GL_RGB;
-        else if (nrChannels == 4)
-            format = GL_RGBA;
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    }
-    else
-    {
-        std::cerr << "\033[31m Failed to load texture \033[0m" << std::endl;
-    }
-
-    stbi_image_free(data);
-
-    return texture;
-}
-
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
+// Continuous input (camera movement with WASD)
 void processInput(GLFWwindow* window)
 {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    {
-        if (mouseCaptured)
-        {
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-            mouseCaptured = false;
-        }
-    }
-
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -339,30 +190,69 @@ void processInput(GLFWwindow* window)
         camera.ProcessKeyboard(RIGHT, deltaTime);
 }
 
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
+// Discrete input (actions triggered only once per key press/release)
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    AppState* s = static_cast<AppState*>(glfwGetWindowUserPointer(window));
+    if (!s) return;
+
+    // Switch to next scene with → key
+    if (key == GLFW_KEY_RIGHT && action == GLFW_RELEASE) {
+        if (!s->scenes->empty()) {
+            *s->currentSceneIndex = (*s->currentSceneIndex + 1) % s->scenes->size();
+            std::cout << "Switched to scene " << *s->currentSceneIndex << '\n';
+        }
+    }
+
+    // Switch to previous scene with ← key
+    if (key == GLFW_KEY_LEFT && action == GLFW_RELEASE) {
+        if (!s->scenes->empty()) {
+            int n = (int)s->scenes->size();
+            *s->currentSceneIndex = (*s->currentSceneIndex + n - 1) % n;
+            std::cout << "Switched to scene " << *s->currentSceneIndex << '\n';
+        }
+    }
+
+    // Toggle mouse capture with ESC
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+        if (*s->mouseCaptured) {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            *s->mouseCaptured = false;
+            std::cout << "Mouse released\n";
+        }
+        else {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            *s->mouseCaptured = true;
+            *s->firstMouse = true; // prevent sudden camera jump
+            std::cout << "Mouse captured\n";
+        }
+    }
+}
+
+// Resize viewport when window is resized
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-    // make sure the viewport matches the new window dimensions
+    SCR_WIDTH = width;
+    SCR_HEIGHT = height;
     glViewport(0, 0, width, height);
 }
 
+// Lock mouse back in with left click
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS && !mouseCaptured)
     {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         mouseCaptured = true;
-        firstMouse = true; // to avoid sudden jumps in camera
+        firstMouse = true;
     }
 }
 
-
-// glfw: whenever the mouse moves, this callback is called
-// -------------------------------------------------------
+// Camera look-around with mouse
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
     if (!mouseCaptured) return;
+
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 
@@ -374,7 +264,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     }
 
     float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+    float yoffset = lastY - ypos; // invert y since OpenGL's origin is bottom-left
 
     lastX = xpos;
     lastY = ypos;
@@ -382,9 +272,8 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-// glfw: whenever the mouse scroll wheel scrolls, this callback is called
-// ----------------------------------------------------------------------
+// Zoom with scroll wheel
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    camera.ProcessMouseScroll(static_cast<float>(yoffset));
+    camera.ProcessMouseScroll((float)yoffset);
 }

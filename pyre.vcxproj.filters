@@ -39,6 +39,15 @@
     <ClCompile Include="includes\glm\glm.cppm">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Scenes\directionalLightScene.h">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scenes\directionalLight.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scenes\diffuseAndSpecularMapScene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Helpers\camera.h">
@@ -929,14 +938,20 @@
     <ClInclude Include="includes\stb_image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Scenes\scene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scenes\diffuseAndSpecularMapScene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitattributes" />
     <None Include=".gitignore" />
     <None Include="x64\Debug\pyre.exe" />
     <None Include="x64\Debug\pyre.pdb" />
-    <None Include="shaders\cubeFragmentShader.fs" />
-    <None Include="shaders\cubeVertexShader.vs" />
+    <None Include="shaders\lightning\cubeFragmentShader.fs" />
+    <None Include="shaders\lightning\cubeVertexShader.vs" />
     <None Include="includes\glm\detail\func_common.inl">
       <Filter>Header Files</Filter>
     </None>
@@ -1374,10 +1389,12 @@
     <None Include="shaders\cubeLightFragmentShader.fs">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="shaders\lightningFragmentShader.fs" />
-    <None Include="shaders\ligthningVertexShader.vs">
+    <None Include="shaders\lightning\lightningFragmentShader.fs" />
+    <None Include="shaders\lightning\ligthningVertexShader.vs">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="shaders\lightning\lightCubeVertexShader.vs" />
+    <None Include="shaders\lightning\lightCubeFragmentShader.fs" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="includes\glm\CMakeLists.txt" />
@@ -1406,10 +1423,10 @@
     <Image Include="resources\container3.png">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="resources\logo.jpg">
+    <Image Include="resources\container.jpg">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="resources\container.jpg">
+    <Image Include="resources\icon.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
