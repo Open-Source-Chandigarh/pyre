@@ -4,7 +4,7 @@
 It aims to provide a clear, modular, and educational implementation of modern rendering techniques, making it a great project for learning and experimenting with real-time graphics.  
 
 <div align="center">
-  <img src="resources/logo.jpg" alt="Pyre Logo" width="200"/>
+  <img src="resources/icon.png" alt="Pyre Logo" width="200"/>
 </div>
 
 ---
