@@ -19,6 +19,7 @@
 #include "Helpers/camera.h"
 #include "Scenes/directionalLightScene.h"
 #include "Scenes/pointLightScene.h"
+#include "Scenes/flashLightScene.h"
 
 // -------------------------
 // Global settings
@@ -118,14 +119,17 @@ int main()
     // -------------------------
     DirectionalLightScene* scene1 = new DirectionalLightScene();
     PointLightScene* scene2 = new PointLightScene();
+    FlashLightScene* scene3 = new FlashLightScene();
     std::vector<Scene*> scenes;
     int currentSceneIndex = 0;
     scenes.push_back(scene1);
     scenes.push_back(scene2);
+    scenes.push_back(scene3);
 
     // NOTE: We init all scenes up front so switching is instant
     scenes[0]->init();
     scenes[1]->init();
+    scenes[2]->init();
 
     // Store state for use in callbacks
     AppState appState{ &scenes, &currentSceneIndex, &mouseCaptured, &firstMouse, &camera };

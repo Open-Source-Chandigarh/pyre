@@ -7,10 +7,10 @@
 
 // This class represents a Scene that demonstrates lighting with a single directional light.
 // It derives from the base Scene class, so it must implement init(), update(), render(), and name().
-class DirectionalLightScene : public Scene {
+class FlashLightScene : public Scene {
 public:
-    DirectionalLightScene();
-    ~DirectionalLightScene();
+    FlashLightScene();
+    ~FlashLightScene();
 
     // Called once when the scene is created (setup VAOs, VBOs, shaders, textures, etc.)
     void init() override;
@@ -22,7 +22,7 @@ public:
     void render() override;
 
     // Scene display name (helpful when switching scenes)
-    std::string name() const override { return "Directional Light Demo Scene"; }
+    std::string name() const override { return "SpotLight Demo Scene"; }
 
 private:
     // OpenGL object handles

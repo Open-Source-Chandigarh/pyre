@@ -1,6 +1,4 @@
-#define STB_IMAGE_IMPLEMENTATION
-
-#include "directionalLightScene.h"
+#include "FlashLightScene.h"
 #include <glad/glad.h>
 #include <stb_image.h>
 #include <iostream>
@@ -12,7 +10,7 @@ extern Camera camera;
 extern unsigned int SCR_WIDTH;
 extern unsigned int SCR_HEIGHT;
 
-DirectionalLightScene::DirectionalLightScene()
+FlashLightScene::FlashLightScene()
     : VAO(0), VBO(0),
     lightShader(nullptr),
     rotationAngle(0.0f), rotationSpeed(50.0f)
@@ -30,16 +28,16 @@ DirectionalLightScene::DirectionalLightScene()
     cubePositions[9] = glm::vec3(-1.3f, 1.0f, -1.5f);
 }
 
-DirectionalLightScene::~DirectionalLightScene() {
+FlashLightScene::~FlashLightScene() {
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     delete lightShader;
 }
 
-void DirectionalLightScene::init() {
+void FlashLightScene::init() {
     // shaders
-    lightShader = new Shader("shaders/lightning/ligthningVertexShader.vs", "shaders/lightning/lightningFragmentShader.fs");
-   
+    lightShader = new Shader("shaders/lightning/flashLightVertexShader.vs", "shaders/lightning/flashLightFragmentShader.fs");
+
     // cube vertices ...
     float vertices[] = {
         // Positions          // Normals           // Texture Coords
@@ -119,18 +117,23 @@ void DirectionalLightScene::init() {
     lightShader->setFloat("material.shininess", 32.0f);
 }
 
-void DirectionalLightScene::update(float deltaTime) {
+void FlashLightScene::update(float deltaTime) {
     rotationAngle -= rotationSpeed * deltaTime;
 }
 
-void DirectionalLightScene::render() {
+void FlashLightScene::render() {
 
     lightShader->use();
     glm::vec3 lightColor(1.0f);
     lightShader->setVec3("light.ambient", lightColor * 0.2f);
-    lightShader->setVec3("light.diffuse", lightColor * 0.5f);
+    lightShader->setVec3("light.diffuse", lightColor * 1.0f);
     lightShader->setVec3("light.specular", lightColor);
-    lightShader->setVec3("lightDir", glm::vec3(-0.2f, -1.0f, -0.3f));
+    lightShader->setFloat("light.constant", 1.0f);
+    lightShader->setFloat("light.linear", 0.09f);
+    lightShader->setFloat("light.quadratic", 0.032f);
+    lightShader->setVec3("lightDir", camera.Front);
+    lightShader->setVec3("lightPos", camera.Position);
+    lightShader->setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
 
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
     glm::mat4 view = camera.GetViewMatrix();
@@ -151,7 +154,7 @@ void DirectionalLightScene::render() {
     }
 }
 
-unsigned int DirectionalLightScene::loadTexture(const char* path) {
+unsigned int FlashLightScene::loadTexture(const char* path) {
     unsigned int texture;
     glGenTextures(1, &texture);
 
