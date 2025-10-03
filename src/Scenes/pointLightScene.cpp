@@ -1,4 +1,4 @@
-#include "diffuseAndSpecularMapScene.h"
+#include "pointLightScene.h"
 #include "stb_image.h"
 #include <iostream>
 
@@ -11,14 +11,26 @@ extern unsigned int SCR_HEIGHT;
 // Starting position of the light in the scene
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
-DiffuseAndSpecularMapScene::DiffuseAndSpecularMapScene()
+PointLightScene::PointLightScene()
     : lightingShader(nullptr), lightCubeShader(nullptr),
     cubeVAO(0), lightCubeVAO(0),
-    diffuseMap(0), specularMap(0)
+    diffuseMap(0), specularMap(0),
+    rotationAngle(0.0f), rotationSpeed(50.0f)
 {
+
+    cubePositions[0] = glm::vec3(0.0f, 0.0f, 0.0f);
+    cubePositions[1] = glm::vec3(2.0f, 5.0f, -15.0f);
+    cubePositions[2] = glm::vec3(-1.5f, -2.2f, -2.5f);
+    cubePositions[3] = glm::vec3(-3.8f, -2.0f, -12.3f);
+    cubePositions[4] = glm::vec3(2.4f, -0.4f, -3.5f);
+    cubePositions[5] = glm::vec3(-1.7f, 3.0f, -7.5f);
+    cubePositions[6] = glm::vec3(1.3f, -2.0f, -2.5f);
+    cubePositions[7] = glm::vec3(1.5f, 2.0f, -2.5f);
+    cubePositions[8] = glm::vec3(1.5f, 0.2f, -1.5f);
+    cubePositions[9] = glm::vec3(-1.3f, 1.0f, -1.5f);
 }
 
-DiffuseAndSpecularMapScene::~DiffuseAndSpecularMapScene()
+PointLightScene::~PointLightScene()
 {
     // Free OpenGL resources
     glDeleteVertexArrays(1, &cubeVAO);
@@ -31,7 +43,7 @@ DiffuseAndSpecularMapScene::~DiffuseAndSpecularMapScene()
     delete lightCubeShader;
 }
 
-void DiffuseAndSpecularMapScene::init()
+void PointLightScene::init()
 {
     // Load shaders for the cube and the light cube
     lightingShader = new Shader("shaders/lightning/cubeVertexShader.vs",
@@ -124,25 +136,26 @@ void DiffuseAndSpecularMapScene::init()
     glEnableVertexAttribArray(0);
 }
 
-void DiffuseAndSpecularMapScene::update(float deltaTime)
+void PointLightScene::update(float deltaTime)
 {
-    // Animate light position around the scene
-    lightPos.x = sin(glfwGetTime());
-    lightPos.z = cos(glfwGetTime());
+    rotationAngle -= rotationSpeed * deltaTime;
 }
 
-void DiffuseAndSpecularMapScene::render()
+void PointLightScene::render()
 {
     // Activate cube shader
     lightingShader->use();
     lightingShader->setInt("material.diffuse", 0);
     lightingShader->setInt("material.specular", 1);
     lightingShader->setFloat("material.shininess", 32.0f);
+    lightingShader -> setFloat("light.constant", 1.0f);
+    lightingShader -> setFloat("light.linear", 0.09f);
+    lightingShader -> setFloat("light.quadratic", 0.032f);
 
     // Light properties
     glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
-    glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
-    glm::vec3 ambientColor = lightColor * glm::vec3(0.2f);
+    glm::vec3 diffuseColor = lightColor * glm::vec3(1.0f);
+    glm::vec3 ambientColor = lightColor * glm::vec3(0.8f);
 
     lightingShader->setVec3("light.ambient", ambientColor);
     lightingShader->setVec3("light.diffuse", diffuseColor);
@@ -167,9 +180,15 @@ void DiffuseAndSpecularMapScene::render()
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, specularMap);
 
-    // Draw cube
     glBindVertexArray(cubeVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
+    for (int i = 0; i < 10; i++) {
+        glm::mat4 model(1.0f);
+        model = glm::translate(model, cubePositions[i]);
+        float angle = 20.0f * i;
+        model = glm::rotate(model, glm::radians(angle) + glm::radians(rotationAngle), glm::vec3(1.0f, 0.3f, 0.5f));
+        lightingShader->setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
 
     // Draw light cube
     lightCubeShader->use();
@@ -185,7 +204,7 @@ void DiffuseAndSpecularMapScene::render()
     glDrawArrays(GL_TRIANGLES, 0, 36);
 }
 
-unsigned int DiffuseAndSpecularMapScene::loadTexture(const char* path)
+unsigned int PointLightScene::loadTexture(const char* path)
 {
     unsigned int textureID;
     glGenTextures(1, &textureID);

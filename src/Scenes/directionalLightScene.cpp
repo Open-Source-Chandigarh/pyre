@@ -132,8 +132,6 @@ void DirectionalLightScene::update(float deltaTime) {
 }
 
 void DirectionalLightScene::render() {
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     lightShader->use();
     glm::vec3 lightColor(1.0f);

@@ -147,8 +147,8 @@
   <ItemGroup>
     <ClCompile Include="includes\glm\detail\glm.cpp" />
     <ClCompile Include="includes\glm\glm.cppm" />
-    <ClCompile Include="src\Scenes\diffuseAndSpecularMapScene.cpp" />
-    <ClCompile Include="src\Scenes\directionalLight.cpp" />
+    <ClCompile Include="src\Scenes\pointLightScene.cpp" />
+    <ClCompile Include="src\Scenes\directionalLightScene.cpp" />
     <ClCompile Include="src\Scenes\directionalLightScene.h" />
     <None Include="shaders\lightning\lightCubeFragmentShader.fs" />
     <None Include="shaders\lightning\lightCubeVertexShader.vs" />
@@ -456,7 +456,7 @@
     <ClInclude Include="includes\stb_image.h" />
     <ClInclude Include="src\Helpers\camera.h" />
     <ClInclude Include="src\Helpers\shaderClass.h" />
-    <ClInclude Include="src\Scenes\diffuseAndSpecularMapScene.h" />
+    <ClInclude Include="src\Scenes\pointLightScene.h" />
     <ClInclude Include="src\Scenes\scene.h" />
   </ItemGroup>
   <ItemGroup>

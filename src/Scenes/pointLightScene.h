@@ -14,11 +14,11 @@
  * @brief A scene that renders a cube with diffuse + specular maps,
  *        and a light source represented as a small cube.
  */
-class DiffuseAndSpecularMapScene : public Scene
+class PointLightScene : public Scene
 {
 public:
-    DiffuseAndSpecularMapScene();
-    ~DiffuseAndSpecularMapScene();
+    PointLightScene();
+    ~PointLightScene();
 
     /// Initialize shaders, VAOs, VBOs, and textures
     void init() override;
@@ -30,7 +30,7 @@ public:
     void render() override;
 
     /// Scene name for debugging / UI purposes
-    std::string name() const override { return "Diffuse and Specular Map Scene"; }
+    std::string name() const override { return "Point Light Demo Scene"; }
 
 private:
     Shader* lightingShader;   // shader used to render the textured cube
@@ -40,6 +40,13 @@ private:
     unsigned int lightCubeVAO;// VAO for the light cube
     unsigned int diffuseMap;  // diffuse texture
     unsigned int specularMap; // specular texture
+
+    // Fixed positions of cubes in the scene
+    glm::vec3 cubePositions[10];
+
+    // Animation control for cube rotations
+    float rotationAngle;
+    float rotationSpeed;
 
     /// Utility: loads a texture from file and returns the OpenGL texture ID
     unsigned int loadTexture(const char* path);

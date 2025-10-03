@@ -22,7 +22,7 @@ public:
     void render() override;
 
     // Scene display name (helpful when switching scenes)
-    std::string name() const override { return "Directional Light Scene"; }
+    std::string name() const override { return "Directional Light Demo Scene"; }
 
 private:
     // OpenGL object handles

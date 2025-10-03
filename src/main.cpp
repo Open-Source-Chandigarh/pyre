@@ -18,7 +18,7 @@
 
 #include "Helpers/camera.h"
 #include "Scenes/directionalLightScene.h"
-#include "Scenes/diffuseAndSpecularMapScene.h"
+#include "Scenes/pointLightScene.h"
 
 // -------------------------
 // Global settings
@@ -48,12 +48,6 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-
-// -------------------------
-// Scene management
-// -------------------------
-int currentSceneIndex = 0;         // which scene we are currently displaying
-std::vector<Scene*> scenes;        // list of scenes
 
 // Struct for sharing state between callbacks
 // Instead of using many globals, we put state here
@@ -123,7 +117,9 @@ int main()
     // 5. Create and init scenes
     // -------------------------
     DirectionalLightScene* scene1 = new DirectionalLightScene();
-    DiffuseAndSpecularMapScene* scene2 = new DiffuseAndSpecularMapScene();
+    PointLightScene* scene2 = new PointLightScene();
+    std::vector<Scene*> scenes;
+    int currentSceneIndex = 0;
     scenes.push_back(scene1);
     scenes.push_back(scene2);
 
@@ -201,6 +197,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         if (!s->scenes->empty()) {
             *s->currentSceneIndex = (*s->currentSceneIndex + 1) % s->scenes->size();
             std::cout << "Switched to scene " << *s->currentSceneIndex << '\n';
+            glfwSetWindowTitle(window, s -> scenes -> at(*s -> currentSceneIndex) -> name().c_str());
         }
     }
 
