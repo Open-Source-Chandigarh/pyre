@@ -22,6 +22,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{09ecac59-600d-47d6-bfe9-0161e8b096e2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="NewFilter1">
+      <UniqueIdentifier>{aaa95226-9fa2-4061-b777-cb1a65e4efa1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="includes\glad\src\glad.c">

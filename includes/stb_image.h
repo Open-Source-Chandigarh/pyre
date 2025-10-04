@@ -864,7 +864,7 @@ static void stbi__stdio_skip(void *user, int n)
 
 static int stbi__stdio_eof(void *user)
 {
-   return feof((FILE*) user) || ferror((FILE *) user);
+   return feof((FILE*) user) | ferror((FILE *) user);
 }
 
 static stbi_io_callbacks stbi__stdio_callbacks =
@@ -1023,14 +1023,14 @@ static int stbi__mul2sizes_valid(int a, int b)
 // returns 1 if "a*b + add" has no negative terms/factors and doesn't overflow
 static int stbi__mad2sizes_valid(int a, int b, int add)
 {
-   return stbi__mul2sizes_valid(a, b) && stbi__addsizes_valid(a*b, add);
+   return stbi__mul2sizes_valid(a, b) & stbi__addsizes_valid(a*b, add);
 }
 #endif
 
 // returns 1 if "a*b*c + add" has no negative terms/factors and doesn't overflow
 static int stbi__mad3sizes_valid(int a, int b, int c, int add)
 {
-   return stbi__mul2sizes_valid(a, b) && stbi__mul2sizes_valid(a*b, c) &&
+   return stbi__mul2sizes_valid(a, b) & stbi__mul2sizes_valid(a*b, c) &
       stbi__addsizes_valid(a*b*c, add);
 }
 
@@ -1038,8 +1038,8 @@ static int stbi__mad3sizes_valid(int a, int b, int c, int add)
 #if !defined(STBI_NO_LINEAR) || !defined(STBI_NO_HDR) || !defined(STBI_NO_PNM)
 static int stbi__mad4sizes_valid(int a, int b, int c, int d, int add)
 {
-   return stbi__mul2sizes_valid(a, b) && stbi__mul2sizes_valid(a*b, c) &&
-      stbi__mul2sizes_valid(a*b*c, d) && stbi__addsizes_valid(a*b*c*d, add);
+   return stbi__mul2sizes_valid(a, b) & stbi__mul2sizes_valid(a*b, c) &
+      stbi__mul2sizes_valid(a*b*c, d) & stbi__addsizes_valid(a*b*c*d, add);
 }
 #endif
 
