@@ -125,8 +125,8 @@ void FlashLightScene::render() {
 
     lightShader->use();
     glm::vec3 lightColor(1.0f);
-    lightShader->setVec3("light.ambient", lightColor * 0.2f);
-    lightShader->setVec3("light.diffuse", lightColor * 1.0f);
+    lightShader->setVec3("light.ambient", lightColor * 0.1f);
+    lightShader->setVec3("light.diffuse", lightColor * 2.0f);
     lightShader->setVec3("light.specular", lightColor);
     lightShader->setFloat("light.constant", 1.0f);
     lightShader->setFloat("light.linear", 0.09f);
