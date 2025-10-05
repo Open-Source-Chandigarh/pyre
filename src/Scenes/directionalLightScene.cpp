@@ -1,5 +1,3 @@
-#define STB_IMAGE_IMPLEMENTATION
-
 #include "directionalLightScene.h"
 #include <glad/glad.h>
 #include <stb_image.h>
@@ -7,15 +5,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-// extern camera from main
-extern Camera camera;
-extern unsigned int SCR_WIDTH;
-extern unsigned int SCR_HEIGHT;
 
-DirectionalLightScene::DirectionalLightScene()
+DirectionalLightScene::DirectionalLightScene(AppState& appState)
     : VAO(0), VBO(0),
     lightShader(nullptr),
-    rotationAngle(0.0f), rotationSpeed(50.0f)
+    rotationAngle(0.0f), rotationSpeed(50.0f),
+    appState(appState)
 {
     // cube positions
     cubePositions[0] = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -119,8 +114,8 @@ void DirectionalLightScene::init() {
     lightShader->setFloat("material.shininess", 32.0f);
 }
 
-void DirectionalLightScene::update(float deltaTime) {
-    rotationAngle -= rotationSpeed * deltaTime;
+void DirectionalLightScene::update() {
+    rotationAngle -= rotationSpeed * appState.deltaTime;
 }
 
 void DirectionalLightScene::render() {
@@ -132,8 +127,8 @@ void DirectionalLightScene::render() {
     lightShader->setVec3("light.specular", lightColor);
     lightShader->setVec3("lightDir", glm::vec3(-0.2f, -1.0f, -0.3f));
 
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-    glm::mat4 view = camera.GetViewMatrix();
+    glm::mat4 projection = glm::perspective(glm::radians(appState.camera.Zoom), (float)appState.SCR_WIDTH / (float)appState.SCR_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 view = appState.camera.GetViewMatrix();
     lightShader->setMat4("projection", projection);
     lightShader->setMat4("view", view);
 

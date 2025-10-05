@@ -1,4 +1,4 @@
-#include "FlashLightScene.h"
+#include "factoryScene.h"
 #include <glad/glad.h>
 #include <stb_image.h>
 #include <iostream>
@@ -6,9 +6,9 @@
 #include <glm/gtc/type_ptr.hpp>
 
 
-FlashLightScene::FlashLightScene(AppState &appState)
+FactoryScene::FactoryScene(AppState& appState)
     : VAO(0), VBO(0),
-    lightShader(nullptr),
+    shader(nullptr),
     rotationAngle(0.0f), rotationSpeed(50.0f),
     appState(appState)
 {
@@ -25,15 +25,15 @@ FlashLightScene::FlashLightScene(AppState &appState)
     cubePositions[9] = glm::vec3(-1.3f, 1.0f, -1.5f);
 }
 
-FlashLightScene::~FlashLightScene() {
+FactoryScene::~FactoryScene() {
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
-    delete lightShader;
+    delete shader;
 }
 
-void FlashLightScene::init() {
+void FactoryScene::init() {
     // shaders
-    lightShader = new Shader("shaders/lightning/flashLightVertexShader.vs", "shaders/lightning/flashLightFragmentShader.fs");
+    shader = new Shader("shaders/lightning/combinedLightVertexShader.vs", "shaders/lightning/combinedLightsFragmentShader.fs");
 
     // cube vertices ...
     float vertices[] = {
@@ -108,35 +108,80 @@ void FlashLightScene::init() {
     diffuseMap = loadTexture("resources/container3.png");
     specularMap = loadTexture("resources/container3Spec.png");
 
-    lightShader->use();
-    lightShader->setInt("material.diffuse", 0);
-    lightShader->setInt("material.specular", 1);
-    lightShader->setFloat("material.shininess", 32.0f);
+    shader->use();
+    shader->setInt("material.diffuse", 0);
+    shader->setInt("material.specular", 1);
+    shader->setFloat("material.shininess", 32.0f);
 }
 
-void FlashLightScene::update() {
+void FactoryScene::update() {
     rotationAngle -= rotationSpeed * appState.deltaTime;
 }
 
-void FlashLightScene::render() {
+void FactoryScene::render() 
+{
+    glm::vec3 pointLightPositions[] = {
+        glm::vec3(0.7f, 0.2f, 2.0f),
+        glm::vec3(2.3f, -3.3f, -4.0f),
+        glm::vec3(-4.0f, 2.0f, -12.0f),
+        glm::vec3(0.0f, 0.0f, -3.0f)
+    };
 
-    lightShader->use();
-    glm::vec3 lightColor(1.0f);
-    lightShader->setVec3("light.ambient", lightColor * 0.1f);
-    lightShader->setVec3("light.diffuse", lightColor * 2.0f);
-    lightShader->setVec3("light.specular", lightColor);
-    lightShader->setFloat("light.constant", 1.0f);
-    lightShader->setFloat("light.linear", 0.09f);
-    lightShader->setFloat("light.quadratic", 0.032f);
-    lightShader->setVec3("lightDir", appState.camera.Front);
-    lightShader->setVec3("lightPos", appState.camera.Position);
-    lightShader->setFloat("light.innerCutOff", glm::cos(glm::radians(12.5f)));
-    lightShader->setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
+    shader->use();
+    glm::mat4 view = appState.camera.GetViewMatrix();
+    glm::vec3 lightColor(0.4f, 0.3f, 0.8f);
+    // directional light
+    shader->setVec3("dirLight.direction", glm::vec3(view * glm::vec4(-0.2f, -1.0f, -0.3f, 1.0f)));
+    shader->setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
+    shader->setVec3("dirLight.diffuse", 0.1f, 0.1f, 0.8f);
+    shader->setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+    // pointt light 1
+    shader->setVec3("pointLights[0].position", glm::vec3(view * glm::vec4(pointLightPositions[0], 1.0f)));
+    shader->setVec3("pointLights[0].ambient", glm::vec3(0.2f, 2.0f, 0.2f) * 0.1f);
+    shader->setVec3("pointLights[0].diffuse", glm::vec3(0.2f, 2.0f, 0.2f) * 0.8f);
+    shader->setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
+    shader->setFloat("pointLights[0].constant", 1.0f);
+    shader->setFloat("pointLights[0].linear", 0.09f);
+    shader->setFloat("pointLights[0].quadratic", 0.032f);
+    // pointt light 2
+    shader->setVec3("pointLights[1].position", glm::vec3(view * glm::vec4(pointLightPositions[1], 1.0f)));
+    shader->setVec3("pointLights[1].ambient", glm::vec3(0.2f, 0.2f, 2.0f) * 0.1f);
+    shader->setVec3("pointLights[1].diffuse", glm::vec3(0.2f, 0.2f, 2.0f) * 0.9f);
+    shader->setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
+    shader->setFloat("pointLights[1].constant", 1.0f);
+    shader->setFloat("pointLights[1].linear", 0.09f);
+    shader->setFloat("pointLights[1].quadratic", 0.032f);
+    // point light 3
+    shader->setVec3("pointLights[2].position", glm::vec3(view * glm::vec4(pointLightPositions[2], 1.0f)));
+    shader->setVec3("pointLights[2].ambient", glm::vec3(1.0f, 0.2f, 0.2f) * 0.1f);
+    shader->setVec3("pointLights[2].diffuse", glm::vec3(1.0f, 0.2f, 0.2f) * 0.8f);
+    shader->setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
+    shader->setFloat("pointLights[2].constant", 1.0f);
+    shader->setFloat("pointLights[2].linear", 0.09f);
+    shader->setFloat("pointLights[2].quadratic", 0.032f);
+    // point light 4
+    shader->setVec3("pointLights[3].position", glm::vec3(view * glm::vec4(pointLightPositions[3], 1.0f)));
+    shader->setVec3("pointLights[3].ambient", glm::vec3(0.5f, 0.3f, 0.2f) * 0.1f);
+    shader->setVec3("pointLights[3].diffuse", glm::vec3(0.5f, 0.3f, 0.2f) * 0.6f);
+    shader->setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
+    shader->setFloat("pointLights[3].constant", 1.0f);
+    shader->setFloat("pointLights[3].linear", 0.09f);
+    shader->setFloat("pointLights[3].quadratic", 0.032f);
+    // spotLight
+    shader->setVec3("spotLight.position", appState.camera.Position);
+    shader->setVec3("spotLight.direction", appState.camera.Front);
+    shader->setVec3("spotLight.ambient", lightColor * 0.5f);
+    shader->setVec3("spotLight.diffuse", lightColor * 2.0f);
+    shader->setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+    shader->setFloat("spotLight.constant", 1.0f);
+    shader->setFloat("spotLight.linear", 0.09f);
+    shader->setFloat("spotLight.quadratic", 0.032f);
+    shader->setFloat("spotLight.innerCutOff", glm::cos(glm::radians(12.5f)));
+    shader->setFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));     
 
     glm::mat4 projection = glm::perspective(glm::radians(appState.camera.Zoom), (float)appState.SCR_WIDTH / (float)appState.SCR_HEIGHT, 0.1f, 100.0f);
-    glm::mat4 view = appState.camera.GetViewMatrix();
-    lightShader->setMat4("projection", projection);
-    lightShader->setMat4("view", view);
+    shader->setMat4("projection", projection);
+    shader->setMat4("view", view);
 
     glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, diffuseMap);
     glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, specularMap);
@@ -147,12 +192,12 @@ void FlashLightScene::render() {
         model = glm::translate(model, cubePositions[i]);
         float angle = 20.0f * i;
         model = glm::rotate(model, glm::radians(angle) + glm::radians(rotationAngle), glm::vec3(1.0f, 0.3f, 0.5f));
-        lightShader->setMat4("model", model);
+        shader->setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 }
 
-unsigned int FlashLightScene::loadTexture(const char* path) {
+unsigned int FactoryScene::loadTexture(const char* path) {
     unsigned int texture;
     glGenTextures(1, &texture);
 

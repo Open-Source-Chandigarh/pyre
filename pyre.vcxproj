@@ -92,6 +92,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -121,6 +122,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -147,10 +149,14 @@
   <ItemGroup>
     <ClCompile Include="includes\glm\detail\glm.cpp" />
     <ClCompile Include="includes\glm\glm.cppm" />
+    <ClCompile Include="includes\stb_image.cpp" />
+    <ClCompile Include="src\Scenes\factoryScene.cpp" />
     <ClCompile Include="src\Scenes\flashLightScene.cpp" />
     <ClCompile Include="src\Scenes\pointLightScene.cpp" />
     <ClCompile Include="src\Scenes\directionalLightScene.cpp" />
     <ClCompile Include="src\Scenes\directionalLightScene.h" />
+    <None Include="shaders\lightning\combinedLightsFragmentShader.fs" />
+    <None Include="shaders\lightning\combinedLightVertexShader.vs" />
     <None Include="shaders\lightning\flashLightFragmentShader.fs" />
     <None Include="shaders\lightning\flashLightVertexShader.vs" />
     <None Include="shaders\lightning\lightCubeFragmentShader.fs" />
@@ -163,6 +169,7 @@
     <ClCompile Include="includes\glad\src\glad.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="includes\appState.h" />
     <ClInclude Include="includes\glad\glad.h" />
     <ClInclude Include="includes\GLFW\glfw3.h" />
     <ClInclude Include="includes\GLFW\glfw3native.h" />
@@ -459,6 +466,7 @@
     <ClInclude Include="includes\stb_image.h" />
     <ClInclude Include="src\Helpers\camera.h" />
     <ClInclude Include="src\Helpers\shaderClass.h" />
+    <ClInclude Include="src\Scenes\factoryScene.h" />
     <ClInclude Include="src\Scenes\flashLightScene.h" />
     <ClInclude Include="src\Scenes\pointLightScene.h" />
     <ClInclude Include="src\Scenes\scene.h" />

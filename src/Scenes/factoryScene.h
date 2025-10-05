@@ -6,12 +6,12 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-// This class represents a Scene that demonstrates lighting with a single directional light.
+// This class represents a Scene that demonstrates lighting with all the light types combined (directional, point, spot).
 // It derives from the base Scene class, so it must implement init(), update(), render(), and name().
-class FlashLightScene : public Scene {
+class FactoryScene : public Scene {
 public:
-    FlashLightScene(AppState &appState);
-    ~FlashLightScene();
+    FactoryScene(AppState& appState);
+    ~FactoryScene();
 
     // Called once when the scene is created (setup VAOs, VBOs, shaders, textures, etc.)
     void init() override;
@@ -23,11 +23,10 @@ public:
     void render() override;
 
     // Scene display name (helpful when switching scenes)
-    std::string name() const override { return "SpotLight Demo Scene"; }
+    std::string name() const override { return "Factory Demo Scene"; }
 
 private:
-    // global engine state
-    AppState &appState;
+    AppState& appState;
 
     // OpenGL object handles
     unsigned int VAO, VBO;
@@ -36,7 +35,7 @@ private:
     unsigned int diffuseMap, specularMap;
 
     // The shader program for this scene
-    Shader* lightShader;
+    Shader* shader;
 
     // Fixed positions of cubes in the scene
     glm::vec3 cubePositions[10];

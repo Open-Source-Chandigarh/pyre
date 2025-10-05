@@ -2,6 +2,7 @@
 
 #include "../Helpers/shaderClass.h"
 #include "../Helpers/camera.h"
+#include "../../includes/appState.h"
 #include "scene.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -17,14 +18,14 @@
 class PointLightScene : public Scene
 {
 public:
-    PointLightScene();
+    PointLightScene(AppState& appState);
     ~PointLightScene();
 
     /// Initialize shaders, VAOs, VBOs, and textures
     void init() override;
 
     /// Update per-frame logic (e.g., light movement, animations)
-    void update(float deltaTime) override;
+    void update() override;
 
     /// Render all objects in the scene
     void render() override;
@@ -33,6 +34,8 @@ public:
     std::string name() const override { return "Point Light Demo Scene"; }
 
 private:
+    AppState& appState;
+
     Shader* lightingShader;   // shader used to render the textured cube
     Shader* lightCubeShader;  // shader used to render the small light cube
 

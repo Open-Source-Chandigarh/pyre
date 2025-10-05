@@ -10,7 +10,7 @@ public:
     virtual void init() = 0;
 
     // called every frame
-    virtual void update(float deltaTime) = 0;
+    virtual void update() = 0;
 
     // called every frame after update
     virtual void render() = 0;

@@ -42,10 +42,19 @@
     <ClCompile Include="src\Scenes\directionalLightScene.h">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Scenes\directionalLight.cpp">
+    <ClCompile Include="src\Scenes\factoryScene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Scenes\diffuseAndSpecularMapScene.cpp">
+    <ClCompile Include="src\Scenes\flashLightScene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scenes\pointLightScene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Scenes\directionalLightScene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="includes\stb_image.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -941,7 +950,16 @@
     <ClInclude Include="src\Scenes\scene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Scenes\diffuseAndSpecularMapScene.h">
+    <ClInclude Include="includes\appState.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scenes\factoryScene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scenes\flashLightScene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Scenes\pointLightScene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1395,6 +1413,10 @@
     </None>
     <None Include="shaders\lightning\lightCubeVertexShader.vs" />
     <None Include="shaders\lightning\lightCubeFragmentShader.fs" />
+    <None Include="shaders\lightning\combinedLightsFragmentShader.fs" />
+    <None Include="shaders\lightning\combinedLightVertexShader.vs" />
+    <None Include="shaders\lightning\flashLightFragmentShader.fs" />
+    <None Include="shaders\lightning\flashLightVertexShader.vs" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="includes\glm\CMakeLists.txt" />

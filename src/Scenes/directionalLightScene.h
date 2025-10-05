@@ -2,6 +2,7 @@
 #include "Scene.h"
 #include "../Helpers/shaderClass.h"
 #include "../Helpers/camera.h"
+#include "../../includes/appState.h"
 #include <glm/glm.hpp>
 #include <vector>
 
@@ -9,14 +10,14 @@
 // It derives from the base Scene class, so it must implement init(), update(), render(), and name().
 class DirectionalLightScene : public Scene {
 public:
-    DirectionalLightScene();
+    DirectionalLightScene(AppState& appState);
     ~DirectionalLightScene();
 
     // Called once when the scene is created (setup VAOs, VBOs, shaders, textures, etc.)
     void init() override;
 
     // Called every frame to update logic (e.g., rotations, animations)
-    void update(float deltaTime) override;
+    void update() override;
 
     // Called every frame to draw objects
     void render() override;
@@ -25,6 +26,8 @@ public:
     std::string name() const override { return "Directional Light Demo Scene"; }
 
 private:
+    AppState& appState;
+
     // OpenGL object handles
     unsigned int VAO, VBO;
 

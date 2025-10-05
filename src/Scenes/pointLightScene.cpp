@@ -2,20 +2,16 @@
 #include "stb_image.h"
 #include <iostream>
 
-// External globals defined in main.cpp
-extern Camera camera;
-extern float deltaTime;
-extern unsigned int SCR_WIDTH;
-extern unsigned int SCR_HEIGHT;
 
 // Starting position of the light in the scene
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
-PointLightScene::PointLightScene()
+PointLightScene::PointLightScene(AppState& appState)
     : lightingShader(nullptr), lightCubeShader(nullptr),
     cubeVAO(0), lightCubeVAO(0),
     diffuseMap(0), specularMap(0),
-    rotationAngle(0.0f), rotationSpeed(50.0f)
+    rotationAngle(0.0f), rotationSpeed(50.0f),
+    appState(appState)
 {
 
     cubePositions[0] = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -136,9 +132,9 @@ void PointLightScene::init()
     glEnableVertexAttribArray(0);
 }
 
-void PointLightScene::update(float deltaTime)
+void PointLightScene::update()
 {
-    rotationAngle -= rotationSpeed * deltaTime;
+    rotationAngle -= rotationSpeed * appState.deltaTime;
 }
 
 void PointLightScene::render()
@@ -163,9 +159,9 @@ void PointLightScene::render()
     lightingShader->setVec3("lightPos", lightPos);
 
     // Camera matrices
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom),
-        (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-    glm::mat4 view = camera.GetViewMatrix();
+    glm::mat4 projection = glm::perspective(glm::radians(appState.camera.Zoom),
+        (float)appState.SCR_WIDTH / (float)appState.SCR_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 view = appState.camera.GetViewMatrix();
     lightingShader->setMat4("projection", projection);
     lightingShader->setMat4("view", view);
 
