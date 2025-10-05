@@ -133,7 +133,8 @@ void FlashLightScene::render() {
     lightShader->setFloat("light.quadratic", 0.032f);
     lightShader->setVec3("lightDir", camera.Front);
     lightShader->setVec3("lightPos", camera.Position);
-    lightShader->setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
+    lightShader->setFloat("light.innerCutOff", glm::cos(glm::radians(12.5f)));
+    lightShader->setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
 
     glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
     glm::mat4 view = camera.GetViewMatrix();
