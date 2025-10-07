@@ -18,6 +18,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 unsigned int loadTexture(const char* path);
 
 // settings
@@ -38,6 +39,9 @@ float lastFrame = 0.0f;
 
 // lighting
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+
+// global wireframe state (toggled by key callback)
+static bool g_wireframe = false;
 
 int main()
 {
@@ -67,6 +71,9 @@ int main()
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
 
+    // new: key callback to reliably detect single key presses (edge triggered)
+    glfwSetKeyCallback(window, key_callback);
+
     // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
@@ -81,6 +88,9 @@ int main()
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
+
+     // ensure default fill mode initially
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     // build and compile our shader zprogram
     // ------------------------------------
@@ -347,25 +357,29 @@ void processInput(GLFWwindow* window)
         camera.Reset();
         std::cout << "Camera reset!\n";
     }
-    //Toggle wireframe mode
-    static bool wireframe = false;
-    static bool keyPressed = false;
 
-    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS && !keyPressed)
+}
+  // Key callback: toggles wireframe <-> fill on F key press (edge triggered)
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_F && action == GLFW_PRESS)
     {
-        wireframe = !wireframe;
-        glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
-        keyPressed = true;
-        std::cout << "Wireframe mode: " << (wireframe ? "ON" : "OFF") << std::endl;
+        g_wireframe = !g_wireframe;
+        glPolygonMode(GL_FRONT_AND_BACK, g_wireframe ? GL_LINE : GL_FILL);
+        std::cout << "Wireframe mode: " << (g_wireframe ? "ON" : "OFF") << std::endl;
     }
 
-    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_RELEASE)
+    // Allow ESC to release mouse even if used via key callback: keep previous behavior too
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
     {
-        keyPressed = false;
+        if (mouseCaptured)
+        {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            mouseCaptured = false;
+        }
     }
 }
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     // make sure the viewport matches the new window dimensions
