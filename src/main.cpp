@@ -347,8 +347,23 @@ void processInput(GLFWwindow* window)
         camera.Reset();
         std::cout << "Camera reset!\n";
     }
-}
+    //Toggle wireframe mode
+    static bool wireframe = false;
+    static bool keyPressed = false;
 
+    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS && !keyPressed)
+    {
+        wireframe = !wireframe;
+        glPolygonMode(GL_FRONT_AND_BACK, wireframe ? GL_LINE : GL_FILL);
+        keyPressed = true;
+        std::cout << "Wireframe mode: " << (wireframe ? "ON" : "OFF") << std::endl;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_RELEASE)
+    {
+        keyPressed = false;
+    }
+}
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
