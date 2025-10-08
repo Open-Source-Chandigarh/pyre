@@ -239,6 +239,9 @@ int main()
         lightShader.setVec3("lightPos", lightPos);
 
         // view/projection transformations
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);
+        float aspectRatio = (float)width / (float)height;
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
         lightShader.setMat4("projection", projection);
@@ -426,4 +429,8 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    glViewport(0, 0, width, height);
 }
