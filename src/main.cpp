@@ -1,4 +1,4 @@
-#define STB_IMAGE_IMPLEMENTATION
+﻿#define STB_IMAGE_IMPLEMENTATION
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -12,7 +12,9 @@
 #include "Helpers/camera.h"
 
 #include <iostream>
+#include <vector>
 
+// Function declarations
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -33,12 +35,25 @@ bool firstMouse = true;
 bool mouseCaptured = true;
 
 // timing
-float deltaTime = 0.0f;	// time between current frame and last frame
+float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
+// rotation
+float rotationSpeed = 50.0f;
+float rotationAngle = 0.0f;
 
 // lighting
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 lightColor(1.0f); // 
+
+// background color options
+std::vector<glm::vec3> bgColors = {
+    glm::vec3(0.1f, 0.1f, 0.1f), // dark gray
+    glm::vec3(0.0f, 0.0f, 0.0f), // black
+    glm::vec3(0.0f, 0.0f, 1.0f), // blue
+    glm::vec3(1.0f, 0.0f, 0.0f)  // red
+};
+static int colorIndex = 0;
 
 // global wireframe state (toggled by key callback)
 static bool g_wireframe = false;
@@ -46,7 +61,6 @@ static bool g_wireframe = false;
 int main()
 {
     // glfw: initialize and configure
-    // ------------------------------
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -57,9 +71,8 @@ int main()
 #endif
 
     // glfw window creation
-    // --------------------
     GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Graphics Engine", NULL, NULL);
-    if (window == NULL)
+    if (!window)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -78,15 +91,12 @@ int main()
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // glad: load all OpenGL function pointers
-    // ---------------------------------------
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
 
-    // configure global opengl state
-    // -----------------------------
     glEnable(GL_DEPTH_TEST);
 
      // ensure default fill mode initially
@@ -105,91 +115,79 @@ int main()
 
 
 
-
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
+    // cube vertex data
     float vertices[] = {
         // Positions          // Normals           // Texture Coords
+        -0.5f,-0.5f,-0.5f,  0.0f,0.0f,-1.0f,  0.0f,0.0f,
+         0.5f,-0.5f,-0.5f,  0.0f,0.0f,-1.0f,  1.0f,0.0f,
+         0.5f, 0.5f,-0.5f,  0.0f,0.0f,-1.0f,  1.0f,1.0f,
+         0.5f, 0.5f,-0.5f,  0.0f,0.0f,-1.0f,  1.0f,1.0f,
+        -0.5f, 0.5f,-0.5f,  0.0f,0.0f,-1.0f,  0.0f,1.0f,
+        -0.5f,-0.5f,-0.5f,  0.0f,0.0f,-1.0f,  0.0f,0.0f,
 
-        // Back face
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+        -0.5f,-0.5f, 0.5f,  0.0f,0.0f,1.0f,  0.0f,0.0f,
+         0.5f,-0.5f, 0.5f,  0.0f,0.0f,1.0f,  1.0f,0.0f,
+         0.5f, 0.5f, 0.5f,  0.0f,0.0f,1.0f,  1.0f,1.0f,
+         0.5f, 0.5f, 0.5f,  0.0f,0.0f,1.0f,  1.0f,1.0f,
+        -0.5f, 0.5f, 0.5f,  0.0f,0.0f,1.0f,  0.0f,1.0f,
+        -0.5f,-0.5f, 0.5f,  0.0f,0.0f,1.0f,  0.0f,0.0f,
 
-        // Front face
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,
+        -0.5f, 0.5f, 0.5f,-1.0f,0.0f,0.0f,  1.0f,0.0f,
+        -0.5f, 0.5f,-0.5f,-1.0f,0.0f,0.0f,  1.0f,1.0f,
+        -0.5f,-0.5f,-0.5f,-1.0f,0.0f,0.0f,  0.0f,1.0f,
+        -0.5f,-0.5f,-0.5f,-1.0f,0.0f,0.0f,  0.0f,1.0f,
+        -0.5f,-0.5f, 0.5f,-1.0f,0.0f,0.0f,  0.0f,0.0f,
+        -0.5f, 0.5f, 0.5f,-1.0f,0.0f,0.0f,  1.0f,0.0f,
 
-        // Left face
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+         0.5f, 0.5f, 0.5f,1.0f,0.0f,0.0f, 1.0f,0.0f,
+         0.5f, 0.5f,-0.5f,1.0f,0.0f,0.0f, 1.0f,1.0f,
+         0.5f,-0.5f,-0.5f,1.0f,0.0f,0.0f, 0.0f,1.0f,
+         0.5f,-0.5f,-0.5f,1.0f,0.0f,0.0f, 0.0f,1.0f,
+         0.5f,-0.5f, 0.5f,1.0f,0.0f,0.0f, 0.0f,0.0f,
+         0.5f, 0.5f, 0.5f,1.0f,0.0f,0.0f, 1.0f,0.0f,
 
-        // Right face
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+        -0.5f,-0.5f,-0.5f,0.0f,-1.0f,0.0f,0.0f,1.0f,
+         0.5f,-0.5f,-0.5f,0.0f,-1.0f,0.0f,1.0f,1.0f,
+         0.5f,-0.5f, 0.5f,0.0f,-1.0f,0.0f,1.0f,0.0f,
+         0.5f,-0.5f, 0.5f,0.0f,-1.0f,0.0f,1.0f,0.0f,
+        -0.5f,-0.5f, 0.5f,0.0f,-1.0f,0.0f,0.0f,0.0f,
+        -0.5f,-0.5f,-0.5f,0.0f,-1.0f,0.0f,0.0f,1.0f,
 
-         // Bottom face
-         -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-          0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
-          0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-          0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-         -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
-         -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-
-         // Top face
-         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
-          0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-          0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-          0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-         -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
+        -0.5f, 0.5f,-0.5f,0.0f,1.0f,0.0f,0.0f,1.0f,
+         0.5f, 0.5f,-0.5f,0.0f,1.0f,0.0f,1.0f,1.0f,
+         0.5f, 0.5f, 0.5f,0.0f,1.0f,0.0f,1.0f,0.0f,
+         0.5f, 0.5f, 0.5f,0.0f,1.0f,0.0f,1.0f,0.0f,
+        -0.5f, 0.5f, 0.5f,0.0f,1.0f,0.0f,0.0f,0.0f,
+        -0.5f, 0.5f,-0.5f,0.0f,1.0f,0.0f,0.0f,1.0f
     };
+
     unsigned int VBO, VAO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
 
     glBindVertexArray(VAO);
-
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    // position attribute
+    // positions
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-
-    // normal attribute
+    // normals
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-
-    // Tex Coords
+    // tex coords
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
+    // light cube VAO
     unsigned int lightCubeVAO;
     glGenVertexArrays(1, &lightCubeVAO);
     glBindVertexArray(lightCubeVAO);
-
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // load and create a texture
+    // textures
     unsigned int diffuseMap = loadTexture("resources\\container3.png");
     unsigned int specularMap = loadTexture("resources\\container3Spec.png");
 
@@ -199,42 +197,34 @@ int main()
     lightShader.setFloat("material.shininess", 32.0f);
     lightShader.setVec3("lightPos", lightPos);
 
-
     // render loop
-    // -----------
     while (!glfwWindowShouldClose(window))
     {
-        // per-frame time logic
-        // --------------------
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        // input
-        // -----
         processInput(window);
 
-        // render
-        // ------   
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        // clear screen with selected background color
+        glm::vec3 color = bgColors[colorIndex];
+        glClearColor(color.r, color.g, color.b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Animate light color
-    float time = static_cast<float>(glfwGetTime());
-       glm::vec3 lightColor;
-       lightColor.r = sin(time * 2.0f) * 0.5f + 0.5f;  // normalize to [0,1]
-       lightColor.g = sin(time * 0.7f) * 0.5f + 0.5f;
-       lightColor.b = sin(time * 1.3f) * 0.5f + 0.5f;
+        // animate light color using global lightColor
+        float time = static_cast<float>(glfwGetTime());
+        lightColor.r = sin(time * 2.0f) * 0.5f + 0.5f;
+        lightColor.g = sin(time * 0.7f) * 0.5f + 0.5f;
+        lightColor.b = sin(time * 1.3f) * 0.5f + 0.5f;
 
-        // Use shader and set uniform
-       lightShader.use();
-       lightShader.setVec3("lightCubeColor", lightColor);
-
+        // use light shader
+        lightShader.use();
+        lightShader.setVec3("lightCubeColor", lightColor);
 
         glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
         glm::vec3 ambientColor = lightColor * glm::vec3(0.2f);
         lightShader.setVec3("light.ambient", ambientColor);
-        lightShader.setVec3("light.diffuse", diffuseColor); 
+        lightShader.setVec3("light.diffuse", diffuseColor);
         lightShader.setVec3("light.specular", lightColor);
         lightShader.setVec3("lightPos", lightPos);
 
@@ -247,27 +237,28 @@ int main()
         lightShader.setMat4("projection", projection);
         lightShader.setMat4("view", view);
 
-        // world transformation
-        glm::mat4 model = glm::mat4(1.0f);
+        // rotation
+        rotationAngle += rotationSpeed * deltaTime;
+        glm::mat4 model = glm::rotate(glm::mat4(1.0f),
+            glm::radians(rotationAngle),
+            glm::vec3(0.0f, 1.0f, 0.0f));
         lightShader.setMat4("model", model);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, diffuseMap);
-
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, specularMap);
 
-        // render the cube
+        // render cube
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        // also draw the lamp object
+        // render light cube
         lightCubeShader.use();
         lightCubeShader.setMat4("projection", projection);
         lightCubeShader.setMat4("view", view);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, lightPos);
-        model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+        model = glm::translate(glm::mat4(1.0f), lightPos);
+        model = glm::scale(model, glm::vec3(0.2f));
         lightCubeShader.setMat4("model", model);
         lightCubeShader.setVec3("lightCubeColor", lightColor);
 
@@ -275,47 +266,32 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
         lightPos.x = sin(glfwGetTime());
-        lightPos.z = cos((glfwGetTime()));
+        lightPos.z = cos(glfwGetTime());
 
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    // optional: de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
-
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
     glfwTerminate();
     return 0;
 }
 
+// --- texture loader ---
 unsigned int loadTexture(const char* path)
 {
     unsigned int texture;
     glGenTextures(1, &texture);
 
     int width, height, nrChannels;
-
     stbi_set_flip_vertically_on_load(true);
-
     unsigned char* data = stbi_load(path, &width, &height, &nrChannels, 0);
     if (data)
     {
-        GLenum format;
-        if (nrChannels == 1)
-            format = GL_RED;
-        else if (nrChannels == 3)
-            format = GL_RGB;
-        else if (nrChannels == 4)
-            format = GL_RGBA;
+        GLenum format = (nrChannels == 1 ? GL_RED : (nrChannels == 3 ? GL_RGB : GL_RGBA));
         glBindTexture(GL_TEXTURE_2D, texture);
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-
         glGenerateMipmap(GL_TEXTURE_2D);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -324,27 +300,23 @@ unsigned int loadTexture(const char* path)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
     else
-    {
         std::cerr << "\033[31m Failed to load texture \033[0m" << std::endl;
-    }
 
     stbi_image_free(data);
-
     return texture;
 }
 
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-// ---------------------------------------------------------------------------------------------------------
+// --- input processing ---
 void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    {
-        if (mouseCaptured)
-        {
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-            mouseCaptured = false;
-        }
-    }
+        glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_KP_ADD) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_EQUAL) == GLFW_PRESS)
+        rotationSpeed += 10.0f;
+    if (glfwGetKey(window, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_MINUS) == GLFW_PRESS)
+        rotationSpeed -= 10.0f;
+    if (rotationSpeed < 0.0f) rotationSpeed = 0.0f;
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
@@ -354,7 +326,16 @@ void processInput(GLFWwindow* window)
         camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
-        //Reset camera with R key
+
+    static bool bKeyPressed = false;
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS && !bKeyPressed)
+    {
+        colorIndex = (colorIndex + 1) % bgColors.size();
+        bKeyPressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_RELEASE)
+        bKeyPressed = false;
+
     if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
     {
         camera.Reset();
@@ -385,7 +366,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-    // make sure the viewport matches the new window dimensions
     glViewport(0, 0, width, height);
 }
 
@@ -395,13 +375,10 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         mouseCaptured = true;
-        firstMouse = true; // to avoid sudden jumps in camera
+        firstMouse = true;
     }
 }
 
-
-// glfw: whenever the mouse moves, this callback is called
-// -------------------------------------------------------
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
     if (!mouseCaptured) return;
@@ -416,16 +393,13 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
     }
 
     float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
+    float yoffset = lastY - ypos;
     lastX = xpos;
     lastY = ypos;
 
     camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
-// glfw: whenever the mouse scroll wheel scrolls, this callback is called
-// ----------------------------------------------------------------------
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
