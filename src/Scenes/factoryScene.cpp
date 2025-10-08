@@ -6,11 +6,11 @@
 #include <glm/gtc/type_ptr.hpp>
 
 
-FactoryScene::FactoryScene(AppState& appState)
+FactoryScene::FactoryScene(Window& win)
     : VAO(0), VBO(0),
     shader(nullptr),
     rotationAngle(0.0f), rotationSpeed(50.0f),
-    appState(appState)
+    win(win)
 {
     // cube positions
     cubePositions[0] = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -115,7 +115,7 @@ void FactoryScene::init() {
 }
 
 void FactoryScene::update() {
-    rotationAngle -= rotationSpeed * appState.deltaTime;
+    rotationAngle -= rotationSpeed * win.GetAppState() -> deltaTime;
 }
 
 void FactoryScene::render() 
@@ -128,7 +128,7 @@ void FactoryScene::render()
     };
 
     shader->use();
-    glm::mat4 view = appState.camera.GetViewMatrix();
+    glm::mat4 view = win.GetAppState() -> camera.GetViewMatrix();
     glm::vec3 lightColor(0.4f, 0.3f, 0.8f);
     // directional light
     shader->setVec3("dirLight.direction", glm::vec3(view * glm::vec4(-0.2f, -1.0f, -0.3f, 1.0f)));
@@ -168,8 +168,8 @@ void FactoryScene::render()
     shader->setFloat("pointLights[3].linear", 0.09f);
     shader->setFloat("pointLights[3].quadratic", 0.032f);
     // spotLight
-    shader->setVec3("spotLight.position", appState.camera.Position);
-    shader->setVec3("spotLight.direction", appState.camera.Front);
+    shader->setVec3("spotLight.position", win.GetAppState()->camera.Position);
+    shader->setVec3("spotLight.direction", win.GetAppState()->camera.Front);
     shader->setVec3("spotLight.ambient", lightColor * 0.5f);
     shader->setVec3("spotLight.diffuse", lightColor * 2.0f);
     shader->setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
@@ -179,7 +179,7 @@ void FactoryScene::render()
     shader->setFloat("spotLight.innerCutOff", glm::cos(glm::radians(12.5f)));
     shader->setFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));     
 
-    glm::mat4 projection = glm::perspective(glm::radians(appState.camera.Zoom), (float)appState.SCR_WIDTH / (float)appState.SCR_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(win.GetAppState() -> camera.Zoom), (float)win.Width() / (float)win.Height(), 0.1f, 100.0f);
     shader->setMat4("projection", projection);
     shader->setMat4("view", view);
 

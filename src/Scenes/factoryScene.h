@@ -2,6 +2,7 @@
 #include "Scene.h"
 #include "../Helpers/shaderClass.h"
 #include "../Helpers/camera.h"
+#include "../../includes/core/Window.h"
 #include "../../includes/appState.h"
 #include <glm/glm.hpp>
 #include <vector>
@@ -10,7 +11,7 @@
 // It derives from the base Scene class, so it must implement init(), update(), render(), and name().
 class FactoryScene : public Scene {
 public:
-    FactoryScene(AppState& appState);
+    FactoryScene(Window& win);
     ~FactoryScene();
 
     // Called once when the scene is created (setup VAOs, VBOs, shaders, textures, etc.)
@@ -26,7 +27,7 @@ public:
     std::string name() const override { return "Factory Demo Scene"; }
 
 private:
-    AppState& appState;
+    Window& win;
 
     // OpenGL object handles
     unsigned int VAO, VBO;

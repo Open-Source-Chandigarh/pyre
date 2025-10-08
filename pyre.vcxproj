@@ -150,11 +150,9 @@
     <ClCompile Include="includes\glm\detail\glm.cpp" />
     <ClCompile Include="includes\glm\glm.cppm" />
     <ClCompile Include="includes\stb_image.cpp" />
+    <ClCompile Include="src\core\InputManager.cpp" />
+    <ClCompile Include="src\core\Window.cpp" />
     <ClCompile Include="src\Scenes\factoryScene.cpp" />
-    <ClCompile Include="src\Scenes\flashLightScene.cpp" />
-    <ClCompile Include="src\Scenes\pointLightScene.cpp" />
-    <ClCompile Include="src\Scenes\directionalLightScene.cpp" />
-    <ClCompile Include="src\Scenes\directionalLightScene.h" />
     <None Include="shaders\lightning\combinedLightsFragmentShader.fs" />
     <None Include="shaders\lightning\combinedLightVertexShader.vs" />
     <None Include="shaders\lightning\flashLightFragmentShader.fs" />
@@ -170,6 +168,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes\appState.h" />
+    <ClInclude Include="includes\core\InputManager.h" />
     <ClInclude Include="includes\glad\glad.h" />
     <ClInclude Include="includes\GLFW\glfw3.h" />
     <ClInclude Include="includes\GLFW\glfw3native.h" />
@@ -464,11 +463,10 @@
     <ClInclude Include="includes\glm\vector_relational.hpp" />
     <ClInclude Include="includes\KHR\khrplatform.h" />
     <ClInclude Include="includes\stb_image.h" />
+    <ClInclude Include="includes\core\Window.h" />
     <ClInclude Include="src\Helpers\camera.h" />
     <ClInclude Include="src\Helpers\shaderClass.h" />
     <ClInclude Include="src\Scenes\factoryScene.h" />
-    <ClInclude Include="src\Scenes\flashLightScene.h" />
-    <ClInclude Include="src\Scenes\pointLightScene.h" />
     <ClInclude Include="src\Scenes\scene.h" />
   </ItemGroup>
   <ItemGroup>
