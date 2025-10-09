@@ -24,7 +24,7 @@ It aims to provide a clear, modular, and educational implementation of modern re
 Clone the repository:  
 
 ```bash
-git clone https://github.com/Open=Source-Chandigarh/pyre.git
+git clone https://github.com/Open-Source-Chandigarh/pyre.git
 cd pyre
 ```
 
