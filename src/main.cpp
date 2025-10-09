@@ -100,8 +100,9 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
 
-    // ensure default fill mode initially
+     // ensure default fill mode initially
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    Shader lightShader("shaders\\ligthningVertexShader.vs", "shaders\\lightningFragmentShader.fs");
 
     // build and compile our shader zprogram
     // ------------------------------------
@@ -338,17 +339,7 @@ void processInput(GLFWwindow* window)
         camera.Reset();
         std::cout << "Camera reset!\n";
     }
-
 }
-// Key callback: toggles wireframe <-> fill on F key press (edge triggered)
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    if (key == GLFW_KEY_F && action == GLFW_PRESS)
-    {
-        g_wireframe = !g_wireframe;
-        glPolygonMode(GL_FRONT_AND_BACK, g_wireframe ? GL_LINE : GL_FILL);
-        std::cout << "Wireframe mode: " << (g_wireframe ? "ON" : "OFF") << std::endl;
-    }
 
     // Allow ESC to release mouse even if used via key callback: keep previous behavior too
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
