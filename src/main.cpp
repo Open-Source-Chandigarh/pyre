@@ -1,5 +1,5 @@
-﻿#include <glad/glad.h>
-#include <GLFW/glfw3.h>
+﻿#include <thirdparty/glad/glad.h>
+#include <thirdparty/GLFW/glfw3.h>
 #include <iostream>
 #include <vector>
 #include "Helpers/camera.h"
@@ -7,9 +7,9 @@
 //#include "Scenes/pointLightScene.h"
 //#include "Scenes/flashLightScene.h"
 #include "Scenes/factoryScene.h"
-#include "../includes/appState.h"
-#include "../includes/core/Window.h"
-#include "../includes/core/InputManager.h"
+#include "state/appState.h"
+#include "core/Window.h"
+#include "core/InputManager.h"
 
 int main()
 {
@@ -23,6 +23,7 @@ int main()
     // 2. Initialize GLFW
     // -------------------------
     Window win(800, 600, "win");
+    win.SetAppState(&appState);
 
     // -------------------------
     // 5. Init scenes
@@ -32,7 +33,6 @@ int main()
     for (auto* scene : appState.scenes)
         scene->init();
 
-    win.SetAppState(&appState);
 
     // 3. Bind inputs
     InputManager* input = win.GetInputManager();

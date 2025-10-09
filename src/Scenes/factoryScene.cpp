@@ -1,14 +1,14 @@
-#include "factoryScene.h"
-#include <glad/glad.h>
-#include <stb_image.h>
+#include <thirdparty/glad/glad.h>
+#include <thirdparty/stb_image.h>
 #include <iostream>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include <thirdparty/glm/gtc/matrix_transform.hpp>
+#include <thirdparty/glm/gtc/type_ptr.hpp>
+#include "scenes/factoryScene.h"
+#include "core/ResourceManager.h"
 
 
 FactoryScene::FactoryScene(Window& win)
-    : VAO(0), VBO(0),
-    shader(nullptr),
+    : shader(nullptr),
     rotationAngle(0.0f), rotationSpeed(50.0f),
     win(win)
 {
@@ -25,93 +25,75 @@ FactoryScene::FactoryScene(Window& win)
     cubePositions[9] = glm::vec3(-1.3f, 1.0f, -1.5f);
 }
 
-FactoryScene::~FactoryScene() {
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    delete shader;
+FactoryScene::~FactoryScene() 
+{
 }
 
 void FactoryScene::init() {
     // shaders
-    shader = new Shader("shaders/lightning/combinedLightVertexShader.vs", "shaders/lightning/combinedLightsFragmentShader.fs");
+    shader = ResourceManager::LoadShader("factory", 
+        "shaders/lightning/combinedLightVertexShader.vs", 
+        "shaders/lightning/combinedLightsFragmentShader.fs");
 
-    // cube vertices ...
-    float vertices[] = {
-        // Positions          // Normals           // Texture Coords
+    diffuseMap = ResourceManager::LoadTexture(
+            "container_diff", "resources/container3.png");
+    specularMap = ResourceManager::LoadTexture(
+            "container_spec", "resources/container3Spec.png");
 
-        // Back face
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+    cubeMesh = Mesh::CreateCube();
 
-        // Front face
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f,
+    glm::vec3 lightColor(0.2f, 0.4f, 0.8f);
 
-        // Left face
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+    lightManager.ClearPointLights();
+    lightManager.SetDirectional(glm::vec3(-0.2f, -1.0f, -0.3f),
+        glm::vec3(0.05f), glm::vec3(0.1f, 0.1f, 0.8f), glm::vec3(0.5f));
 
-        // Right face
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+    PointLight p;
+    p.position = glm::vec3(0.7f, 0.2f, 2.0f);
+    p.ambient = glm::vec3(0.2f, 1.0f, 1.5f) * 0.1f;
+    p.diffuse = glm::vec3(0.2f, 1.5f, 1.5f) * 0.8f;
+    p.specular = glm::vec3(1.0f);
+    p.constant = 1.0f; p.linear = 0.09f; p.quadratic = 0.032f;
+    lightManager.AddPointLight(p);
 
-         // Bottom face
-         -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-          0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
-          0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-          0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-         -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
-         -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+    PointLight p2;
+    p2.position = glm::vec3(2.3f, -3.3f, -4.0f);
+    p2.ambient = glm::vec3(1.5f, 1.0f, 2.0f) * 0.1f;
+    p2.diffuse = glm::vec3(2.0f, 1.5f, 2.0f) * 0.9f;
+    p2.specular = glm::vec3(1.0f);
+    p2.constant = 1.0f; p2.linear = 0.09f; p2.quadratic = 0.032f;
+    lightManager.AddPointLight(p2);
 
-         // Top face
-         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
-          0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-          0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-          0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-         -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
-    };
+    PointLight p3;
+    p3.position = glm::vec3(-4.0f, 2.0f, -12.0f);
+    p3.ambient = glm::vec3(1.0f, 5.0f, 0.6f) * 0.1f;
+    p3.diffuse = glm::vec3(1.0f, 7.0f, 0.6f) * 0.8f;
+    p3.specular = glm::vec3(1.0f);
+    p3.constant = 1.0f; p3.linear = 0.09f; p3.quadratic = 0.032f;
+    lightManager.AddPointLight(p3);
 
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
+    PointLight p4;
+    p4.position = glm::vec3(0.0f, 0.0f, -3.0f);
+    p4.ambient = glm::vec3(2.0f, 1.0f, 3.0f) * 0.1f;
+    p4.diffuse = glm::vec3(3.0f, 1.5f, 5.0f) * 0.6f;
+    p4.specular = glm::vec3(1.0f);
+    p4.constant = 1.0f; p4.linear = 0.09f; p4.quadratic = 0.032f;
+    lightManager.AddPointLight(p4);
 
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    // Spot light
+    SpotLight s;
+    s.position = win.GetAppState()->camera.Position;
+    s.direction = win.GetAppState()->camera.Front;
+    s.ambient = lightColor * 0.5f;
+    s.diffuse = lightColor * 6.0f;
+    s.specular = glm::vec3(1.0f);
+    s.constant = 1.0f;
+    s.quadratic = 0.09f;
+    s.linear = 0.032f;
+    s.innerCutOff = cos(glm::radians(12.5f));
+    s.outerCutOff = cos(glm::radians(17.5f));
+    lightManager.AddSpotLight(s);
 
-    // position
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    // normal
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-    // texcoord
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    diffuseMap = loadTexture("resources/container3.png");
-    specularMap = loadTexture("resources/container3Spec.png");
-
-    shader->use();
-    shader->setInt("material.diffuse", 0);
-    shader->setInt("material.specular", 1);
-    shader->setFloat("material.shininess", 32.0f);
 }
 
 void FactoryScene::update() {
@@ -128,95 +110,27 @@ void FactoryScene::render()
     };
 
     shader->use();
-    glm::mat4 view = win.GetAppState() -> camera.GetViewMatrix();
-    glm::vec3 lightColor(0.4f, 0.3f, 0.8f);
-    // directional light
-    shader->setVec3("dirLight.direction", glm::vec3(view * glm::vec4(-0.2f, -1.0f, -0.3f, 1.0f)));
-    shader->setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
-    shader->setVec3("dirLight.diffuse", 0.1f, 0.1f, 0.8f);
-    shader->setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
-    // pointt light 1
-    shader->setVec3("pointLights[0].position", glm::vec3(view * glm::vec4(pointLightPositions[0], 1.0f)));
-    shader->setVec3("pointLights[0].ambient", glm::vec3(0.2f, 2.0f, 0.2f) * 0.1f);
-    shader->setVec3("pointLights[0].diffuse", glm::vec3(0.2f, 2.0f, 0.2f) * 0.8f);
-    shader->setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
-    shader->setFloat("pointLights[0].constant", 1.0f);
-    shader->setFloat("pointLights[0].linear", 0.09f);
-    shader->setFloat("pointLights[0].quadratic", 0.032f);
-    // pointt light 2
-    shader->setVec3("pointLights[1].position", glm::vec3(view * glm::vec4(pointLightPositions[1], 1.0f)));
-    shader->setVec3("pointLights[1].ambient", glm::vec3(0.2f, 0.2f, 2.0f) * 0.1f);
-    shader->setVec3("pointLights[1].diffuse", glm::vec3(0.2f, 0.2f, 2.0f) * 0.9f);
-    shader->setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
-    shader->setFloat("pointLights[1].constant", 1.0f);
-    shader->setFloat("pointLights[1].linear", 0.09f);
-    shader->setFloat("pointLights[1].quadratic", 0.032f);
-    // point light 3
-    shader->setVec3("pointLights[2].position", glm::vec3(view * glm::vec4(pointLightPositions[2], 1.0f)));
-    shader->setVec3("pointLights[2].ambient", glm::vec3(1.0f, 0.2f, 0.2f) * 0.1f);
-    shader->setVec3("pointLights[2].diffuse", glm::vec3(1.0f, 0.2f, 0.2f) * 0.8f);
-    shader->setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
-    shader->setFloat("pointLights[2].constant", 1.0f);
-    shader->setFloat("pointLights[2].linear", 0.09f);
-    shader->setFloat("pointLights[2].quadratic", 0.032f);
-    // point light 4
-    shader->setVec3("pointLights[3].position", glm::vec3(view * glm::vec4(pointLightPositions[3], 1.0f)));
-    shader->setVec3("pointLights[3].ambient", glm::vec3(0.5f, 0.3f, 0.2f) * 0.1f);
-    shader->setVec3("pointLights[3].diffuse", glm::vec3(0.5f, 0.3f, 0.2f) * 0.6f);
-    shader->setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
-    shader->setFloat("pointLights[3].constant", 1.0f);
-    shader->setFloat("pointLights[3].linear", 0.09f);
-    shader->setFloat("pointLights[3].quadratic", 0.032f);
-    // spotLight
-    shader->setVec3("spotLight.position", win.GetAppState()->camera.Position);
-    shader->setVec3("spotLight.direction", win.GetAppState()->camera.Front);
-    shader->setVec3("spotLight.ambient", lightColor * 0.5f);
-    shader->setVec3("spotLight.diffuse", lightColor * 2.0f);
-    shader->setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
-    shader->setFloat("spotLight.constant", 1.0f);
-    shader->setFloat("spotLight.linear", 0.09f);
-    shader->setFloat("spotLight.quadratic", 0.032f);
-    shader->setFloat("spotLight.innerCutOff", glm::cos(glm::radians(12.5f)));
-    shader->setFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));     
+    glm::mat4 view = win.GetAppState()->camera.GetViewMatrix();
+    glm::mat4 proj = glm::perspective(glm::radians(win.GetAppState()->camera.Zoom),
+        (float)win.Width() / (float)win.Height(), 0.1f, 100.0f);
 
-    glm::mat4 projection = glm::perspective(glm::radians(win.GetAppState() -> camera.Zoom), (float)win.Width() / (float)win.Height(), 0.1f, 100.0f);
-    shader->setMat4("projection", projection);
-    shader->setMat4("view", view);
+    renderer.BeginScene(view, proj, win.GetAppState()->camera.Position);
+
+    if (!lightManager.spots.empty()) {
+        lightManager.spots[0].position = win.GetAppState()->camera.Position;
+        lightManager.spots[0].direction = win.GetAppState()->camera.Front;
+    }
+    if (shader) lightManager.ApplyToShader(*shader);
 
     glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, diffuseMap);
     glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, specularMap);
 
-    glBindVertexArray(VAO);
+    glBindVertexArray(cubeMesh.VAO);
     for (int i = 0; i < 10; i++) {
         glm::mat4 model(1.0f);
         model = glm::translate(model, cubePositions[i]);
         float angle = 20.0f * i;
         model = glm::rotate(model, glm::radians(angle) + glm::radians(rotationAngle), glm::vec3(1.0f, 0.3f, 0.5f));
-        shader->setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        renderer.Submit(model, cubeMesh, shader, diffuseMap, specularMap, 32.0f);
     }
-}
-
-unsigned int FactoryScene::loadTexture(const char* path) {
-    unsigned int texture;
-    glGenTextures(1, &texture);
-
-    int width, height, nrChannels;
-    stbi_set_flip_vertically_on_load(true);
-    unsigned char* data = stbi_load(path, &width, &height, &nrChannels, 0);
-    if (data) {
-        GLenum format = (nrChannels == 1) ? GL_RED : (nrChannels == 3) ? GL_RGB : GL_RGBA;
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    }
-    else {
-        std::cerr << "Failed to load texture: " << path << std::endl;
-    }
-    stbi_image_free(data);
-    return texture;
 }

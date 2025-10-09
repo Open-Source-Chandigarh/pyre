@@ -1,5 +1,5 @@
-#include "../../includes/core/InputManager.h"
-#include "../../includes/core/Window.h"
+#include "core/InputManager.h"
+#include "core/Window.h"
 #include <iostream>
 
 InputManager::InputManager(Window* owner) : owner(owner)

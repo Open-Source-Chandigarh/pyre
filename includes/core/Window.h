@@ -1,10 +1,10 @@
 #pragma once
 
 #include <string>
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
+#include <thirdparty/glad/glad.h>
+#include <thirdparty/GLFW/glfw3.h>
 #include <memory>
-#include "../appState.h"
+#include "state/appState.h"
 
 class InputManager;
 

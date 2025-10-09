@@ -1,5 +1,5 @@
-#include "../includes/core/Window.h"
-#include "../includes/core/InputManager.h"
+#include "core/Window.h"
+#include "core/InputManager.h"
 #include <iostream>
 
 Window::Window(float width, float height, const std::string& name)

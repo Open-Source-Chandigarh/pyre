@@ -1,11 +1,15 @@
 #pragma once
-#include "Scene.h"
-#include "../Helpers/shaderClass.h"
-#include "../Helpers/camera.h"
-#include "../../includes/core/Window.h"
-#include "../../includes/appState.h"
-#include <glm/glm.hpp>
+#include <thirdparty/glm/glm.hpp>
 #include <vector>
+#include "Scene.h"
+#include "helpers/shaderClass.h"
+#include "helpers/camera.h"
+#include "core/Window.h"
+#include "state/appState.h"
+#include "core/rendering/Mesh.h"
+#include "core/rendering/Renderer.h"
+#include "core/LightManager.h"
+
 
 // This class represents a Scene that demonstrates lighting with all the light types combined (directional, point, spot).
 // It derives from the base Scene class, so it must implement init(), update(), render(), and name().
@@ -29,22 +33,21 @@ public:
 private:
     Window& win;
 
-    // OpenGL object handles
-    unsigned int VAO, VBO;
-
     // Textures (diffuse = color, specular = shininess highlights)
     unsigned int diffuseMap, specularMap;
 
     // The shader program for this scene
-    Shader* shader;
+    std::shared_ptr<Shader> shader;
+
+    Renderer renderer;
+    LightManager lightManager;
 
     // Fixed positions of cubes in the scene
     glm::vec3 cubePositions[10];
 
+    Mesh cubeMesh;
+
     // Animation control for cube rotations
     float rotationAngle;
     float rotationSpeed;
-
-    // Utility function to load textures from file
-    unsigned int loadTexture(const char* path);
 };
