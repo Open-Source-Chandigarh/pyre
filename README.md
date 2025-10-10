@@ -4,7 +4,7 @@
 It aims to provide a clear, modular, and educational implementation of modern rendering techniques, making it a great project for learning and experimenting with real-time graphics.  
 
 <div align="center">
-  <img src="resources/icon.png" alt="Pyre Logo" width="200"/>
+  <img src="resources/textures/icon.png" alt="Pyre Logo" width="200"/>
 </div>
 
 ---
@@ -24,7 +24,7 @@ It aims to provide a clear, modular, and educational implementation of modern re
 Clone the repository:  
 
 ```bash
-git clone https://github.com/Open=Source-Chandigarh/pyre.git
+git clone https://github.com/Open-Source-Chandigarh/pyre.git
 cd pyre
 ```
 
