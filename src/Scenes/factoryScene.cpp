@@ -47,16 +47,29 @@ void FactoryScene::init()
     {
         Entity e;
         e.type = Entity::Type::Mesh;
-        e.meshRenderer.mesh = &cubeMesh;
+        e.meshRenderer.mesh = &mesh[i];
         e.meshRenderer.shader = shader;
         e.meshRenderer.diffuse = diffuseMap;
         e.meshRenderer.specular = specularMap;
         e.transform.position = cubePositions[i];
-        e.transform.scale = glm::vec3(1.0f);
+        e.transform.scale = glm::vec3(0.7f);
         entities.push_back(std::move(e));
     }
 
-    cubeMesh = GeometryFactory::CreateSphere();
+    for (int i = 0; i < 10; i++)
+    {
+        int randomInt = Utils::RandomInt(0, 4);
+        if(randomInt == 0)
+            mesh[i] = GeometryFactory::CreateSphere();
+        else if(randomInt == 1)
+            mesh[i] = GeometryFactory::CreateCube();
+        else if (randomInt == 2)
+            mesh[i] = GeometryFactory::CreateTorus();
+        else if (randomInt == 3)
+            mesh[i] = GeometryFactory::CreateCylinder();
+        else if (randomInt == 4)
+            mesh[i] = GeometryFactory::CreateCone();
+    }
 
     glm::vec3 lightColor(0.2f, 0.4f, 0.8f);
     lightManager.ClearPointLights();

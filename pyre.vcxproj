@@ -671,9 +671,9 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
     <Object Include="pyre\x64\Debug\glad.obj" />
     <Object Include="pyre\x64\Debug\main.obj" />
     <Object Include="pyre\x64\Debug\shaderClass.obj" />
-    <None Include="resources\models\backpack\backpack.obj">
+    <Object Include="resources\models\backpack\backpack.obj">
       <FileType>Document</FileType>
-    </None>
+    </Object>
   </ItemGroup>
   <ItemGroup>
     <Image Include="resources\models\backpack\ao.jpg" />
