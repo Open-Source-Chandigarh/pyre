@@ -72,19 +72,19 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <IncludePath>$(ProjectDir)\includes\thirdparty;$(ProjectDir)\includes;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)\libs\lib-vc2022;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(ProjectDir)\libs\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>$(ProjectDir)\includes\thirdparty;$(ProjectDir)\includes;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)\libs\lib-vc2022;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(ProjectDir)\libs\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>$(ProjectDir)\includes\thirdparty;$(ProjectDir)\includes;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)\libs\lib-vc2022;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(ProjectDir)\libs\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(ProjectDir)\includes\thirdparty;$(ProjectDir)\includes;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)\libs\lib-vc2022;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(ProjectDir)\libs\;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -97,8 +97,13 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>GLFW/glfw3.lib;assimp/assimp-vc143-mtd.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy "$(ProjectDir)libs\assimp\*.dll" "$(OutDir)" /Y
+xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -113,8 +118,13 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>GLFW/glfw3.lib;assimp/assimp-vc143-mtd.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy "$(ProjectDir)libs\assimp\*.dll" "$(OutDir)" /Y
+xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -127,8 +137,13 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>GLFW/glfw3.lib;assimp/assimp-vc143-mtd.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy "$(ProjectDir)libs\assimp\*.dll" "$(OutDir)" /Y
+xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -143,37 +158,46 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>GLFW/glfw3.lib;assimp/assimp-vc143-mtd.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy "$(ProjectDir)libs\assimp\*.dll" "$(OutDir)" /Y
+xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
+</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="includes\thirdparty\glm\detail\glm.cpp" />
     <ClCompile Include="includes\thirdparty\glm\glm.cppm" />
     <ClCompile Include="includes\thirdparty\stb_image.cpp" />
+    <ClCompile Include="src\core\Entity.cpp" />
     <ClCompile Include="src\core\InputManager.cpp" />
     <ClCompile Include="src\core\LightManager.cpp" />
+    <ClCompile Include="src\core\rendering\Model.cpp" />
+    <ClCompile Include="src\core\rendering\geometry\GeometryFactory.cpp" />
     <ClCompile Include="src\core\rendering\Mesh.cpp" />
     <ClCompile Include="src\core\rendering\Renderer.cpp" />
     <ClCompile Include="src\core\ResourceManager.cpp" />
     <ClCompile Include="src\core\Window.cpp" />
     <ClCompile Include="src\helpers\shaderClass.cpp" />
-    <ClCompile Include="src\Scenes\factoryScene.cpp" />
-    <None Include="shaders\lightning\combinedLightsFragmentShader.fs" />
-    <None Include="shaders\lightning\combinedLightVertexShader.vs" />
-    <None Include="shaders\lightning\flashLightFragmentShader.fs" />
-    <None Include="shaders\lightning\flashLightVertexShader.vs" />
-    <None Include="shaders\lightning\lightCubeFragmentShader.fs" />
-    <None Include="shaders\lightning\lightCubeVertexShader.vs" />
-    <None Include="shaders\lightning\ligthningVertexShader.vs">
-      <FileType>Document</FileType>
-    </None>
+    <ClCompile Include="src\scenes\backpack.cpp" />
+    <ClCompile Include="src\scenes\factoryScene.cpp" />
+    <None Include="libs\assimp\assimp-vc143-mtd.dll" />
+    <None Include="libs\GLFW\glfw3.dll" />
+    <None Include="libs\lib-vc2022\assimp-vc143-mtd.dll" />
+    <None Include="resources\models\backpack\backpack.mtl" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="includes\thirdparty\glad\src\glad.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="includes\core\Entity.h" />
     <ClInclude Include="includes\core\LightManager.h" />
+    <ClInclude Include="includes\core\rendering\geometry\GeometryFactory.h" />
     <ClInclude Include="includes\core\rendering\Mesh.h" />
+    <ClInclude Include="includes\core\rendering\Model.h" />
     <ClInclude Include="includes\core\rendering\Renderer.h" />
+    <ClInclude Include="includes\helpers\Utils.h" />
+    <ClInclude Include="includes\scenes\backpack.h" />
     <ClInclude Include="includes\state\appState.h" />
     <ClInclude Include="includes\core\InputManager.h" />
     <ClInclude Include="includes\core\ResourceManager.h" />
@@ -633,35 +657,44 @@
     <None Include="pyre\x64\Debug\pyre.tlog\pyre.lastbuildstate" />
     <None Include="pyre\x64\Debug\vc143.idb" />
     <None Include="pyre\x64\Debug\vc143.pdb" />
-    <None Include="shaders\lightning\cubeFragmentShader.fs" />
-    <None Include="shaders\cubeLightFragmentShader.fs" />
-    <None Include="shaders\cubeLightVertexShader.vs" />
-    <None Include="shaders\lightning\cubeVertexShader.vs" />
-    <None Include="shaders\lightning\lightningFragmentShader.fs" />
+    <None Include="shaders\modularFragmentShader.fs" />
+    <None Include="shaders\modularVertexShader.vs" />
     <None Include="x64\Debug\pyre.exe" />
     <None Include="x64\Debug\pyre.pdb" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="includes\thirdparty\glm\CMakeLists.txt" />
     <Text Include="pyre\x64\Debug\pyre.log" />
-  </ItemGroup>
-  <ItemGroup>
-    <Library Include="libs\lib-vc2022\glfw3.lib" />
-    <Library Include="libs\lib-vc2022\glfw3dll.lib" />
-    <Library Include="libs\lib-vc2022\glfw3_mt.lib" />
+    <Text Include="resources\models\backpack\source_attribution.txt" />
   </ItemGroup>
   <ItemGroup>
     <Object Include="pyre\x64\Debug\glad.obj" />
     <Object Include="pyre\x64\Debug\main.obj" />
     <Object Include="pyre\x64\Debug\shaderClass.obj" />
+    <None Include="resources\models\backpack\backpack.obj">
+      <FileType>Document</FileType>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\container.jpg" />
-    <Image Include="resources\container2.jpg" />
-    <Image Include="resources\container3.png" />
-    <Image Include="resources\container3Spec.png" />
-    <Image Include="resources\dirt.jpg" />
-    <Image Include="resources\icon.png" />
+    <Image Include="resources\models\backpack\ao.jpg" />
+    <Image Include="resources\models\backpack\diffuse.jpg" />
+    <Image Include="resources\models\backpack\normal.png" />
+    <Image Include="resources\models\backpack\roughness.jpg" />
+    <Image Include="resources\models\backpack\specular.jpg" />
+    <Image Include="resources\textures\container.jpg" />
+    <Image Include="resources\textures\container2.jpg" />
+    <Image Include="resources\textures\container3.png" />
+    <Image Include="resources\textures\container3Spec.png" />
+    <Image Include="resources\textures\dirt.jpg" />
+    <Image Include="resources\textures\icon.png" />
+    <Image Include="resources\textures\metalDiff.png" />
+    <Image Include="resources\textures\metalSpec.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="libs\assimp\assimp-vc143-mtd.lib" />
+    <Library Include="libs\GLFW\glfw3.lib" />
+    <Library Include="libs\GLFW\glfw3dll.lib" />
+    <Library Include="libs\GLFW\glfw3_mt.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

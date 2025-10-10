@@ -9,6 +9,7 @@
 #include "core/rendering/Mesh.h"
 #include "core/rendering/Renderer.h"
 #include "core/LightManager.h"
+#include "core/Entity.h"
 
 
 // This class represents a Scene that demonstrates lighting with all the light types combined (directional, point, spot).
@@ -42,6 +43,8 @@ private:
     Renderer renderer;
     LightManager lightManager;
 
+
+    std::vector<Entity> entities;
     // Fixed positions of cubes in the scene
     glm::vec3 cubePositions[10];
 

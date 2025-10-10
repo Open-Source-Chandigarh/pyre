@@ -5,6 +5,8 @@
 #include <thirdparty/glm/gtc/type_ptr.hpp>
 #include "scenes/factoryScene.h"
 #include "core/ResourceManager.h"
+#include "helpers/Utils.h"
+#include "core/rendering/geometry/GeometryFactory.h"
 
 
 FactoryScene::FactoryScene(Window& win)
@@ -29,21 +31,34 @@ FactoryScene::~FactoryScene()
 {
 }
 
-void FactoryScene::init() {
+void FactoryScene::init() 
+{
     // shaders
     shader = ResourceManager::LoadShader("factory", 
-        "shaders/lightning/combinedLightVertexShader.vs", 
-        "shaders/lightning/combinedLightsFragmentShader.fs");
+        "shaders/modularVertexShader.vs", 
+        "shaders/modularFragmentShader.fs");
 
     diffuseMap = ResourceManager::LoadTexture(
-            "container_diff", "resources/container3.png");
+            "container_diff", "resources/textures/metalDiff.png");
     specularMap = ResourceManager::LoadTexture(
-            "container_spec", "resources/container3Spec.png");
+            "container_spec", "resources/textures/metalSpec.png");
+    entities.clear();
+    for (int i = 0; i < 10; i++)
+    {
+        Entity e;
+        e.type = Entity::Type::Mesh;
+        e.meshRenderer.mesh = &cubeMesh;
+        e.meshRenderer.shader = shader;
+        e.meshRenderer.diffuse = diffuseMap;
+        e.meshRenderer.specular = specularMap;
+        e.transform.position = cubePositions[i];
+        e.transform.scale = glm::vec3(1.0f);
+        entities.push_back(std::move(e));
+    }
 
-    cubeMesh = Mesh::CreateCube();
+    cubeMesh = GeometryFactory::CreateSphere();
 
     glm::vec3 lightColor(0.2f, 0.4f, 0.8f);
-
     lightManager.ClearPointLights();
     lightManager.SetDirectional(glm::vec3(-0.2f, -1.0f, -0.3f),
         glm::vec3(0.05f), glm::vec3(0.1f, 0.1f, 0.8f), glm::vec3(0.5f));
@@ -97,40 +112,36 @@ void FactoryScene::init() {
 }
 
 void FactoryScene::update() {
-    rotationAngle -= rotationSpeed * win.GetAppState() -> deltaTime;
+    auto app = win.GetAppState();
+    rotationAngle -= rotationSpeed * (app ? app->deltaTime : 0.016f);
+    for (size_t i = 0; i < entities.size(); ++i) {
+        float offset = 29.5f + 0.1f * sin(i);
+        entities[i].transform.rotation.x = rotationAngle + offset * float(i);
+        entities[i].transform.rotation.y = rotationAngle + offset * float(i);
+    }
 }
 
 void FactoryScene::render() 
 {
-    glm::vec3 pointLightPositions[] = {
-        glm::vec3(0.7f, 0.2f, 2.0f),
-        glm::vec3(2.3f, -3.3f, -4.0f),
-        glm::vec3(-4.0f, 2.0f, -12.0f),
-        glm::vec3(0.0f, 0.0f, -3.0f)
-    };
+    auto app = win.GetAppState();
+    if (!app) return;
 
-    shader->use();
-    glm::mat4 view = win.GetAppState()->camera.GetViewMatrix();
-    glm::mat4 proj = glm::perspective(glm::radians(win.GetAppState()->camera.Zoom),
+    glm::mat4 view = app->camera.GetViewMatrix();
+    glm::mat4 proj = glm::perspective(glm::radians(app->camera.Zoom),
         (float)win.Width() / (float)win.Height(), 0.1f, 100.0f);
 
-    renderer.BeginScene(view, proj, win.GetAppState()->camera.Position);
+    renderer.BeginScene(view, proj, app->camera.Position);
 
     if (!lightManager.spots.empty()) {
         lightManager.spots[0].position = win.GetAppState()->camera.Position;
         lightManager.spots[0].direction = win.GetAppState()->camera.Front;
     }
+
     if (shader) lightManager.ApplyToShader(*shader);
 
-    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, diffuseMap);
-    glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, specularMap);
-
-    glBindVertexArray(cubeMesh.VAO);
-    for (int i = 0; i < 10; i++) {
-        glm::mat4 model(1.0f);
-        model = glm::translate(model, cubePositions[i]);
-        float angle = 20.0f * i;
-        model = glm::rotate(model, glm::radians(angle) + glm::radians(rotationAngle), glm::vec3(1.0f, 0.3f, 0.5f));
-        renderer.Submit(model, cubeMesh, shader, diffuseMap, specularMap, 32.0f);
+    // Draw entities
+    for (auto& e : entities) {
+        e.Render(renderer);
     }
+    renderer.EndScene();
 }

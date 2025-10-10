@@ -30,7 +30,7 @@
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Scenes\factoryScene.cpp">
+    <ClCompile Include="src\scenes\factoryScene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\core\Window.cpp">
@@ -61,6 +61,18 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\core\LightManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\Entity.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\rendering\geometry\GeometryFactory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\rendering\Model.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\scenes\backpack.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -980,14 +992,27 @@
     <ClInclude Include="includes\core\LightManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="includes\core\Entity.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\helpers\Utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\core\rendering\geometry\GeometryFactory.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\core\rendering\Model.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\scenes\backpack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitattributes" />
     <None Include=".gitignore" />
     <None Include="x64\Debug\pyre.exe" />
     <None Include="x64\Debug\pyre.pdb" />
-    <None Include="shaders\lightning\cubeFragmentShader.fs" />
-    <None Include="shaders\lightning\cubeVertexShader.vs" />
     <None Include="libs\lib-vc2022\glfw3.dll" />
     <None Include="pyre\x64\Debug\pyre.exe.recipe" />
     <None Include="pyre\x64\Debug\pyre.ilk" />
@@ -1002,22 +1027,6 @@
     <None Include="pyre\x64\Debug\pyre.tlog\link.secondary.1.tlog" />
     <None Include="pyre\x64\Debug\pyre.tlog\link.write.1.tlog" />
     <None Include="pyre\x64\Debug\pyre.tlog\pyre.lastbuildstate" />
-    <None Include="shaders\cubeLightVertexShader.vs">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="shaders\cubeLightFragmentShader.fs">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="shaders\lightning\lightningFragmentShader.fs" />
-    <None Include="shaders\lightning\ligthningVertexShader.vs">
-      <Filter>Source Files</Filter>
-    </None>
-    <None Include="shaders\lightning\lightCubeVertexShader.vs" />
-    <None Include="shaders\lightning\lightCubeFragmentShader.fs" />
-    <None Include="shaders\lightning\combinedLightsFragmentShader.fs" />
-    <None Include="shaders\lightning\combinedLightVertexShader.vs" />
-    <None Include="shaders\lightning\flashLightFragmentShader.fs" />
-    <None Include="shaders\lightning\flashLightVertexShader.vs" />
     <None Include="includes\thirdparty\glm\detail\func_common.inl">
       <Filter>Header Files</Filter>
     </None>
@@ -1435,15 +1444,18 @@
     <None Include="includes\thirdparty\glm\gtx\wrap.inl">
       <Filter>Header Files</Filter>
     </None>
+    <None Include="libs\lib-vc2022\assimp-vc143-mtd.dll" />
+    <None Include="libs\assimp\assimp-vc143-mtd.dll" />
+    <None Include="libs\GLFW\glfw3.dll" />
+    <None Include="resources\models\backpack\backpack.mtl" />
+    <None Include="resources\models\backpack\backpack.obj" />
+    <None Include="shaders\modularFragmentShader.fs" />
+    <None Include="shaders\modularVertexShader.vs" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="pyre\x64\Debug\pyre.log" />
     <Text Include="includes\thirdparty\glm\CMakeLists.txt" />
-  </ItemGroup>
-  <ItemGroup>
-    <Library Include="libs\lib-vc2022\glfw3.lib" />
-    <Library Include="libs\lib-vc2022\glfw3_mt.lib" />
-    <Library Include="libs\lib-vc2022\glfw3dll.lib" />
+    <Text Include="resources\models\backpack\source_attribution.txt" />
   </ItemGroup>
   <ItemGroup>
     <Object Include="pyre\x64\Debug\glad.obj" />
@@ -1451,23 +1463,50 @@
     <Object Include="pyre\x64\Debug\shaderClass.obj" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\container2.jpg">
+    <Image Include="resources\textures\container2.jpg">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="resources\dirt.jpg">
+    <Image Include="resources\textures\dirt.jpg">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="resources\container3Spec.png">
+    <Image Include="resources\textures\container3Spec.png">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="resources\container3.png">
+    <Image Include="resources\textures\container3.png">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="resources\container.jpg">
+    <Image Include="resources\textures\container.jpg">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="resources\icon.png">
+    <Image Include="resources\textures\icon.png">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="resources\textures\metalDiff.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\textures\metalSpec.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\models\backpack\ao.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\models\backpack\diffuse.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\models\backpack\normal.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\models\backpack\roughness.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\models\backpack\specular.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="libs\GLFW\glfw3.lib" />
+    <Library Include="libs\GLFW\glfw3_mt.lib" />
+    <Library Include="libs\GLFW\glfw3dll.lib" />
+    <Library Include="libs\assimp\assimp-vc143-mtd.lib" />
   </ItemGroup>
 </Project>

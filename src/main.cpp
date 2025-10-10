@@ -6,10 +6,12 @@
 //#include "Scenes/directionalLightScene.h"
 //#include "Scenes/pointLightScene.h"
 //#include "Scenes/flashLightScene.h"
-#include "Scenes/factoryScene.h"
+#include "scenes/factoryScene.h"
+#include "scenes/backpack.h"
 #include "state/appState.h"
 #include "core/Window.h"
 #include "core/InputManager.h"
+#include "core/rendering/Model.h"
 
 int main()
 {
@@ -29,6 +31,7 @@ int main()
     // 5. Init scenes
     // -------------------------
     appState.scenes.push_back(new FactoryScene(win));
+    appState.scenes.push_back(new Backpack(win));
 
     for (auto* scene : appState.scenes)
         scene->init();
