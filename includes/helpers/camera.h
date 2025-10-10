@@ -120,18 +120,6 @@ public:
         if (Zoom > 45.0f) Zoom = 45.0f;
     }
 
-    // ✅ Reset camera to default values
-    void Reset()
-    {
-        Position = glm::vec3(0.0f, 0.0f, 3.0f);
-        Front = glm::vec3(0.0f, 0.0f, -1.0f);
-        Up = glm::vec3(0.0f, 1.0f, 0.0f);
-        Yaw = YAW;
-        Pitch = PITCH;
-        Zoom = ZOOM;
-        updateCameraVectors();
-    }
-
 private:
     // calculates the front vector from the Camera's (updated) Euler Angles
     void updateCameraVectors()
