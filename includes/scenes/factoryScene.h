@@ -48,7 +48,7 @@ private:
     // Fixed positions of cubes in the scene
     glm::vec3 cubePositions[10];
 
-    Mesh cubeMesh;
+    Mesh mesh[10];
 
     // Animation control for cube rotations
     float rotationAngle;

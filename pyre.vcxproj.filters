@@ -1448,7 +1448,6 @@
     <None Include="libs\assimp\assimp-vc143-mtd.dll" />
     <None Include="libs\GLFW\glfw3.dll" />
     <None Include="resources\models\backpack\backpack.mtl" />
-    <None Include="resources\models\backpack\backpack.obj" />
     <None Include="shaders\modularFragmentShader.fs" />
     <None Include="shaders\modularVertexShader.vs" />
   </ItemGroup>
@@ -1461,6 +1460,7 @@
     <Object Include="pyre\x64\Debug\glad.obj" />
     <Object Include="pyre\x64\Debug\main.obj" />
     <Object Include="pyre\x64\Debug\shaderClass.obj" />
+    <Object Include="resources\models\backpack\backpack.obj" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resources\textures\container2.jpg">
