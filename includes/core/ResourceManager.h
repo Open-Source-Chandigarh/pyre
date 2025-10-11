@@ -16,8 +16,8 @@ public:
     static std::shared_ptr<Shader> GetShader(const std::string& name);
 
     // Textures
-    static unsigned int LoadTexture(const std::string& name, const std::string& path);
-    static unsigned int GetTexture(const std::string& name);
+    static unsigned int LoadTexture(const std::string& path);
+    static unsigned int GetTexture(const std::string& path);
 
     // Cleanup GPU resources
     static void Clear();

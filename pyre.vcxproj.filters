@@ -75,6 +75,9 @@
     <ClCompile Include="src\scenes\backpack.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Scenes\test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes\core\Window.h">
@@ -1007,6 +1010,9 @@
     <ClInclude Include="includes\scenes\backpack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="includes\scenes\test.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitattributes" />
@@ -1460,7 +1466,6 @@
     <Object Include="pyre\x64\Debug\glad.obj" />
     <Object Include="pyre\x64\Debug\main.obj" />
     <Object Include="pyre\x64\Debug\shaderClass.obj" />
-    <Object Include="resources\models\backpack\backpack.obj" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="resources\textures\container2.jpg">

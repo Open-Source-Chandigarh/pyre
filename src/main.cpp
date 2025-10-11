@@ -12,6 +12,7 @@
 #include "core/Window.h"
 #include "core/InputManager.h"
 #include "core/rendering/Model.h"
+#include "scenes/test.h"
 
 int main()
 {
@@ -32,6 +33,7 @@ int main()
     // -------------------------
     appState.scenes.push_back(new FactoryScene(win));
     appState.scenes.push_back(new Backpack(win));
+    appState.scenes.push_back(new Test(win));
 
     for (auto* scene : appState.scenes)
         scene->init();

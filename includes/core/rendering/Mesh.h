@@ -20,6 +20,16 @@ struct Texture
     std::string path;
 };
 
+struct Material 
+{
+    std::vector<Texture> textures;
+    glm::vec3 diffuseColor = glm::vec3(0.8f, 0.8f, 0.8f);
+    glm::vec3 specularColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    float shininess = 32.0f;
+    bool useDiffuseMap = false;
+    bool useSpecularMap = false;
+};
+
 
 class Mesh
 {
@@ -27,9 +37,8 @@ public:
 
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
-    std::vector<Texture> textures;
-    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
-        std::vector<Texture> textures);
+    Material material;
+    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, Material& material);
     Mesh() = default;
 
     // Creates a mesh from interleaved float data (pos(3), norm(3), uv(2))
@@ -38,7 +47,9 @@ public:
     static Mesh CreateFromIndexedData(const float* vertices, std::size_t vBytes,
         const unsigned int* indices, std::size_t iBytes, int iCount);
 
-    void Draw(Shader& shader);
+    void Draw(Shader& shader) const;
+    void SetMaterial(const Material& m) { material = m; }
+    const Material& GetMaterial() const { return material; }
 
     // Destroy GPU objects
     void Destroy();

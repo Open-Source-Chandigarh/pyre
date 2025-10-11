@@ -13,10 +13,7 @@ public:
         const glm::vec3& viewPos);
     void SubmitMesh(const glm::mat4& model,
         const Mesh& mesh,
-        const std::shared_ptr<Shader>& shader,
-        unsigned int diffuse = 0,
-        unsigned int specular = 0,
-        float shininess = 32.0f);
+        const std::shared_ptr<Shader>& shader);
     void SubmitModel(const glm::mat4& model, Model& modelObj, 
         const std::shared_ptr<Shader>& shader);
     void EndScene();

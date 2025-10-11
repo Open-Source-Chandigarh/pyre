@@ -26,9 +26,9 @@ std::shared_ptr<Shader> ResourceManager::GetShader(const std::string& name)
     return it->second;
 }
 
-unsigned int ResourceManager::LoadTexture(const std::string& name, const std::string& path) 
+unsigned int ResourceManager::LoadTexture(const std::string& path) 
 {
-    if (textures.count(name)) return textures[name];
+    if (textures.count(path)) return textures[path];
 
     int width, height, nrChannels;
     stbi_set_flip_vertically_on_load(true);
@@ -53,13 +53,13 @@ unsigned int ResourceManager::LoadTexture(const std::string& name, const std::st
 
     stbi_image_free(data);
 
-    textures[name] = tex;
+    textures[path] = tex;
     return tex;
 }
 
-unsigned int ResourceManager::GetTexture(const std::string& name) 
+unsigned int ResourceManager::GetTexture(const std::string& path) 
 {
-    auto it = textures.find(name);
+    auto it = textures.find(path);
     if (it == textures.end()) return 0;
     return it->second;
 }

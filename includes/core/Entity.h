@@ -19,9 +19,6 @@ struct MeshRenderer
 {
     Mesh* mesh = nullptr;               // pointer to shared mesh
     std::shared_ptr<Shader> shader;
-    unsigned int diffuse = 0;
-    unsigned int specular = 0;
-    float shininess = 32.0f;
 };
 
 struct ModelRenderer
@@ -52,10 +49,7 @@ struct Entity
             if (meshRenderer.mesh && meshRenderer.shader)
                 renderer.SubmitMesh(modelMatrix,
                     *meshRenderer.mesh,
-                    meshRenderer.shader,
-                    meshRenderer.diffuse,
-                    meshRenderer.specular,
-                    meshRenderer.shininess);
+                    meshRenderer.shader);
             break;
 
         case Type::Model:
