@@ -7,7 +7,7 @@
 void Model::Draw(Shader& shader)
 {
 	for (unsigned int i = 0; i < meshes.size(); i++)
-		meshes[i].Draw(shader);
+		meshes[i].mesh -> Draw(shader, *meshes[i].material);
 }
 
 void Model::loadModel(std::string path)
@@ -42,7 +42,7 @@ void Model::processNode(aiNode* node, const aiScene* scene)
 	}
 }
 
-Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
+MeshEntry Model::processMesh(aiMesh* mesh, const aiScene* scene)
 {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
@@ -98,8 +98,8 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
         aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
         // Diffuse
-        std::vector<Texture> diffuseMaps =
-            loadMaterialTextures(material, aiTextureType_DIFFUSE, "texture_diffuse");
+        std::vector<std::shared_ptr<Texture>> diffuseMaps =
+            loadMaterialTextures(material, aiTextureType_DIFFUSE, TextureType::TEX_DIFFUSE);
         if (!diffuseMaps.empty())
         {
             mat.textures.insert(mat.textures.end(), diffuseMaps.begin(), diffuseMaps.end());
@@ -107,8 +107,8 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
         }
 
         // Specular
-        std::vector<Texture> specularMaps =
-            loadMaterialTextures(material, aiTextureType_SPECULAR, "texture_specular");
+        std::vector<std::shared_ptr<Texture>> specularMaps =
+            loadMaterialTextures(material, aiTextureType_SPECULAR, TextureType::TEX_SPECULAR);
         if (!specularMaps.empty())
         {
             mat.textures.insert(mat.textures.end(), specularMaps.begin(), specularMaps.end());
@@ -127,23 +127,25 @@ Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene)
             mat.shininess = shininess;
     }
 
-    return Mesh(vertices, indices, mat);
+    MeshEntry entry;
+    entry.mesh = std::make_shared<Mesh>(vertices, indices);
+    entry.material = std::make_shared<Material>(mat);
+    return entry;
 }
 
-std::vector<Texture> Model::loadMaterialTextures(aiMaterial* mat,
-	aiTextureType type, std::string typeName)
+std::vector<std::shared_ptr<Texture>> Model::loadMaterialTextures(aiMaterial* mat,
+	aiTextureType type, TextureType typeName)
 {
-	std::vector<Texture> textures;
+    std::vector<std::shared_ptr<Texture>> textures;
+    
 	for (unsigned int i = 0; i < mat->GetTextureCount(type); i++)
 	{
 		aiString str;
 		mat->GetTexture(type, i, &str);
-		Texture texture;
+		std::shared_ptr<Texture> texture;
 		std::string fileName = std::string(str.C_Str());
-		texture.ID = ResourceManager::LoadTexture(
-					this->directory + '/' + fileName);
-		texture.type = typeName;
-		texture.path = std::string(str.C_Str());
+		texture = ResourceManager::LoadTexture(
+					this->directory + '/' + fileName, typeName);
 		textures.push_back(texture);
 	}
 	return textures;

@@ -15,7 +15,7 @@ void Renderer::BeginScene(const glm::mat4& view, const glm::mat4& projection,
 // --------------------------------------------
 void Renderer::SubmitMesh(const glm::mat4& model,
     const Mesh& mesh,
-    const std::shared_ptr<Shader>& shader)
+    const std::shared_ptr<Shader>& shader, const std::shared_ptr<Material>& mat)
 {
     if (!shader) return;
 
@@ -25,7 +25,7 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     shader->setMat4("projection", projMatrix);
     shader->setVec3("viewPos", viewPosition);
 
-    mesh.Draw(*shader);
+    mesh.Draw(*shader, *mat);
 }
 
 // --------------------------------------------

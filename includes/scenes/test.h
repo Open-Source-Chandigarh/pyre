@@ -27,8 +27,8 @@ private:
     Window& win;
 
     // Textures (diffuse = color, specular = shininess highlights)
-    unsigned int cubeDiffuseMap, cubeSpecularMap;
-    unsigned int floorDiffuseMap, floorSpecularMap;
+    std::shared_ptr<Texture> cubeDiffuseMap, cubeSpecularMap;
+    std::shared_ptr<Texture> floorDiffuseMap, floorSpecularMap;
 
     // The shader program for this scene
     std::shared_ptr<Shader> shader;

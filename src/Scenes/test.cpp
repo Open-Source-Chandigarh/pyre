@@ -12,11 +12,11 @@ void Test::init()
         "shaders/modularVertexShader.vs",
         "shaders/modularFragmentShader.fs");
 
-    floorDiffuseMap = ResourceManager::LoadTexture("resources/textures/woodDiff.png");
-    floorSpecularMap = ResourceManager::LoadTexture("resources/textures/woodSpec.png");
+    floorDiffuseMap = ResourceManager::LoadTexture("resources/textures/woodDiff.png", TextureType::TEX_DIFFUSE);
+    floorSpecularMap = ResourceManager::LoadTexture("resources/textures/woodSpec.png", TextureType::TEX_SPECULAR);
 
-    cubeDiffuseMap = ResourceManager::LoadTexture("resources/textures/crateDiff.jpg");
-    cubeSpecularMap = ResourceManager::LoadTexture("resources/textures/crateSpec.jpg");
+    cubeDiffuseMap = ResourceManager::LoadTexture("resources/textures/crateDiff.jpg", TextureType::TEX_DIFFUSE);
+    cubeSpecularMap = ResourceManager::LoadTexture("resources/textures/crateSpec.jpg", TextureType::TEX_SPECULAR);
 
     // create procedural geometry
     cube = GeometryFactory::CreateCube();
@@ -30,18 +30,8 @@ void Test::init()
     cubeMat.specularColor = glm::vec3(0.95f, 0.95f, 0.95f);  // very bright specular for plastic
     cubeMat.shininess = 96.0f;   
     
-    Texture cDiffuse;
-    cDiffuse.ID = cubeDiffuseMap;
-    cDiffuse.type = "texture_diffuse";
-
-    Texture cSpec;
-    cSpec.ID = cubeSpecularMap;
-    cSpec.type = "texture_specular";
-
-    cubeMat.textures.push_back(cDiffuse);
-    cubeMat.textures.push_back(cSpec);
-
-    cube.SetMaterial(cubeMat);
+    cubeMat.textures.push_back(cubeDiffuseMap);
+    cubeMat.textures.push_back(cubeSpecularMap);
 
     // Floor (less shiny, grounded)
     Material floorMat;
@@ -51,24 +41,16 @@ void Test::init()
     floorMat.specularColor = glm::vec3(0.2f);  // low specular for rough wood
     floorMat.shininess = 16.0f;                // broad, soft highlights
 
-    Texture fDiffuse;
-    fDiffuse.ID = floorDiffuseMap;
-    fDiffuse.type = "texture_diffuse";
+    floorMat.textures.push_back(floorDiffuseMap);
+    floorMat.textures.push_back(floorSpecularMap);
 
-    Texture fSpec;
-    fSpec.ID = floorSpecularMap;
-    fSpec.type = "texture_specular";
-
-    floorMat.textures.push_back(fDiffuse);
-    floorMat.textures.push_back(fSpec);
-
-    floor.SetMaterial(floorMat);
 
     // --- create entities that reference the mesh instances ---
     Entity cube1;
     cube1.type = Entity::Type::Mesh;
     cube1.meshRenderer.mesh = &cube;         // points to the mesh with material
     cube1.meshRenderer.shader = shader;
+    cube1.meshRenderer.material = std::make_shared<Material>(cubeMat);
     cube1.transform.position = glm::vec3(0.0f, 0.5f, 0.0f);
     cube1.transform.scale = glm::vec3(1.0f);
     entities.push_back(cube1);
@@ -76,17 +58,19 @@ void Test::init()
     Entity cube2;
     cube2.type = Entity::Type::Mesh;
     cube2.meshRenderer.mesh = &cube;         // re-uses same mesh/material
+    cube2.meshRenderer.material = std::make_shared<Material>(cubeMat);
     cube2.meshRenderer.shader = shader;
-    cube2.transform.position = glm::vec3(0.0f, 0.5f, 0.8f);
+    cube2.transform.position = glm::vec3(0.6f, 0.5f, 2.0f);
     cube2.transform.scale = glm::vec3(1.0f);
     entities.push_back(cube2);
 
     Entity eFloor;
     eFloor.type = Entity::Type::Mesh;
     eFloor.meshRenderer.mesh = &floor;       // plane has its own material
+    eFloor.meshRenderer.material = std::make_shared<Material>(floorMat);
     eFloor.meshRenderer.shader = shader;
     eFloor.transform.position = glm::vec3(0.0f, 0.0f, 0.0f);
-    eFloor.transform.scale = glm::vec3(1.0f);
+    eFloor.transform.scale = glm::vec3(1.5f);
     entities.push_back(eFloor);
 
     // --- lighting: directional (global) ---

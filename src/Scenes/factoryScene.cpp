@@ -39,9 +39,9 @@ void FactoryScene::init()
         "shaders/modularFragmentShader.fs");
 
     diffuseMap = ResourceManager::LoadTexture(
-        "resources/textures/metalDiff.png");
+        "resources/textures/metalDiff.png", TextureType::TEX_DIFFUSE);
     specularMap = ResourceManager::LoadTexture(
-        "resources/textures/metalSpec.png");
+        "resources/textures/metalSpec.png", TextureType::TEX_SPECULAR);
 
     // --- create meshes first and give each its own Material ---
     for (int i = 0; i < 10; ++i)
@@ -57,44 +57,32 @@ void FactoryScene::init()
             mesh[i] = GeometryFactory::CreateCylinder();
         else /* randomInt == 4 */
             mesh[i] = GeometryFactory::CreateCone();
-
-        // Construct a Material for this mesh
-        Material mat;
-        mat.useDiffuseMap = true;
-        mat.useSpecularMap = true;
-        mat.diffuseColor = glm::vec3(1.0f);   // fallback
-        mat.specularColor = glm::vec3(1.0f);
-        mat.shininess = 32.0f;             // default, can tweak per shape
-
-        // Pack textures (reuse the same loaded textures)
-        Texture tDiffuse;
-        tDiffuse.ID = diffuseMap;
-        tDiffuse.type = "texture_diffuse";
-        tDiffuse.path = "metalDiff.png";
-
-        Texture tSpec;
-        tSpec.ID = specularMap;
-        tSpec.type = "texture_specular";
-        tSpec.path = "metalSpec.png";
-
-        mat.textures.push_back(tDiffuse);
-        mat.textures.push_back(tSpec);
-
-        // Optionally tweak material per primitive type for visual variety
-        if (randomInt == 0) { mat.shininess = 64.0f; mat.specularColor = glm::vec3(0.9f); } // sphere - glossier
-        if (randomInt == 2) { mat.shininess = 24.0f; mat.specularColor = glm::vec3(0.6f); } // torus - slightly rougher
-
-        // Assign material into mesh (assumes SetMaterial copies)
-        mesh[i].SetMaterial(mat);
     }
 
     // --- create entities referencing the meshes ---
     entities.clear();
     for (int i = 0; i < 10; ++i)
     {
+        int randomInt = Utils::RandomInt(0, 4);
+        // Construct a Material for this mesh
+        std::shared_ptr<Material> mat = std::make_shared<Material>();
+        mat->useDiffuseMap = true;
+        mat->useSpecularMap = true;
+        mat->diffuseColor = glm::vec3(1.0f);   // fallback
+        mat->specularColor = glm::vec3(1.0f);
+        mat->shininess = 108.0f;             // default, can tweak per shape
+
+        // Pack textures (reuse the same loaded textures)
+        mat->textures.push_back(diffuseMap);
+        mat->textures.push_back(specularMap);
+
+        // Optionally tweak material per primitive type for visual variety
+        if (randomInt == 0) { mat->shininess = 64.0f; mat->specularColor = glm::vec3(0.9f); } // sphere - glossier
+        if (randomInt == 2) { mat->shininess = 24.0f; mat->specularColor = glm::vec3(0.6f); } // torus - slightly rougher
         Entity e;
         e.type = Entity::Type::Mesh;
         e.meshRenderer.mesh = &mesh[i];
+        e.meshRenderer.material = mat;
         e.meshRenderer.shader = shader;
         e.transform.position = cubePositions[i];
         e.transform.scale = glm::vec3(0.7f);

@@ -3,8 +3,8 @@
 #include <array>
 #include "core/rendering/Mesh.h"
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, Material& material) : 
-    vertices(vertices), indices(indices), material(material)
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices) : 
+    vertices(vertices), indices(indices)
 {
     setupMesh();
 }
@@ -40,7 +40,7 @@ void Mesh::setupMesh()
     glBindVertexArray(0);
 }
 
-void Mesh::Draw(Shader& shader) const
+void Mesh::Draw(Shader& shader, Material& material) const
 {
     shader.use();
 
@@ -51,10 +51,10 @@ void Mesh::Draw(Shader& shader) const
     unsigned int specularID = 0;
 
     for (const auto& tex : material.textures) {
-        if (tex.type == "texture_diffuse" && diffuseID == 0)
-            diffuseID = tex.ID;
-        else if (tex.type == "texture_specular" && specularID == 0)
-            specularID = tex.ID;
+        if (tex -> type == TextureType::TEX_DIFFUSE && diffuseID == 0)
+            diffuseID = tex -> ID;
+        else if (tex -> type == TextureType::TEX_SPECULAR && specularID == 0)
+            specularID = tex -> ID;
     }
 
     // Bind textures (if available)

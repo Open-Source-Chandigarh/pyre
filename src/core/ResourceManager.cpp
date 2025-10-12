@@ -3,7 +3,7 @@
 #include "core/ResourceManager.h"
 
 std::map<std::string, std::shared_ptr<Shader>> ResourceManager::shaders;
-std::map<std::string, unsigned int> ResourceManager::textures;
+std::map<std::string, std::shared_ptr<Texture>> ResourceManager::textures;
 
 std::shared_ptr<Shader> ResourceManager::LoadShader(const std::string& name,
     const std::string& vsPath, const std::string& fsPath)
@@ -26,7 +26,7 @@ std::shared_ptr<Shader> ResourceManager::GetShader(const std::string& name)
     return it->second;
 }
 
-unsigned int ResourceManager::LoadTexture(const std::string& path) 
+std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& path, TextureType type)
 {
     if (textures.count(path)) return textures[path];
 
@@ -53,11 +53,15 @@ unsigned int ResourceManager::LoadTexture(const std::string& path)
 
     stbi_image_free(data);
 
-    textures[path] = tex;
-    return tex;
+    std::shared_ptr<Texture> texture = std::make_shared<Texture>();
+    texture->ID = tex;
+    texture->type = type;
+
+    textures[path] = texture;
+    return texture;
 }
 
-unsigned int ResourceManager::GetTexture(const std::string& path) 
+std::shared_ptr<Texture> ResourceManager::GetTexture(const std::string& path)
 {
     auto it = textures.find(path);
     if (it == textures.end()) return 0;
@@ -66,9 +70,6 @@ unsigned int ResourceManager::GetTexture(const std::string& path)
 
 void ResourceManager::Clear() 
 {
-    for (auto& p : textures) {
-        glDeleteTextures(1, &p.second);
-    }
     textures.clear();
     shaders.clear();
 }
