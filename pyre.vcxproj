@@ -182,6 +182,7 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
     <ClCompile Include="src\helpers\shaderClass.cpp" />
     <ClCompile Include="src\scenes\backpack.cpp" />
     <ClCompile Include="src\scenes\factoryScene.cpp" />
+    <ClCompile Include="src\Scenes\test.cpp" />
     <None Include="libs\assimp\assimp-vc143-mtd.dll" />
     <None Include="libs\GLFW\glfw3.dll" />
     <None Include="libs\lib-vc2022\assimp-vc143-mtd.dll" />
@@ -198,6 +199,7 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
     <ClInclude Include="includes\core\rendering\Renderer.h" />
     <ClInclude Include="includes\helpers\Utils.h" />
     <ClInclude Include="includes\scenes\backpack.h" />
+    <ClInclude Include="includes\scenes\test.h" />
     <ClInclude Include="includes\state\appState.h" />
     <ClInclude Include="includes\core\InputManager.h" />
     <ClInclude Include="includes\core\ResourceManager.h" />
@@ -659,6 +661,8 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
     <None Include="pyre\x64\Debug\vc143.pdb" />
     <None Include="shaders\modularFragmentShader.fs" />
     <None Include="shaders\modularVertexShader.vs" />
+    <None Include="shaders\singleColor.fs" />
+    <None Include="shaders\singleColor.vs" />
     <None Include="x64\Debug\pyre.exe" />
     <None Include="x64\Debug\pyre.pdb" />
   </ItemGroup>

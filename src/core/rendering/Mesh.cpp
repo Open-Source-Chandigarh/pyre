@@ -3,9 +3,8 @@
 #include <array>
 #include "core/rendering/Mesh.h"
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices,
-    std::vector<Texture> textures) : vertices(vertices), indices(indices),
-    textures(textures)
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices) : 
+    vertices(vertices), indices(indices)
 {
     setupMesh();
 }
@@ -41,40 +40,81 @@ void Mesh::setupMesh()
     glBindVertexArray(0);
 }
 
-void Mesh::Draw(Shader& shader)
+// Mesh::DrawSimple - just bind and issue draw call (no texture binding/no shader use)
+void Mesh::DrawSimple() const
 {
-    // pick first diffuse/specular if available
+    glBindVertexArray(VAO);
+    if (!indices.empty())
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
+    else if (indexCount > 0)
+        glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+    else
+        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+    glBindVertexArray(0);
+}
+
+void Mesh::Draw(Shader& shader, Material& material) const
+{
+    shader.use();
+
+    // ---------------------------
+    // Handle texture binding
+    // ---------------------------
     unsigned int diffuseID = 0;
     unsigned int specularID = 0;
-    for (const auto& tex : textures) {
-        if (tex.type == "texture_diffuse" && diffuseID == 0) {
-            diffuseID = tex.ID;
-        }
-        else if (tex.type == "texture_specular" && specularID == 0) {
-            specularID = tex.ID;
-        }
+
+    for (const auto& tex : material.textures) {
+        if (tex -> type == TextureType::TEX_DIFFUSE && diffuseID == 0)
+            diffuseID = tex -> ID;
+        else if (tex -> type == TextureType::TEX_SPECULAR && specularID == 0)
+            specularID = tex -> ID;
     }
 
-    // activate shader and set material samplers/uniforms
-    shader.use();
-    shader.setInt("material.diffuse", 0);
-    shader.setInt("material.specular", 1);
+    // Bind textures (if available)
+    if (material.useDiffuseMap && diffuseID != 0) {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, diffuseID);
+        shader.setInt("material.diffuse", 0);
+    }
+    else {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, 0); // no texture
+    }
 
-    // default shininess (you can change per-mesh later)
-    shader.setFloat("material.shininess", 32.0f);
+    if (material.useSpecularMap && specularID != 0) {
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, specularID);
+        shader.setInt("material.specular", 1);
+    }
+    else {
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 
-    // bind textures to texture units
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, diffuseID);    // if 0, then nothing bound -> shader should handle
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, specularID);
+    // ---------------------------
+    // Send all material uniforms
+    // ---------------------------
+    shader.setBool("material.useDiffuseMap", material.useDiffuseMap);
+    shader.setBool("material.useSpecularMap", material.useSpecularMap);
+    shader.setVec3("material.diffuseColor", material.diffuseColor);
+    shader.setVec3("material.specularColor", material.specularColor);
+    shader.setFloat("material.shininess", material.shininess);
 
-    // draw
+    // ---------------------------
+    // Draw
+    // ---------------------------
     glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
+    if (!indices.empty())
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
+    else if (indexCount > 0)
+        glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+    else
+        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
     glBindVertexArray(0);
 
-    // reset active texture to default
+    // ---------------------------
+    // Reset state
+    // ---------------------------
     glActiveTexture(GL_TEXTURE0);
 }
 

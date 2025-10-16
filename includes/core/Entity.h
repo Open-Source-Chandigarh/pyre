@@ -1,6 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <memory>
+#include <iostream>
 #include "core/rendering/Mesh.h"
 #include "core/rendering/Model.h"
 #include "helpers/shaderClass.h"
@@ -17,16 +18,14 @@ struct Transform
 
 struct MeshRenderer
 {
-    Mesh* mesh = nullptr;               // pointer to shared mesh
-    std::shared_ptr<Shader> shader;
-    unsigned int diffuse = 0;
-    unsigned int specular = 0;
-    float shininess = 32.0f;
+    Mesh* mesh = nullptr;                              // pointer to shared mesh
+    std::shared_ptr<Shader> shader;                    // material shader
+    std::shared_ptr<Material> material = nullptr;      // optional material
 };
 
 struct ModelRenderer
 {
-    Model* model = nullptr;             // pointer to model
+    Model* model = nullptr;                            // pointer to model
     std::shared_ptr<Shader> shader;
 };
 
@@ -34,34 +33,49 @@ struct Entity
 {
     Transform transform;
 
-    // Type of renderer used
     enum class Type { None, Mesh, Model } type = Type::None;
 
-    // Always present
     MeshRenderer meshRenderer;
     ModelRenderer modelRenderer;
 
-    // Render function
     void Render(Renderer& renderer)
     {
         glm::mat4 modelMatrix = transform.GetModelMatrix();
+
+        // --- Default material (created once) ---
+        static std::shared_ptr<Material> defaultMaterial = []() {
+            auto mat = std::make_shared<Material>();
+            mat->useDiffuseMap = false;
+            mat->useSpecularMap = false;
+            mat->diffuseColor = glm::vec3(1.0f);      // pure white
+            mat->specularColor = glm::vec3(0.04f);    // subtle specular
+            mat->shininess = 16.0f;
+            return mat;
+            }();
 
         switch (type)
         {
         case Type::Mesh:
             if (meshRenderer.mesh && meshRenderer.shader)
+            {
+                // fallback if material is missing
+                std::shared_ptr<Material> mat =
+                    (meshRenderer.material ? meshRenderer.material : defaultMaterial);
+
                 renderer.SubmitMesh(modelMatrix,
                     *meshRenderer.mesh,
                     meshRenderer.shader,
-                    meshRenderer.diffuse,
-                    meshRenderer.specular,
-                    meshRenderer.shininess);
+                    mat);
+            }
             break;
 
         case Type::Model:
             if (modelRenderer.model && modelRenderer.shader)
-                renderer.SubmitModel(modelMatrix, *modelRenderer.model,
+            {
+                renderer.SubmitModel(modelMatrix,
+                    *modelRenderer.model,
                     modelRenderer.shader);
+            }
             break;
 
         default:

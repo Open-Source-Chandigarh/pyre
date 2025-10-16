@@ -7,6 +7,11 @@
 #include "helpers/shaderClass.h";
 #include "core/rendering/Mesh.h"
 
+struct MeshEntry {
+	std::shared_ptr<Mesh> mesh;
+	std::shared_ptr<Material> material;
+};
+
 class Model
 {
 public:
@@ -18,11 +23,11 @@ public:
 	void Draw(Shader& shader);
 private:
 	// model data
-	std::vector<Mesh> meshes;
+	std::vector<MeshEntry> meshes;
 	std::string directory;
 	void loadModel(std::string path);
 	void processNode(aiNode* node, const aiScene* scene);
-	Mesh processMesh(aiMesh* mesh, const aiScene* scene);
-	std::vector<Texture> loadMaterialTextures(aiMaterial* mat,
-		aiTextureType type, std::string typeName);
+	MeshEntry processMesh(aiMesh* mesh, const aiScene* scene);
+	std::vector<std::shared_ptr<Texture>> loadMaterialTextures(aiMaterial* mat,
+		aiTextureType type, TextureType typeName);
 };

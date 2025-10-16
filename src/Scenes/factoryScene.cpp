@@ -27,50 +27,69 @@ FactoryScene::FactoryScene(Window& win)
     cubePositions[9] = glm::vec3(-1.3f, 1.0f, -1.5f);
 }
 
-FactoryScene::~FactoryScene() 
+FactoryScene::~FactoryScene()
 {
 }
 
-void FactoryScene::init() 
+void FactoryScene::init()
 {
     // shaders
-    shader = ResourceManager::LoadShader("factory", 
-        "shaders/modularVertexShader.vs", 
+    shader = ResourceManager::LoadShader("factory",
+        "shaders/modularVertexShader.vs",
         "shaders/modularFragmentShader.fs");
 
     diffuseMap = ResourceManager::LoadTexture(
-            "container_diff", "resources/textures/metalDiff.png");
+        "resources/textures/metalDiff.png", TextureType::TEX_DIFFUSE);
     specularMap = ResourceManager::LoadTexture(
-            "container_spec", "resources/textures/metalSpec.png");
-    entities.clear();
-    for (int i = 0; i < 10; i++)
-    {
-        Entity e;
-        e.type = Entity::Type::Mesh;
-        e.meshRenderer.mesh = &mesh[i];
-        e.meshRenderer.shader = shader;
-        e.meshRenderer.diffuse = diffuseMap;
-        e.meshRenderer.specular = specularMap;
-        e.transform.position = cubePositions[i];
-        e.transform.scale = glm::vec3(0.7f);
-        entities.push_back(std::move(e));
-    }
+        "resources/textures/metalSpec.png", TextureType::TEX_SPECULAR);
 
-    for (int i = 0; i < 10; i++)
+    // --- create meshes first and give each its own Material ---
+    for (int i = 0; i < 10; ++i)
     {
         int randomInt = Utils::RandomInt(0, 4);
-        if(randomInt == 0)
+        if (randomInt == 0)
             mesh[i] = GeometryFactory::CreateSphere();
-        else if(randomInt == 1)
+        else if (randomInt == 1)
             mesh[i] = GeometryFactory::CreateCube();
         else if (randomInt == 2)
             mesh[i] = GeometryFactory::CreateTorus();
         else if (randomInt == 3)
             mesh[i] = GeometryFactory::CreateCylinder();
-        else if (randomInt == 4)
+        else /* randomInt == 4 */
             mesh[i] = GeometryFactory::CreateCone();
     }
 
+    // --- create entities referencing the meshes ---
+    entities.clear();
+    for (int i = 0; i < 10; ++i)
+    {
+        int randomInt = Utils::RandomInt(0, 4);
+        // Construct a Material for this mesh
+        std::shared_ptr<Material> mat = std::make_shared<Material>();
+        mat->useDiffuseMap = true;
+        mat->useSpecularMap = true;
+        mat->diffuseColor = glm::vec3(1.0f);   // fallback
+        mat->specularColor = glm::vec3(1.0f);
+        mat->shininess = 108.0f;             // default, can tweak per shape
+
+        // Pack textures (reuse the same loaded textures)
+        mat->textures.push_back(diffuseMap);
+        mat->textures.push_back(specularMap);
+
+        // Optionally tweak material per primitive type for visual variety
+        if (randomInt == 0) { mat->shininess = 64.0f; mat->specularColor = glm::vec3(0.9f); } // sphere - glossier
+        if (randomInt == 2) { mat->shininess = 24.0f; mat->specularColor = glm::vec3(0.6f); } // torus - slightly rougher
+        Entity e;
+        e.type = Entity::Type::Mesh;
+        e.meshRenderer.mesh = &mesh[i];
+        e.meshRenderer.material = mat;
+        e.meshRenderer.shader = shader;
+        e.transform.position = cubePositions[i];
+        e.transform.scale = glm::vec3(0.7f);
+        entities.push_back(std::move(e));
+    }
+
+    // lights
     glm::vec3 lightColor(0.2f, 0.4f, 0.8f);
     lightManager.ClearPointLights();
     lightManager.SetDirectional(glm::vec3(-0.2f, -1.0f, -0.3f),
@@ -121,7 +140,6 @@ void FactoryScene::init()
     s.innerCutOff = cos(glm::radians(12.5f));
     s.outerCutOff = cos(glm::radians(17.5f));
     lightManager.AddSpotLight(s);
-
 }
 
 void FactoryScene::update() {
@@ -134,7 +152,7 @@ void FactoryScene::update() {
     }
 }
 
-void FactoryScene::render() 
+void FactoryScene::render()
 {
     auto app = win.GetAppState();
     if (!app) return;

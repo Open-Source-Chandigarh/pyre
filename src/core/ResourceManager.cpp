@@ -3,11 +3,13 @@
 #include "core/ResourceManager.h"
 
 std::map<std::string, std::shared_ptr<Shader>> ResourceManager::shaders;
-std::map<std::string, unsigned int> ResourceManager::textures;
+std::map<std::string, std::shared_ptr<Texture>> ResourceManager::textures;
 
 std::shared_ptr<Shader> ResourceManager::LoadShader(const std::string& name,
     const std::string& vsPath, const std::string& fsPath)
 {
+    auto it = shaders.find(name);
+    if (it != shaders.end()) return it->second;
     try {
         auto s = std::make_shared<Shader>(vsPath.c_str(), fsPath.c_str());
         shaders[name] = s;
@@ -26,9 +28,9 @@ std::shared_ptr<Shader> ResourceManager::GetShader(const std::string& name)
     return it->second;
 }
 
-unsigned int ResourceManager::LoadTexture(const std::string& name, const std::string& path) 
+std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& path, TextureType type)
 {
-    if (textures.count(name)) return textures[name];
+    if (textures.count(path)) return textures[path];
 
     int width, height, nrChannels;
     stbi_set_flip_vertically_on_load(true);
@@ -53,22 +55,23 @@ unsigned int ResourceManager::LoadTexture(const std::string& name, const std::st
 
     stbi_image_free(data);
 
-    textures[name] = tex;
-    return tex;
+    std::shared_ptr<Texture> texture = std::make_shared<Texture>();
+    texture->ID = tex;
+    texture->type = type;
+
+    textures[path] = texture;
+    return texture;
 }
 
-unsigned int ResourceManager::GetTexture(const std::string& name) 
+std::shared_ptr<Texture> ResourceManager::GetTexture(const std::string& path)
 {
-    auto it = textures.find(name);
+    auto it = textures.find(path);
     if (it == textures.end()) return 0;
     return it->second;
 }
 
 void ResourceManager::Clear() 
 {
-    for (auto& p : textures) {
-        glDeleteTextures(1, &p.second);
-    }
     textures.clear();
     shaders.clear();
 }
