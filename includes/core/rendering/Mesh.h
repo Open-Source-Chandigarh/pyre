@@ -89,6 +89,8 @@ struct Material
     float shininess = 32.0f;
     bool useDiffuseMap = false;
     bool useSpecularMap = false;
+    bool outlineEnabled = false;
+    glm::vec3 outlineColor = glm::vec3(1.0f);
 
     Material() = default;
 
@@ -122,6 +124,10 @@ public:
         const unsigned int* indices, std::size_t iBytes, int iCount);
 
     void Draw(Shader& shader, Material& material) const;
+
+    // Draw raw geometry (assumes caller set shader and uniforms). Useful for outline pass.
+    void DrawSimple() const;
+
 
     // Destroy GPU objects
     void Destroy();

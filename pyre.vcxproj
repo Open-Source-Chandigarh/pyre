@@ -661,6 +661,8 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
     <None Include="pyre\x64\Debug\vc143.pdb" />
     <None Include="shaders\modularFragmentShader.fs" />
     <None Include="shaders\modularVertexShader.vs" />
+    <None Include="shaders\singleColor.fs" />
+    <None Include="shaders\singleColor.vs" />
     <None Include="x64\Debug\pyre.exe" />
     <None Include="x64\Debug\pyre.pdb" />
   </ItemGroup>

@@ -40,6 +40,19 @@ void Mesh::setupMesh()
     glBindVertexArray(0);
 }
 
+// Mesh::DrawSimple - just bind and issue draw call (no texture binding/no shader use)
+void Mesh::DrawSimple() const
+{
+    glBindVertexArray(VAO);
+    if (!indices.empty())
+        glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
+    else if (indexCount > 0)
+        glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
+    else
+        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+    glBindVertexArray(0);
+}
+
 void Mesh::Draw(Shader& shader, Material& material) const
 {
     shader.use();

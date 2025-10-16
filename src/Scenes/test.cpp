@@ -26,6 +26,7 @@ void Test::init()
     Material cubeMat;
     cubeMat.useDiffuseMap = true;
     cubeMat.useSpecularMap = true;
+    cubeMat.outlineEnabled = true;
     cubeMat.diffuseColor = glm::vec3(0.8f, 0.05f, 0.05f);    // slightly warm red
     cubeMat.specularColor = glm::vec3(0.95f, 0.95f, 0.95f);  // very bright specular for plastic
     cubeMat.shininess = 96.0f;   
@@ -37,6 +38,7 @@ void Test::init()
     Material floorMat;
     floorMat.useDiffuseMap = true;
     floorMat.useSpecularMap = true;
+    //floorMat.outlineEnabled = true;
     floorMat.diffuseColor = glm::vec3(1.0f);
     floorMat.specularColor = glm::vec3(0.2f);  // low specular for rough wood
     floorMat.shininess = 16.0f;                // broad, soft highlights
@@ -46,23 +48,42 @@ void Test::init()
 
 
     // --- create entities that reference the mesh instances ---
-    Entity cube1;
-    cube1.type = Entity::Type::Mesh;
-    cube1.meshRenderer.mesh = &cube;         // points to the mesh with material
-    cube1.meshRenderer.shader = shader;
-    cube1.meshRenderer.material = std::make_shared<Material>(cubeMat);
-    cube1.transform.position = glm::vec3(0.0f, 0.5f, 0.0f);
-    cube1.transform.scale = glm::vec3(1.0f);
-    entities.push_back(cube1);
+// --- create cube pyramid ---
+    float cubeSpacing = 1.05f;   // space between cube centers
+    float cubeHeight = 1.1f;    // vertical offset per layer
+    int baseCount = 3;          // bottom layer cubes per side
 
-    Entity cube2;
-    cube2.type = Entity::Type::Mesh;
-    cube2.meshRenderer.mesh = &cube;         // re-uses same mesh/material
-    cube2.meshRenderer.material = std::make_shared<Material>(cubeMat);
-    cube2.meshRenderer.shader = shader;
-    cube2.transform.position = glm::vec3(0.6f, 0.5f, 2.0f);
-    cube2.transform.scale = glm::vec3(1.0f);
-    entities.push_back(cube2);
+    for (int layer = 0; layer < baseCount; ++layer)
+    {
+        int cubesPerRow = baseCount - layer;
+        float y = 0.55f + (layer * cubeHeight);  // raise each layer up
+
+        // center the row so the pyramid is symmetric
+        float startOffset = -(cubesPerRow - 1) * (cubeSpacing / 2.0f);
+
+        for (int i = 0; i < cubesPerRow; ++i)
+        {
+            for (int j = 0; j < cubesPerRow; ++j)
+            {
+                Entity cubeEntity;
+                cubeEntity.type = Entity::Type::Mesh;
+                cubeEntity.meshRenderer.mesh = &cube;
+                cubeEntity.meshRenderer.material = std::make_shared<Material>(cubeMat);
+                cubeEntity.meshRenderer.shader = shader;
+
+                // Position cubes in grid formation
+                float x = startOffset + i * cubeSpacing;
+                float z = startOffset + j * cubeSpacing;
+
+                cubeEntity.transform.position = glm::vec3(x, y, z);
+                cubeEntity.transform.rotation = glm::vec3(0.0f, 0.0f, 0.0f);
+                cubeEntity.transform.scale = glm::vec3(1.1f);
+
+                entities.push_back(cubeEntity);
+            }
+        }
+    }
+
 
     Entity eFloor;
     eFloor.type = Entity::Type::Mesh;

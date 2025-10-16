@@ -1456,6 +1456,10 @@
     <None Include="resources\models\backpack\backpack.mtl" />
     <None Include="shaders\modularFragmentShader.fs" />
     <None Include="shaders\modularVertexShader.vs" />
+    <None Include="shaders\singleColor.fs" />
+    <None Include="shaders\singleColor.vs">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="pyre\x64\Debug\pyre.log" />

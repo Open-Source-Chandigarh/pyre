@@ -99,9 +99,9 @@ int main()
         appState.lastFrame = currentFrame;
 
         glClearColor(0.08f, 0.08f, 0.11f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-        win.PollEvents();
+
         input->Update(appState.deltaTime);
 
         if (!appState.scenes.empty()) {
@@ -109,6 +109,10 @@ int main()
             appState.scenes[appState.currentSceneIndex]->render();
         }
 
+        glStencilMask(0xFF);
+        glStencilFunc(GL_ALWAYS, 0, 0xFF);
+        glEnable(GL_DEPTH_TEST);
+        win.PollEvents();
         win.SwapBuffers();
     }
 

@@ -8,6 +8,8 @@ std::map<std::string, std::shared_ptr<Texture>> ResourceManager::textures;
 std::shared_ptr<Shader> ResourceManager::LoadShader(const std::string& name,
     const std::string& vsPath, const std::string& fsPath)
 {
+    auto it = shaders.find(name);
+    if (it != shaders.end()) return it->second;
     try {
         auto s = std::make_shared<Shader>(vsPath.c_str(), fsPath.c_str());
         shaders[name] = s;
