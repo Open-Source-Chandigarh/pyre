@@ -91,6 +91,7 @@ struct Material
     bool useSpecularMap = false;
     bool outlineEnabled = false;
     glm::vec3 outlineColor = glm::vec3(1.0f);
+    bool isTransparent = false;
 
     Material() = default;
 

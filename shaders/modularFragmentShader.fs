@@ -75,7 +75,19 @@ void main()
     for (int i = 0; i < numSpotLights; i++)
         result += CalcSpotLight(spotLights[i], norm, FragPos, viewDir);
 
-    FragColor = vec4(result, 1.0);
+    // Get alpha from diffuse map if used
+    float alpha = 1.0;
+    if (material.useDiffuseMap)
+    {
+        vec4 texColor = texture(material.diffuse, TexCoords);
+        alpha = texColor.a;
+
+        // Discard if alpha is too low
+        if (alpha < 0.1)
+            discard;
+    }
+    // Output final color
+    FragColor = vec4(result, alpha);
 }
 
 // Helper to get material colors

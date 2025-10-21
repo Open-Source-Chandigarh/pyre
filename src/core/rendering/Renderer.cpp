@@ -1,7 +1,11 @@
 #include <glad/glad.h>
+#include <algorithm>
+#include <glm/glm.hpp>
 #include "core/rendering/Renderer.h"
 #include "core/rendering/Model.h"
 #include "core/ResourceManager.h"
+#include "core/Entity.h"
+#include "helpers/camera.h"
 
 void Renderer::BeginScene(const glm::mat4& view, const glm::mat4& projection,
     const glm::vec3& viewPos)
@@ -17,6 +21,33 @@ void Renderer::BeginScene(const glm::mat4& view, const glm::mat4& projection,
     viewMatrix = view;
     projMatrix = projection;
     viewPosition = viewPos;
+}
+
+void Renderer::RenderScene(std::vector<Entity*> entities, Camera &camera)
+{
+    std::vector<Entity*> transparentEntities;
+
+    for (auto& e : entities)
+    {
+        if (!e -> meshRenderer.material->isTransparent)
+            e -> Render(*this);
+        else
+            transparentEntities.push_back(e);
+    }
+
+    glm::vec3 camPosition = camera.Position;
+    std::sort(transparentEntities.begin(), transparentEntities.end(),
+        [&camPosition](const Entity* a, const Entity* b) {
+            // squared distances (cheaper than sqrt)
+            float da = glm::dot(camPosition - a->transform.position, camPosition - a->transform.position);
+            float db = glm::dot(camPosition - b->transform.position, camPosition - b->transform.position);
+            return da > db; // far first (strict)
+        });
+
+    for (auto& e : transparentEntities)
+    {
+        e->Render(*this);
+    }
 }
 // --------------------------------------------
 // SubmitMesh – Draws a single mesh with material

@@ -4,6 +4,7 @@
 
 Test::Test(Window& win) : win(win), shader(nullptr)
 {
+
 }
 
 void Test::init()
@@ -18,114 +19,144 @@ void Test::init()
     cubeDiffuseMap = ResourceManager::LoadTexture("resources/textures/crateDiff.jpg", TextureType::TEX_DIFFUSE);
     cubeSpecularMap = ResourceManager::LoadTexture("resources/textures/crateSpec.jpg", TextureType::TEX_SPECULAR);
 
+    std::shared_ptr<Texture> grassDiffuseMap =
+        ResourceManager::LoadTexture("resources/textures/grass.png", TextureType::TEX_DIFFUSE);
+
+    std::shared_ptr<Texture> windowDiffuseMap =
+        ResourceManager::LoadTexture("resources/textures/transparent_window.png", TextureType::TEX_DIFFUSE);
+    std::shared_ptr<Texture> windowSpecMap =
+        ResourceManager::LoadTexture("resources/textures/metalSpec.png", TextureType::TEX_SPECULAR);
+
     // create procedural geometry
     cube = GeometryFactory::CreateCube();
-    floor = GeometryFactory::CreatePlane(5.0f);
+    plane = GeometryFactory::CreatePlane();
+
+    Material grassMat;
+    grassMat.useDiffuseMap = true;
+    grassMat.useSpecularMap = false;
+    grassMat.specularColor = glm::vec3(0.0f);
+    grassMat.textures.push_back(grassDiffuseMap);
+
+    Material windowMat;
+    windowMat.useDiffuseMap = true;
+    windowMat.useSpecularMap = true;
+    windowMat.isTransparent = true;
+    windowMat.textures.push_back(windowDiffuseMap);
+    windowMat.textures.push_back(windowSpecMap);
+
+    Entity* windowEntity = new Entity();
+    windowEntity->type = Entity::Type::Mesh;
+    windowEntity->meshRenderer.mesh = &plane;
+    windowEntity->meshRenderer.material = std::make_shared<Material>(windowMat);
+    windowEntity->meshRenderer.shader = shader;
+    windowEntity->transform.position = glm::vec3(0.0f, 0.0f, 2.0f);
+    windowEntity->transform.rotation = glm::vec3(270.0f, 0.0f, 0.0f);
+    windowEntity->transform.position.y += 0.5f * windowEntity->transform.scale.y;
+    windowEntity->transform.scale = glm::vec3(1.0f);
+    entities.push_back(windowEntity);
+
+    Entity* grassEntity = new Entity();
+    grassEntity->type = Entity::Type::Mesh;
+    grassEntity->meshRenderer.mesh = &plane;
+    grassEntity->meshRenderer.material = std::make_shared<Material>(grassMat);
+    grassEntity->meshRenderer.shader = shader;
+    grassEntity->transform.position = glm::vec3(1.5f, 0.0f, 2.0f);
+    grassEntity->transform.rotation = glm::vec3(270.0f, 0.0f, 0.0f);
+    grassEntity->transform.position.y += 0.5f * grassEntity->transform.scale.y;
+    grassEntity->transform.scale = glm::vec3(1.0f);
+    entities.push_back(grassEntity);
 
     // Cube (red plastic)
     Material cubeMat;
     cubeMat.useDiffuseMap = true;
     cubeMat.useSpecularMap = true;
     cubeMat.outlineEnabled = true;
-    cubeMat.diffuseColor = glm::vec3(0.8f, 0.05f, 0.05f);    // slightly warm red
-    cubeMat.specularColor = glm::vec3(0.95f, 0.95f, 0.95f);  // very bright specular for plastic
-    cubeMat.shininess = 96.0f;   
-    
+    cubeMat.diffuseColor = glm::vec3(0.8f, 0.05f, 0.05f);
+    cubeMat.specularColor = glm::vec3(0.95f);
+    cubeMat.shininess = 96.0f;
     cubeMat.textures.push_back(cubeDiffuseMap);
     cubeMat.textures.push_back(cubeSpecularMap);
 
-    // Floor (less shiny, grounded)
+    // Floor
     Material floorMat;
     floorMat.useDiffuseMap = true;
     floorMat.useSpecularMap = true;
-    //floorMat.outlineEnabled = true;
     floorMat.diffuseColor = glm::vec3(1.0f);
-    floorMat.specularColor = glm::vec3(0.2f);  // low specular for rough wood
-    floorMat.shininess = 16.0f;                // broad, soft highlights
-
+    floorMat.specularColor = glm::vec3(0.2f);
+    floorMat.shininess = 16.0f;
     floorMat.textures.push_back(floorDiffuseMap);
     floorMat.textures.push_back(floorSpecularMap);
 
-
-    // --- create entities that reference the mesh instances ---
-// --- create cube pyramid ---
-    float cubeSpacing = 1.05f;   // space between cube centers
-    float cubeHeight = 1.1f;    // vertical offset per layer
-    int baseCount = 3;          // bottom layer cubes per side
+    float cubeSpacing = 1.05f;
+    float cubeHeight = 1.1f;
+    int baseCount = 2;
 
     for (int layer = 0; layer < baseCount; ++layer)
     {
         int cubesPerRow = baseCount - layer;
-        float y = 0.55f + (layer * cubeHeight);  // raise each layer up
-
-        // center the row so the pyramid is symmetric
+        float y = 0.55f + (layer * cubeHeight);
         float startOffset = -(cubesPerRow - 1) * (cubeSpacing / 2.0f);
 
         for (int i = 0; i < cubesPerRow; ++i)
         {
             for (int j = 0; j < cubesPerRow; ++j)
             {
-                Entity cubeEntity;
-                cubeEntity.type = Entity::Type::Mesh;
-                cubeEntity.meshRenderer.mesh = &cube;
-                cubeEntity.meshRenderer.material = std::make_shared<Material>(cubeMat);
-                cubeEntity.meshRenderer.shader = shader;
+                Entity* cubeEntity = new Entity();
+                cubeEntity->type = Entity::Type::Mesh;
+                cubeEntity->meshRenderer.mesh = &cube;
+                cubeEntity->meshRenderer.material = std::make_shared<Material>(cubeMat);
+                cubeEntity->meshRenderer.shader = shader;
 
-                // Position cubes in grid formation
                 float x = startOffset + i * cubeSpacing;
                 float z = startOffset + j * cubeSpacing;
 
-                cubeEntity.transform.position = glm::vec3(x, y, z);
-                cubeEntity.transform.rotation = glm::vec3(0.0f, 0.0f, 0.0f);
-                cubeEntity.transform.scale = glm::vec3(1.1f);
+                cubeEntity->transform.position = glm::vec3(x, y, z);
+                cubeEntity->transform.rotation = glm::vec3(0.0f);
+                cubeEntity->transform.scale = glm::vec3(1.1f);
 
                 entities.push_back(cubeEntity);
             }
         }
     }
 
-
-    Entity eFloor;
-    eFloor.type = Entity::Type::Mesh;
-    eFloor.meshRenderer.mesh = &floor;       // plane has its own material
-    eFloor.meshRenderer.material = std::make_shared<Material>(floorMat);
-    eFloor.meshRenderer.shader = shader;
-    eFloor.transform.position = glm::vec3(0.0f, 0.0f, 0.0f);
-    eFloor.transform.scale = glm::vec3(1.5f);
+    Entity* eFloor = new Entity();
+    eFloor->type = Entity::Type::Mesh;
+    eFloor->meshRenderer.mesh = &plane;
+    eFloor->meshRenderer.material = std::make_shared<Material>(floorMat);
+    eFloor->meshRenderer.shader = shader;
+    eFloor->transform.position = glm::vec3(0.0f);
+    eFloor->transform.scale = glm::vec3(10.0f);
     entities.push_back(eFloor);
 
-    // --- lighting: directional (global) ---
+    // lighting setup
     lightManager.ClearPointLights();
     lightManager.SetDirectional(
-        glm::vec3(-0.5f, -1.0f, -0.3f),   // angled down & left
-        glm::vec3(0.04f),                  // small ambient
-        glm::vec3(0.55f, 0.55f, 0.55f),    // nice diffuse
-        glm::vec3(0.7f, 0.7f, 0.7f)        // specular
+        glm::vec3(-0.5f, -1.0f, -0.3f),
+        glm::vec3(0.04f),
+        glm::vec3(0.55f),
+        glm::vec3(0.7f)
     );
 
-    // --- primary key point light: strong highlight ---
     PointLight key;
-    key.position = glm::vec3(1.5f, 2.0f, 1.5f);   // above & front-right of cube
-    key.ambient = glm::vec3(0.03f);               // tiny ambient
-    key.diffuse = glm::vec3(1.0f);                // white diffuse for color pop
-    key.specular = glm::vec3(1.0f);               // white specular for tight highlights
+    key.position = glm::vec3(1.5f, 2.0f, 1.5f);
+    key.ambient = glm::vec3(0.03f);
+    key.diffuse = glm::vec3(1.0f);
+    key.specular = glm::vec3(1.0f);
     key.constant = 1.0f; key.linear = 0.09f; key.quadratic = 0.032f;
     lightManager.AddPointLight(key);
 
-    // --- fill point light: subtle, opposite side to soften shadows ---
     PointLight fill;
-    fill.position = glm::vec3(-1.0f, 0.7f, 0.8f); // left, slightly low
+    fill.position = glm::vec3(-1.0f, 0.7f, 0.8f);
     fill.ambient = glm::vec3(0.02f);
-    fill.diffuse = glm::vec3(0.25f);              // much weaker
+    fill.diffuse = glm::vec3(0.25f);
     fill.specular = glm::vec3(0.2f);
     fill.constant = 1.0f; fill.linear = 0.14f; fill.quadratic = 0.07f;
     lightManager.AddPointLight(fill);
 
-    // --- rim/back light: small cool edge ---
     PointLight rim;
-    rim.position = glm::vec3(-1.0f, 1.5f, -1.5f); // behind cube
+    rim.position = glm::vec3(-1.0f, 1.5f, -1.5f);
     rim.ambient = glm::vec3(0.0f);
-    rim.diffuse = glm::vec3(0.15f, 0.18f, 0.22f); // subtle bluish rim
+    rim.diffuse = glm::vec3(0.15f, 0.18f, 0.22f);
     rim.specular = glm::vec3(0.4f);
     rim.constant = 1.0f; rim.linear = 0.09f; rim.quadratic = 0.032f;
     lightManager.AddPointLight(rim);
@@ -133,6 +164,7 @@ void Test::init()
 
 void Test::update()
 {
+
 }
 
 void Test::render()
@@ -154,8 +186,6 @@ void Test::render()
     if (shader) lightManager.ApplyToShader(*shader);
 
     // Draw entities
-    for (auto& e : entities) {
-        e.Render(renderer);
-    }
+    renderer.RenderScene(entities, app->camera);
     renderer.EndScene();
 }

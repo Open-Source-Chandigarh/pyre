@@ -34,10 +34,10 @@ private:
     std::shared_ptr<Shader> shader;
 
     Mesh cube;
-    Mesh floor;
+    Mesh plane;
 
     Renderer renderer;
     LightManager lightManager;
 
-    std::vector<Entity> entities;
+    std::vector<Entity*> entities;
 };
