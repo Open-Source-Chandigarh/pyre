@@ -139,22 +139,22 @@ void Test::init()
     key.position = glm::vec3(1.5f, 2.0f, 1.5f);
     key.ambient = glm::vec3(0.03f);
     key.diffuse = glm::vec3(1.0f);
-    key.specular = glm::vec3(1.0f);
+    key.specular = glm::vec3(0.5f);
     key.constant = 1.0f; key.linear = 0.09f; key.quadratic = 0.032f;
     lightManager.AddPointLight(key);
 
     PointLight fill;
-    fill.position = glm::vec3(-1.0f, 0.7f, 0.8f);
-    fill.ambient = glm::vec3(0.02f);
-    fill.diffuse = glm::vec3(0.25f);
-    fill.specular = glm::vec3(0.2f);
+    fill.position = glm::vec3(-1.0f, 2.0f, 1.0f);
+    fill.ambient = glm::vec3(0.04f);
+    fill.diffuse = glm::vec3(0.7f, 0.4f, 0.1f);
+    fill.specular = glm::vec3(0.4f);
     fill.constant = 1.0f; fill.linear = 0.14f; fill.quadratic = 0.07f;
     lightManager.AddPointLight(fill);
 
     PointLight rim;
-    rim.position = glm::vec3(-1.0f, 1.5f, -1.5f);
-    rim.ambient = glm::vec3(0.0f);
-    rim.diffuse = glm::vec3(0.15f, 0.18f, 0.22f);
+    rim.position = glm::vec3(-1.0f, 2.0f, -2.0f);
+    rim.ambient = glm::vec3(0.01f);
+    rim.diffuse = glm::vec3(0.2f, 0.5f, 0.4f);
     rim.specular = glm::vec3(0.4f);
     rim.constant = 1.0f; rim.linear = 0.09f; rim.quadratic = 0.032f;
     lightManager.AddPointLight(rim);
@@ -181,7 +181,7 @@ void Test::render()
         lightManager.spots[0].direction = win.GetAppState()->camera.Front;
     }
 
-    if (shader) lightManager.ApplyToShader(*shader);
+    if (shader) lightManager.ApplyToShader(*shader, renderer, view, proj);
 
     // Draw entities
     renderer.RenderScene(entities, app->camera);

@@ -58,21 +58,6 @@ void Renderer::SubmitMesh(const glm::mat4& model,
 {
     if (!shader) return;
 
-    switch (mat->cullMode)
-    {
-    case CullMode::Back:
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
-        break;
-    case CullMode::Front:
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
-        break;
-    case CullMode::None:
-        glDisable(GL_CULL_FACE);
-        break;
-    }
-
     // --- NON-OUTLINE: simple draw (ensure stencil not written) ---
     if (!mat->outlineEnabled)
     {
@@ -118,7 +103,7 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     const float outlineScale = 1.04f; // tweak between 1.01 - 1.1 depending on mesh
     glm::mat4 outlineModel = glm::scale(model, glm::vec3(outlineScale));
 
-    std::shared_ptr<Shader> outlineShader = ResourceManager::LoadShader("simple",
+    std::shared_ptr<Shader> outlineShader = ResourceManager::LoadShader("unlit",
         "shaders/singleColor.vs", "shaders/singleColor.fs");
     if (outlineShader)
     {

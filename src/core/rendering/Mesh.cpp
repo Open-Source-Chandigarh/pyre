@@ -43,6 +43,8 @@ void Mesh::setupMesh()
 // Mesh::DrawSimple - just bind and issue draw call (no texture binding/no shader use)
 void Mesh::DrawSimple() const
 {
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
     glBindVertexArray(VAO);
     if (!indices.empty())
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
@@ -56,6 +58,21 @@ void Mesh::DrawSimple() const
 void Mesh::Draw(Shader& shader, Material& material) const
 {
     shader.use();
+
+    switch (material.cullMode)
+    {
+    case CullMode::Back:
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        break;
+    case CullMode::Front:
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
+        break;
+    case CullMode::None:
+        glDisable(GL_CULL_FACE);
+        break;
+    }
 
     // ---------------------------
     // Handle texture binding

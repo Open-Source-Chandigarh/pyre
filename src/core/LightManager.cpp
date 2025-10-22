@@ -3,6 +3,14 @@
 #include "core/ResourceManager.h"
 #include "core/rendering/geometry/GeometryFactory.h"
 #include <sstream>
+#include <iostream>
+
+LightManager::LightManager()
+{
+    debugSphere = GeometryFactory::CreateSphere(0.2f, 4, 2);
+    debugShader = ResourceManager::LoadShader("unlit",
+        "shaders/singleColor.vs", "shaders/singleColor.fs");
+}
 
 void LightManager::SetDirectional(const glm::vec3& d,
     const glm::vec3& ambient,
@@ -33,7 +41,9 @@ void LightManager::ClearSpotLights()
 static constexpr int GLSL_MAX_POINT_LIGHTS = 8; // must match shader (#define MAX_POINT_LIGHTS 8)
 static constexpr int GLSL_MAX_SPOT_LIGHTS = 4; // must match shader (#define MAX_SPOT_LIGHTS 4)
 
-void LightManager::ApplyToShader(Shader& shader) {
+void LightManager::ApplyToShader(Shader& shader, Renderer& renderer,
+    const glm::mat4& view, const glm::mat4& proj) 
+{
     shader.use();
 
     shader.setVec3("dirLight.direction", dir);
@@ -76,4 +86,26 @@ void LightManager::ApplyToShader(Shader& shader) {
         shader.setFloat((base + "linear").c_str(), s.linear);
         shader.setFloat((base + "quadratic").c_str(), s.quadratic);
     }
+
+    RenderDebugLights(renderer, view, proj);
+}
+
+void LightManager::RenderDebugLights(Renderer& renderer,
+    const glm::mat4& view, const glm::mat4& proj)
+{
+    if (!showDebugSpheres) return;
+    if (!debugShader) return;
+
+    debugShader->use();
+    debugShader->setMat4("view", view);
+    debugShader->setMat4("projection", proj);
+
+    for (const auto& p : points)
+    {
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), p.position);
+        debugShader->setMat4("model", model);
+        debugShader->setVec3("color", p.diffuse);
+        debugSphere.DrawSimple();
+    }
+
 }
