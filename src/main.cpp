@@ -114,7 +114,6 @@ int main()
 
         glStencilMask(0xFF);
         glStencilFunc(GL_ALWAYS, 0, 0xFF);
-        glEnable(GL_DEPTH_TEST);
         win.PollEvents();
         win.SwapBuffers();
     }

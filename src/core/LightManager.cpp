@@ -1,4 +1,7 @@
 #include "core/LightManager.h"
+#include "core/Entity.h"
+#include "core/ResourceManager.h"
+#include "core/rendering/geometry/GeometryFactory.h"
 #include <sstream>
 
 void LightManager::SetDirectional(const glm::vec3& d,
@@ -43,7 +46,8 @@ void LightManager::ApplyToShader(Shader& shader) {
     int spotCount = static_cast<int>(std::min(spots.size(), (size_t)GLSL_MAX_SPOT_LIGHTS));
 
     shader.setInt("numPointLights", pointCount);
-    for (int i = 0; i < pointCount; ++i) {
+    for (int i = 0; i < pointCount; ++i) 
+    {
         const auto& p = points[i];
         std::string base = "pointLights[" + std::to_string(i) + "].";
         shader.setVec3((base + "position").c_str(), p.position);
@@ -53,6 +57,8 @@ void LightManager::ApplyToShader(Shader& shader) {
         shader.setFloat((base + "constant").c_str(), p.constant);
         shader.setFloat((base + "linear").c_str(), p.linear);
         shader.setFloat((base + "quadratic").c_str(), p.quadratic);
+
+
     }
 
     shader.setInt("numSpotLights", spotCount);

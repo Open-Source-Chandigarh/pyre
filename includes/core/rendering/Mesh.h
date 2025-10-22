@@ -25,6 +25,13 @@ enum class TextureType
     Other
 };
 
+enum class CullMode
+{
+    Back,
+    Front,
+    None
+};
+
 // RAII wrapper for an OpenGL texture.
 // - non-copyable (to avoid double-delete)
 // - movable (transfers ownership)
@@ -92,6 +99,7 @@ struct Material
     bool outlineEnabled = false;
     glm::vec3 outlineColor = glm::vec3(1.0f);
     bool isTransparent = false;
+    CullMode cullMode = CullMode::Back;
 
     Material() = default;
 
@@ -128,6 +136,9 @@ public:
 
     // Draw raw geometry (assumes caller set shader and uniforms). Useful for outline pass.
     void DrawSimple() const;
+
+    // Draw raw geomtry without material at a specified positon. Useful for drawing debugging objects
+    void DrawAtPosition(Shader& shader, glm::vec3 positon) const;
 
 
     // Destroy GPU objects

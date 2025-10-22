@@ -4,7 +4,6 @@
 
 Test::Test(Window& win) : win(win), shader(nullptr)
 {
-
 }
 
 void Test::init()
@@ -34,6 +33,7 @@ void Test::init()
     Material grassMat;
     grassMat.useDiffuseMap = true;
     grassMat.useSpecularMap = false;
+    grassMat.cullMode = CullMode::None;
     grassMat.specularColor = glm::vec3(0.0f);
     grassMat.textures.push_back(grassDiffuseMap);
 
@@ -41,6 +41,7 @@ void Test::init()
     windowMat.useDiffuseMap = true;
     windowMat.useSpecularMap = true;
     windowMat.isTransparent = true;
+    windowMat.cullMode = CullMode::None;
     windowMat.textures.push_back(windowDiffuseMap);
     windowMat.textures.push_back(windowSpecMap);
 
@@ -66,13 +67,11 @@ void Test::init()
     grassEntity->transform.scale = glm::vec3(1.0f);
     entities.push_back(grassEntity);
 
-    // Cube (red plastic)
+    // Cube 
     Material cubeMat;
     cubeMat.useDiffuseMap = true;
     cubeMat.useSpecularMap = true;
     cubeMat.outlineEnabled = true;
-    cubeMat.diffuseColor = glm::vec3(0.8f, 0.05f, 0.05f);
-    cubeMat.specularColor = glm::vec3(0.95f);
     cubeMat.shininess = 96.0f;
     cubeMat.textures.push_back(cubeDiffuseMap);
     cubeMat.textures.push_back(cubeSpecularMap);
@@ -81,9 +80,8 @@ void Test::init()
     Material floorMat;
     floorMat.useDiffuseMap = true;
     floorMat.useSpecularMap = true;
-    floorMat.diffuseColor = glm::vec3(1.0f);
-    floorMat.specularColor = glm::vec3(0.2f);
-    floorMat.shininess = 16.0f;
+    floorMat.cullMode = CullMode::Front;
+    floorMat.shininess = 10.0f;
     floorMat.textures.push_back(floorDiffuseMap);
     floorMat.textures.push_back(floorSpecularMap);
 
