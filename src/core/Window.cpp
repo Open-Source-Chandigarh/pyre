@@ -77,11 +77,21 @@ int Window::Height() const { return height; }
 void Window::FramebufferSizeCallback(GLFWwindow* win, int w, int h)
 {
 	Window* self = static_cast<Window*>(glfwGetWindowUserPointer(win));
+	if (w == self->width && h == self->height) return;
+
 	if (self) 
 	{
 		self->width = static_cast<float>(w);
 		self->height = static_cast<float>(h);
 		glViewport(0, 0, w, h);
+
+		// notify all scenes to resize there post processor and sceneFBO
+		if (self->appState) 
+		{
+			for (Scene* s : self->appState->scenes) {
+				if (s) s->OnResize(w, h);
+			}
+		}
 	};
 }
 

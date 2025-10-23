@@ -6,6 +6,7 @@
 #include "scenes/factoryScene.h"
 #include "core/ResourceManager.h"
 #include "helpers/Utils.h"
+#include "core/postprocessing/InversionEffect.h"
 #include "core/rendering/geometry/GeometryFactory.h"
 
 
@@ -14,6 +15,19 @@ FactoryScene::FactoryScene(Window& win)
     rotationAngle(0.0f), rotationSpeed(50.0f),
     win(win)
 {
+
+    // Create scene framebuffer once
+    sceneFBO = std::make_unique<Framebuffer>((unsigned int)win.Width(), 
+        (unsigned int)win.Height(), true);
+    // Create post processing pipeline and add inversion effect
+    postPipeline = std::make_unique<PostProcessingPipeline>((unsigned int)win.Width(), 
+        (unsigned int)win.Height());
+    postPipeline->AddEffect<InversionEffect>();
+
+    // Ensure simpleTex is loaded (PostProcessingPipeline already does this, but safe to call)
+    ResourceManager::LoadShader("simpleTex", "shaders/simpleTexture.vs", 
+        "shaders/simpleTexture.fs");
+
     // cube positions
     cubePositions[0] = glm::vec3(0.0f, 0.0f, 0.0f);
     cubePositions[1] = glm::vec3(2.0f, 5.0f, -15.0f);
@@ -79,13 +93,13 @@ void FactoryScene::init()
         // Optionally tweak material per primitive type for visual variety
         if (randomInt == 0) { mat->shininess = 64.0f; mat->specularColor = glm::vec3(0.9f); } // sphere - glossier
         if (randomInt == 2) { mat->shininess = 24.0f; mat->specularColor = glm::vec3(0.6f); } // torus - slightly rougher
-        Entity e;
-        e.type = Entity::Type::Mesh;
-        e.meshRenderer.mesh = &mesh[i];
-        e.meshRenderer.material = mat;
-        e.meshRenderer.shader = shader;
-        e.transform.position = cubePositions[i];
-        e.transform.scale = glm::vec3(0.7f);
+        Entity* e = new Entity();
+        e->type = Entity::Type::Mesh;
+        e->meshRenderer.mesh = &mesh[i];
+        e->meshRenderer.material = mat;
+        e->meshRenderer.shader = shader;
+        e->transform.position = cubePositions[i];
+        e->transform.scale = glm::vec3(0.7f);
         entities.push_back(std::move(e));
     }
 
@@ -147,8 +161,8 @@ void FactoryScene::update() {
     rotationAngle -= rotationSpeed * (app ? app->deltaTime : 0.016f);
     for (size_t i = 0; i < entities.size(); ++i) {
         float offset = 29.5f + 0.1f * sin(i);
-        entities[i].transform.rotation.x = rotationAngle + offset * float(i);
-        entities[i].transform.rotation.y = rotationAngle + offset * float(i);
+        entities[i]->transform.rotation.x = rotationAngle + offset * float(i);
+        entities[i]->transform.rotation.y = rotationAngle + offset * float(i);
     }
 }
 
@@ -170,9 +184,14 @@ void FactoryScene::render()
 
     if (shader) lightManager.ApplyToShader(*shader, renderer, view, proj);
 
-    // Draw entities
-    for (auto& e : entities) {
-        e.Render(renderer);
-    }
+    renderer.RenderScene(entities, app->camera, sceneFBO.get(), postPipeline.get(), app->wireframeEnabled);
+
     renderer.EndScene();
+    Framebuffer::Unbind();
+}
+
+void FactoryScene::OnResize(int w, int h) 
+{
+    if (sceneFBO) sceneFBO->Resize((unsigned int)w, (unsigned int)h);
+    if (postPipeline) postPipeline->Resize((unsigned int)w, (unsigned int)h);
 }

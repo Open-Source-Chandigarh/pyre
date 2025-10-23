@@ -78,6 +78,15 @@
     <ClCompile Include="src\Scenes\test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\core\rendering\Framebuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\postprocessing\InversionEffect.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\postprocessing\PostProcessingPipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes\core\Window.h">
@@ -1013,6 +1022,18 @@
     <ClInclude Include="includes\scenes\test.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="includes\core\rendering\Framebuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\core\postprocessing\postEffect.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\core\postprocessing\InversionEffect.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\core\postprocessing\PostProcessingPipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitattributes" />
@@ -1458,6 +1479,15 @@
     <None Include="shaders\modularVertexShader.vs" />
     <None Include="shaders\singleColor.fs" />
     <None Include="shaders\singleColor.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\simpleTexture.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\simpleTexture.fs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\inversion.fs">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

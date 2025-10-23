@@ -6,6 +6,8 @@
 
 class Model;
 class Camera;
+class Framebuffer;
+class PostProcessingPipeline;
 struct Entity;
 
 class Renderer 
@@ -13,7 +15,9 @@ class Renderer
 public:
     void BeginScene(const glm::mat4& view, const glm::mat4& projection, 
         const glm::vec3& viewPos);
-    void RenderScene(std::vector<Entity*> entities, Camera& camera);
+    void RenderScene(std::vector<Entity*> entities, Camera& camera,
+        Framebuffer* sceneFBO = nullptr, PostProcessingPipeline* postProcessor = nullptr,
+        bool wireFrame = false);
     void SubmitMesh(const glm::mat4& model,
         const Mesh& mesh,
         const std::shared_ptr<Shader>& shader, const std::shared_ptr<Material>& mat);

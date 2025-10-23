@@ -6,6 +6,8 @@
 #include "core/ResourceManager.h"
 #include "core/Entity.h"
 #include "helpers/camera.h"
+#include "core/postprocessing/PostProcessingPipeline.h"
+#include "core/rendering/Framebuffer.h"
 
 void Renderer::BeginScene(const glm::mat4& view, const glm::mat4& projection,
     const glm::vec3& viewPos)
@@ -23,14 +25,17 @@ void Renderer::BeginScene(const glm::mat4& view, const glm::mat4& projection,
     viewPosition = viewPos;
 }
 
-void Renderer::RenderScene(std::vector<Entity*> entities, Camera &camera)
+void Renderer::RenderScene(std::vector<Entity*> entities, Camera& camera, 
+    Framebuffer* sceneFBO, PostProcessingPipeline* postProcessor, 
+    bool wireFrame)
 {
     std::vector<Entity*> transparentEntities;
+    std::vector<Entity*> opaqueEntities;
 
     for (auto& e : entities)
     {
         if (!e -> meshRenderer.material->isTransparent)
-            e -> Render(*this);
+            opaqueEntities.push_back(e);
         else
             transparentEntities.push_back(e);
     }
@@ -44,9 +49,41 @@ void Renderer::RenderScene(std::vector<Entity*> entities, Camera &camera)
             return da > db; // far first (strict)
         });
 
-    for (auto& e : transparentEntities)
+    if (sceneFBO && postProcessor && !wireFrame)
     {
-        e->Render(*this);
+        sceneFBO->Bind();
+        glEnable(GL_DEPTH_TEST);
+        glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+        for (auto& e : opaqueEntities)
+        {
+            e->Render(*this);
+        }
+        for (auto& e : transparentEntities)
+        {
+            e->Render(*this);
+        }
+
+        // 2) Run post-processing pipeline on scene texture
+        GLuint processed = postProcessor->Apply(sceneFBO->GetColorTexture());
+
+        // 3) Blit final result to screen
+        postProcessor->DrawToScreen(processed);
+
+        // Restore default GL state expected by main loop if needed
+        glEnable(GL_DEPTH_TEST);
+    }
+    else
+    {
+        for (auto& e : opaqueEntities)
+        {
+            e->Render(*this);
+        }
+        for (auto& e : transparentEntities)
+        {
+            e->Render(*this);
+        }
     }
 }
 // --------------------------------------------

@@ -23,6 +23,8 @@ public:
     // optional: scene name
     virtual std::string name() const { return "Test Scene"; };
 
+    virtual void OnResize(int w, int h) override {}
+
 private:
     Window& win;
 
