@@ -10,6 +10,8 @@
 #include "core/rendering/Renderer.h"
 #include "core/LightManager.h"
 #include "core/Entity.h"
+#include "core/rendering/Framebuffer.h"
+#include "core/postprocessing/PostProcessingPipeline.h"
 
 
 // This class represents a Scene that demonstrates lighting with all the light types combined (directional, point, spot).
@@ -31,7 +33,11 @@ public:
     // Scene display name (helpful when switching scenes)
     std::string name() const override { return "Factory Demo Scene"; }
 
+    virtual void OnResize(int w, int h) override;
+
 private:
+    std::unique_ptr<Framebuffer> sceneFBO;
+    std::unique_ptr<PostProcessingPipeline> postPipeline;
     Window& win;
 
     // Textures (diffuse = color, specular = shininess highlights)
@@ -44,11 +50,12 @@ private:
     LightManager lightManager;
 
 
-    std::vector<Entity> entities;
+    std::vector<Entity*> entities;
     // Fixed positions of cubes in the scene
     glm::vec3 cubePositions[10];
 
     Mesh mesh[10];
+    Mesh skyMesh;
 
     // Animation control for cube rotations
     float rotationAngle;

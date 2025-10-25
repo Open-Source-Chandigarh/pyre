@@ -43,6 +43,8 @@ void Mesh::setupMesh()
 // Mesh::DrawSimple - just bind and issue draw call (no texture binding/no shader use)
 void Mesh::DrawSimple() const
 {
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
     glBindVertexArray(VAO);
     if (!indices.empty())
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
@@ -56,6 +58,21 @@ void Mesh::DrawSimple() const
 void Mesh::Draw(Shader& shader, Material& material) const
 {
     shader.use();
+
+    switch (material.cullMode)
+    {
+    case CullMode::Back:
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
+        break;
+    case CullMode::Front:
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
+        break;
+    case CullMode::None:
+        glDisable(GL_CULL_FACE);
+        break;
+    }
 
     // ---------------------------
     // Handle texture binding
@@ -141,6 +158,26 @@ Mesh Mesh::CreateFromData(const float* vertices, std::size_t bytes, int vCount)
     m.vertexCount = vCount;
     return m;
 }
+
+Mesh Mesh::CreatePositionsOnly(const float* vertices, std::size_t bytes, int vertexCount)
+{
+    Mesh m;
+    glGenVertexArrays(1, &m.VAO);
+    glGenBuffers(1, &m.VBO);
+
+    glBindVertexArray(m.VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, m.VBO);
+    glBufferData(GL_ARRAY_BUFFER, bytes, vertices, GL_STATIC_DRAW);
+
+    // Layout: only position (location = 0)
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    glBindVertexArray(0);
+    m.vertexCount = vertexCount;
+    return m;
+}
+
 
 Mesh Mesh::CreateFromIndexedData(const float* vertices, std::size_t vBytes,
     const unsigned int* indices, std::size_t iBytes, int iCount)

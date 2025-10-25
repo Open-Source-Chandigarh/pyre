@@ -78,6 +78,15 @@
     <ClCompile Include="src\Scenes\test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\core\rendering\Framebuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\postprocessing\PostProcessingPipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\postprocessing\GenericPostEffect.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes\core\Window.h">
@@ -86,7 +95,7 @@
     <ClInclude Include="includes\core\InputManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="includes\state\appState.h">
+    <ClInclude Include="includes\state\AppState.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="includes\core\ResourceManager.h">
@@ -974,16 +983,16 @@
     <ClInclude Include="includes\thirdparty\stb_image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="includes\helpers\camera.h">
+    <ClInclude Include="includes\helpers\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="includes\helpers\shaderClass.h">
+    <ClInclude Include="includes\helpers\ShaderClass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="includes\scenes\factoryScene.h">
+    <ClInclude Include="includes\scenes\FactoryScene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="includes\scenes\scene.h">
+    <ClInclude Include="includes\scenes\Scene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="includes\core\rendering\Mesh.h">
@@ -1007,10 +1016,22 @@
     <ClInclude Include="includes\core\rendering\Model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="includes\scenes\backpack.h">
+    <ClInclude Include="includes\scenes\Backpack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="includes\scenes\test.h">
+    <ClInclude Include="includes\scenes\Test.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\core\rendering\Framebuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\core\postprocessing\PostEffect.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\core\postprocessing\PostProcessingPipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\core\postprocessing\GenericPostEffect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1458,6 +1479,27 @@
     <None Include="shaders\modularVertexShader.vs" />
     <None Include="shaders\singleColor.fs" />
     <None Include="shaders\singleColor.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\simpleTexture.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\simpleTexture.fs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\inversion.fs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\grayscale.fs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\sharpen.fs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\skyBox.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\skyBox.fs">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

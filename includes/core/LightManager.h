@@ -2,6 +2,8 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include "helpers/shaderClass.h"
+#include "core/rendering/Mesh.h"
+#include "core/rendering/Renderer.h"
 
 struct PointLight {
     glm::vec3 position;
@@ -31,6 +33,8 @@ struct SpotLight {
 
 class LightManager {
 public:
+
+    LightManager();
     void SetDirectional(const glm::vec3& dir,
         const glm::vec3& ambient,
         const glm::vec3& diffuse,
@@ -42,7 +46,10 @@ public:
     void ClearSpotLights();
 
     // Apply stored lights to the currently used shader
-    void ApplyToShader(Shader& shader);
+    void ApplyToShader(Shader& shader, Renderer& renderer,
+        const glm::mat4& view, const glm::mat4& proj);
+
+    void ShowDebugLights(bool show) { showDebugSpheres = show; }
 
     std::vector<PointLight> points;
     std::vector<SpotLight> spots;
@@ -52,4 +59,10 @@ private:
     glm::vec3 dirAmbient = glm::vec3(0.0f);
     glm::vec3 dirDiffuse = glm::vec3(0.0f);
     glm::vec3 dirSpec = glm::vec3(0.0f);
+    bool showDebugSpheres = true;
+    Mesh debugSphere;
+    std::shared_ptr<Shader> debugShader;
+    // Show debug spheres for lights
+    void RenderDebugLights(Renderer& renderer,
+        const glm::mat4& view, const glm::mat4& proj);
 };

@@ -17,4 +17,7 @@ public:
 
     // optional: scene name
     virtual std::string name() const = 0;
+
+    // called whenever the window is resized
+    virtual void OnResize(int w, int h) = 0;
 };

@@ -20,6 +20,8 @@ public:
     static std::shared_ptr<Texture> LoadTexture(const std::string& path, TextureType type);
     static std::shared_ptr<Texture> GetTexture(const std::string& path);
 
+    static std::shared_ptr<Texture> LoadCubeMap(std::vector<std::string> faces, std::string name = "");
+
     // Cleanup GPU resources
     static void Clear();
 
@@ -27,5 +29,6 @@ private:
 
     static std::map<std::string, std::shared_ptr<Shader>> shaders;
     static std::map<std::string, std::shared_ptr<Texture>> textures;
-
+    
+    static std::string combinePaths(std::vector<std::string> paths);
 };

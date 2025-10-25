@@ -32,6 +32,8 @@ public:
     // Scene display name (helpful when switching scenes)
     std::string name() const override { return "Model Loading Demo Scene"; }
 
+    virtual void OnResize(int w, int h) override {}
+
 private:
     Window& win;
 

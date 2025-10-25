@@ -88,6 +88,9 @@ int main()
     });
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST);
 
     // -------------------------
     // 7. Main render loop
@@ -111,7 +114,6 @@ int main()
 
         glStencilMask(0xFF);
         glStencilFunc(GL_ALWAYS, 0, 0xFF);
-        glEnable(GL_DEPTH_TEST);
         win.PollEvents();
         win.SwapBuffers();
     }

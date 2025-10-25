@@ -33,53 +33,10 @@ struct Entity
 {
     Transform transform;
 
-    enum class Type { None, Mesh, Model } type = Type::None;
+    enum class Type { None, Mesh, Model, SkyBox } type = Type::None;
 
     MeshRenderer meshRenderer;
     ModelRenderer modelRenderer;
 
-    void Render(Renderer& renderer)
-    {
-        glm::mat4 modelMatrix = transform.GetModelMatrix();
-
-        // --- Default material (created once) ---
-        static std::shared_ptr<Material> defaultMaterial = []() {
-            auto mat = std::make_shared<Material>();
-            mat->useDiffuseMap = false;
-            mat->useSpecularMap = false;
-            mat->diffuseColor = glm::vec3(1.0f);      // pure white
-            mat->specularColor = glm::vec3(0.04f);    // subtle specular
-            mat->shininess = 16.0f;
-            return mat;
-            }();
-
-        switch (type)
-        {
-        case Type::Mesh:
-            if (meshRenderer.mesh && meshRenderer.shader)
-            {
-                // fallback if material is missing
-                std::shared_ptr<Material> mat =
-                    (meshRenderer.material ? meshRenderer.material : defaultMaterial);
-
-                renderer.SubmitMesh(modelMatrix,
-                    *meshRenderer.mesh,
-                    meshRenderer.shader,
-                    mat);
-            }
-            break;
-
-        case Type::Model:
-            if (modelRenderer.model && modelRenderer.shader)
-            {
-                renderer.SubmitModel(modelMatrix,
-                    *modelRenderer.model,
-                    modelRenderer.shader);
-            }
-            break;
-
-        default:
-            break;
-        }
-    }
+    void Render(Renderer& renderer);
 };

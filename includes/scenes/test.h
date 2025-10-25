@@ -23,6 +23,8 @@ public:
     // optional: scene name
     virtual std::string name() const { return "Test Scene"; };
 
+    virtual void OnResize(int w, int h) override {}
+
 private:
     Window& win;
 
@@ -34,10 +36,11 @@ private:
     std::shared_ptr<Shader> shader;
 
     Mesh cube;
-    Mesh floor;
+    Mesh plane;
+    Mesh skyMesh;
 
     Renderer renderer;
     LightManager lightManager;
 
-    std::vector<Entity> entities;
+    std::vector<Entity*> entities;
 };
