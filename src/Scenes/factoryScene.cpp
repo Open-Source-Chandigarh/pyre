@@ -6,7 +6,7 @@
 #include "scenes/factoryScene.h"
 #include "core/ResourceManager.h"
 #include "helpers/Utils.h"
-#include "core/postprocessing/InversionEffect.h"
+#include "core/postprocessing/GenericPostEffect.h"
 #include "core/rendering/geometry/GeometryFactory.h"
 
 
@@ -19,14 +19,13 @@ FactoryScene::FactoryScene(Window& win)
     // Create scene framebuffer once
     sceneFBO = std::make_unique<Framebuffer>((unsigned int)win.Width(), 
         (unsigned int)win.Height(), true);
-    // Create post processing pipeline and add inversion effect
+
+    // Create post processing pipeline and add effects
     postPipeline = std::make_unique<PostProcessingPipeline>((unsigned int)win.Width(), 
         (unsigned int)win.Height());
-    postPipeline->AddEffect<InversionEffect>();
-
-    // Ensure simpleTex is loaded (PostProcessingPipeline already does this, but safe to call)
-    ResourceManager::LoadShader("simpleTex", "shaders/simpleTexture.vs", 
-        "shaders/simpleTexture.fs");
+    postPipeline->AddInversion();
+    //postPipeline->AddGrayscale();
+    postPipeline->AddSharpen(10.0f);
 
     // cube positions
     cubePositions[0] = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -57,6 +56,32 @@ void FactoryScene::init()
     specularMap = ResourceManager::LoadTexture(
         "resources/textures/metalSpec.png", TextureType::TEX_SPECULAR);
 
+    ResourceManager::LoadShader("skybox",
+        "shaders/skyBox.vs", "shaders/skyBox.fs");
+
+    std::vector<std::string> faces = {
+        "resources/textures/stylizedSky/front.png",
+          "resources/textures/stylizedSky/back.png",
+        "resources/textures/stylizedSky/top.png",
+        "resources/textures/stylizedSky/bottom.png",
+        "resources/textures/stylizedSky/right.png",
+        "resources/textures/stylizedSky/left.png",
+    };
+    std::shared_ptr<Texture> skyBox =
+        ResourceManager::LoadCubeMap(faces);
+    skyMesh = GeometryFactory::CreateSkyboxCube(); // position-only mesh (36 verts)
+
+    Entity* skyEntity = new Entity();
+    skyEntity->type = Entity::Type::SkyBox;
+    skyEntity->meshRenderer.mesh = &skyMesh;
+    skyEntity->meshRenderer.shader = ResourceManager::GetShader("skybox");
+
+    // store cubemap texture in material
+    std::shared_ptr<Material> skyMat = std::make_shared<Material>();
+    skyMat->textures.push_back(skyBox); // ResourceManager::LoadCubeMap(...) result
+    skyEntity->meshRenderer.material = skyMat;
+    entities.push_back(std::move(skyEntity));
+
     // --- create meshes first and give each its own Material ---
     for (int i = 0; i < 10; ++i)
     {
@@ -73,8 +98,6 @@ void FactoryScene::init()
             mesh[i] = GeometryFactory::CreateCone();
     }
 
-    // --- create entities referencing the meshes ---
-    entities.clear();
     for (int i = 0; i < 10; ++i)
     {
         int randomInt = Utils::RandomInt(0, 4);

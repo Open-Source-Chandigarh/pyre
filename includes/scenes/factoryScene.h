@@ -55,6 +55,7 @@ private:
     glm::vec3 cubePositions[10];
 
     Mesh mesh[10];
+    Mesh skyMesh;
 
     // Animation control for cube rotations
     float rotationAngle;

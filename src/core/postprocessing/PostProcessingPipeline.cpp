@@ -1,6 +1,8 @@
 #include <thirdparty/glad/glad.h>
+#include <iostream>
 #include "core/postprocessing/PostProcessingPipeline.h"
 #include "core/ResourceManager.h"
+#include "core/postprocessing/GenericPostEffect.h"
 
 PostProcessingPipeline::PostProcessingPipeline(unsigned int w, unsigned int h)
     : width(w), height(h)
@@ -10,7 +12,15 @@ PostProcessingPipeline::PostProcessingPipeline(unsigned int w, unsigned int h)
     EnsureQuad();
 
     // make sure simple texture shader is loaded (used by DrawToScreen)
-    ResourceManager::LoadShader("simpleTex", "shaders/simpleTexture.vs", "shaders/simpleTexture.fs");
+    ResourceManager::LoadShader("simpleTex", 
+        "shaders/simpleTexture.vs", "shaders/simpleTexture.fs");
+
+    ResourceManager::LoadShader("post_invert", 
+        "shaders/simpleTexture.vs", "shaders/inversion.fs");
+    ResourceManager::LoadShader("post_grayscale", 
+        "shaders/simpleTexture.vs", "shaders/grayscale.fs");
+    ResourceManager::LoadShader("post_sharpen",
+        "shaders/simpleTexture.vs", "shaders/sharpen.fs");
 }
 
 void PostProcessingPipeline::EnsureQuad()
@@ -86,4 +96,52 @@ void PostProcessingPipeline::Resize(unsigned int w, unsigned int h)
     width = w; height = h;
     pingpong[0]->Resize(w, h);
     pingpong[1]->Resize(w, h);
+}
+
+std::shared_ptr<PostEffect> PostProcessingPipeline::AddEffectFromShader(
+    const std::string& shaderKey,
+    std::function<void(Shader&)> setter)
+{
+    // ensure shader is already loaded by ResourceManager 
+    auto shader = ResourceManager::GetShader(shaderKey);
+    if (!shader) {
+        std::cerr << "PostProcessingPipeline::AddEffectFromShader: shader '" << shaderKey
+            << "' not found. Make sure to call ResourceManager::LoadShader earlier.\n";
+        return nullptr;
+    }
+    auto effect = std::make_shared<GenericPostEffect>(shader, std::move(setter));
+    effects.push_back(effect);
+    return effect;
+}
+
+std::shared_ptr<PostEffect> PostProcessingPipeline::AddEffectFromShader(
+    std::shared_ptr<Shader> shader,
+    std::function<void(Shader&)> setter)
+{
+    if (!shader) {
+        std::cerr << "PostProcessingPipeline::AddEffectFromShader: null shader\n";
+        return nullptr;
+    }
+    auto effect = std::make_shared<GenericPostEffect>(shader, std::move(setter));
+    effects.push_back(effect);
+    return effect;
+}
+
+// Convenience wrappers
+
+std::shared_ptr<PostEffect> PostProcessingPipeline::AddInversion()
+{
+    return AddEffectFromShader("post_invert");
+}
+
+std::shared_ptr<PostEffect> PostProcessingPipeline::AddGrayscale()
+{
+    return AddEffectFromShader("post_grayscale");
+}
+
+std::shared_ptr<PostEffect> PostProcessingPipeline::AddSharpen(float strength)
+{
+    return AddEffectFromShader("post_sharpen", [strength](Shader& s) {
+        s.setFloat("strength", strength);
+        });
 }

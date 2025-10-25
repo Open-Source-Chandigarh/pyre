@@ -25,30 +25,44 @@ void Renderer::BeginScene(const glm::mat4& view, const glm::mat4& projection,
     viewPosition = viewPos;
 }
 
-void Renderer::RenderScene(std::vector<Entity*> entities, Camera& camera, 
-    Framebuffer* sceneFBO, PostProcessingPipeline* postProcessor, 
+void Renderer::RenderScene(std::vector<Entity*> entities, Camera& camera,
+    Framebuffer* sceneFBO, PostProcessingPipeline* postProcessor,
     bool wireFrame)
 {
     std::vector<Entity*> transparentEntities;
     std::vector<Entity*> opaqueEntities;
+    Entity* skyboxEntity = nullptr;
 
+    // split lists and detect skybox (only use first skybox entity)
     for (auto& e : entities)
     {
-        if (!e -> meshRenderer.material->isTransparent)
-            opaqueEntities.push_back(e);
-        else
+        if (!e) continue;
+        if (e->type == Entity::Type::SkyBox) {
+            // prefer the first found skybox and skip adding it to the lists
+            if (!skyboxEntity) skyboxEntity = e;
+            continue; // don't treat skybox as normal geometry
+        }
+
+        // guard: some entities (e.g. models) might not have a material; just treat them opaque
+        if (e->meshRenderer.material && e->meshRenderer.material->isTransparent)
             transparentEntities.push_back(e);
+        else
+            opaqueEntities.push_back(e);
     }
 
+    // sort transparent back-to-front
     glm::vec3 camPosition = camera.Position;
     std::sort(transparentEntities.begin(), transparentEntities.end(),
         [&camPosition](const Entity* a, const Entity* b) {
-            // squared distances (cheaper than sqrt)
             float da = glm::dot(camPosition - a->transform.position, camPosition - a->transform.position);
             float db = glm::dot(camPosition - b->transform.position, camPosition - b->transform.position);
-            return da > db; // far first (strict)
+            return da > db; // far first
         });
 
+
+    // Draw skybox first (if exists)
+
+    // If we have scene FBO and post processing (and not wireframe), render to FBO then postprocess
     if (sceneFBO && postProcessor && !wireFrame)
     {
         sceneFBO->Bind();
@@ -64,6 +78,8 @@ void Renderer::RenderScene(std::vector<Entity*> entities, Camera& camera,
         {
             e->Render(*this);
         }
+        // Render skybox before doing post processing
+        if (skyboxEntity) SubmitSkybox(skyboxEntity);
 
         // 2) Run post-processing pipeline on scene texture
         GLuint processed = postProcessor->Apply(sceneFBO->GetColorTexture());
@@ -84,8 +100,12 @@ void Renderer::RenderScene(std::vector<Entity*> entities, Camera& camera,
         {
             e->Render(*this);
         }
-    }
+        if (skyboxEntity) {
+            SubmitSkybox(skyboxEntity);
+        }
+    } 
 }
+
 // --------------------------------------------
 // SubmitMesh – Draws a single mesh with material
 // --------------------------------------------
@@ -175,6 +195,38 @@ void Renderer::SubmitModel(const glm::mat4& model,
     shader->setVec3("viewPos", viewPosition);
     
     modelObj.Draw(*shader);
+}
+
+void Renderer::SubmitSkybox(Entity* skyEntity)
+{
+    if (!skyEntity) return;
+    if (!skyEntity->meshRenderer.mesh || !skyEntity->meshRenderer.shader) return;
+    auto mat = skyEntity->meshRenderer.material;
+    if (!mat) return;
+    if (mat->textures.empty()) return;
+
+    GLuint cubemapID = mat->textures[0]->ID; // assuming cubemap is stored here and is a GL_TEXTURE_CUBE_MAP
+
+    // Use depth <= so skybox isn't clipped by far plane and will pass at far depth
+    glDepthFunc(GL_LEQUAL);
+ 
+    // Use view without translation so skybox is always centered on camera
+    glm::mat4 viewNoTrans = glm::mat4(glm::mat3(viewMatrix)); // viewMatrix is set in BeginScene
+    glm::mat4 proj = projMatrix;
+
+    auto skyShader = skyEntity->meshRenderer.shader;
+    skyShader->use();
+    skyShader->setMat4("view", viewNoTrans);
+    skyShader->setMat4("projection", proj);
+    skyShader->setInt("skybox", 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapID);
+
+    skyEntity->meshRenderer.mesh->DrawSimple();
+
+    // restore state
+    glDepthFunc(GL_LESS);
 }
 
 void Renderer::EndScene()

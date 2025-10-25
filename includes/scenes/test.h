@@ -37,6 +37,7 @@ private:
 
     Mesh cube;
     Mesh plane;
+    Mesh skyMesh;
 
     Renderer renderer;
     LightManager lightManager;

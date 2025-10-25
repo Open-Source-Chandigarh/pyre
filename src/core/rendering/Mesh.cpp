@@ -159,6 +159,26 @@ Mesh Mesh::CreateFromData(const float* vertices, std::size_t bytes, int vCount)
     return m;
 }
 
+Mesh Mesh::CreatePositionsOnly(const float* vertices, std::size_t bytes, int vertexCount)
+{
+    Mesh m;
+    glGenVertexArrays(1, &m.VAO);
+    glGenBuffers(1, &m.VBO);
+
+    glBindVertexArray(m.VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, m.VBO);
+    glBufferData(GL_ARRAY_BUFFER, bytes, vertices, GL_STATIC_DRAW);
+
+    // Layout: only position (location = 0)
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    glBindVertexArray(0);
+    m.vertexCount = vertexCount;
+    return m;
+}
+
+
 Mesh Mesh::CreateFromIndexedData(const float* vertices, std::size_t vBytes,
     const unsigned int* indices, std::size_t iBytes, int iCount)
 {

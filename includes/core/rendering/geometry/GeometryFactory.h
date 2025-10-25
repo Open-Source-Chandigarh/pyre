@@ -6,6 +6,7 @@
 namespace GeometryFactory
 {
     Mesh CreateCube(float size = 1.0f);
+    Mesh CreateSkyboxCube(float size = 1.0f);
     Mesh CreatePlane(float size = 1.0f);
     Mesh CreateSphere(float radius = 1.0f, int segments = 32, int rings = 16);
     Mesh CreateCylinder(float radius = 1.0f, float height = 2.0f, int segments = 32);

@@ -22,6 +22,7 @@ enum class TextureType
 {
     TEX_DIFFUSE,
     TEX_SPECULAR,
+    TEX_CUBEMAP,
     Other
 };
 
@@ -127,19 +128,20 @@ public:
     Mesh() = default;
 
     // Creates a mesh from interleaved float data (pos(3), norm(3), uv(2))
-    static Mesh CreateFromData(const float* vertices, std::size_t bytes, int vertexCount);
+    static Mesh CreateFromData(const float* vertices, std::size_t bytes, 
+        int vertexCount);
 
     static Mesh CreateFromIndexedData(const float* vertices, std::size_t vBytes,
         const unsigned int* indices, std::size_t iBytes, int iCount);
+
+    static Mesh CreatePositionsOnly(const float* vertices, 
+        std::size_t bytes, int vertexCount);
+
 
     void Draw(Shader& shader, Material& material) const;
 
     // Draw raw geometry (assumes caller set shader and uniforms). Useful for outline pass.
     void DrawSimple() const;
-
-    // Draw raw geomtry without material at a specified positon. Useful for drawing debugging objects
-    void DrawAtPosition(Shader& shader, glm::vec3 positon) const;
-
 
     // Destroy GPU objects
     void Destroy();

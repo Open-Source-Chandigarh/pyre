@@ -26,9 +26,37 @@ void Test::init()
     std::shared_ptr<Texture> windowSpecMap =
         ResourceManager::LoadTexture("resources/textures/metalSpec.png", TextureType::TEX_SPECULAR);
 
+    ResourceManager::LoadShader("skybox", 
+        "shaders/skyBox.vs", "shaders/skyBox.fs");
+
+    std::vector<std::string> faces = {
+        "resources/textures/skybox/right.jpg",
+        "resources/textures/skybox/left.jpg",
+        "resources/textures/skybox/top.jpg",
+        "resources/textures/skybox/bottom.jpg",
+        "resources/textures/skybox/front.jpg",
+        "resources/textures/skybox/back.jpg"
+    };
+    std::shared_ptr<Texture> skyBox =
+        ResourceManager::LoadCubeMap(faces);
+
     // create procedural geometry
     cube = GeometryFactory::CreateCube();
     plane = GeometryFactory::CreatePlane();
+
+    skyMesh = GeometryFactory::CreateSkyboxCube(); // position-only mesh (36 verts)
+
+    Entity* skyEntity = new Entity();
+    skyEntity->type = Entity::Type::SkyBox;
+    skyEntity->meshRenderer.mesh = &skyMesh; 
+    skyEntity->meshRenderer.shader = ResourceManager::GetShader("skybox");
+
+    // store cubemap texture in material
+    std::shared_ptr<Material> skyMat = std::make_shared<Material>();
+    skyMat->textures.push_back(skyBox); // ResourceManager::LoadCubeMap(...) result
+    skyEntity->meshRenderer.material = skyMat;
+    entities.push_back(skyEntity);
+
 
     Material grassMat;
     grassMat.useDiffuseMap = true;

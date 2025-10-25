@@ -58,6 +58,67 @@ Mesh GeometryFactory::CreateCube(float size)
     );
 }
 
+Mesh GeometryFactory::CreateSkyboxCube(float size)
+{
+    float h = size * 0.5f;
+    // 36 positions (6 faces * 2 triangles * 3 vertices)
+    static const float skyboxVertices[] = {
+        // positions          
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f
+    };
+
+    // scale if requested
+    if (size != 1.0f)
+    {
+        for (size_t i = 0; i < sizeof(skyboxVertices) / sizeof(float); ++i)
+            ((float*)skyboxVertices)[i] *= h; // only safe for local copy; if you want dynamic, copy into vector
+    }
+
+    // vertex count = 36
+    return Mesh::CreatePositionsOnly(skyboxVertices, sizeof(skyboxVertices), 36);
+}
+
+
 // ------------------------------------------------------------
 // PLANE
 // ------------------------------------------------------------

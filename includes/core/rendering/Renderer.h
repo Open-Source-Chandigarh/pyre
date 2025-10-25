@@ -23,6 +23,7 @@ public:
         const std::shared_ptr<Shader>& shader, const std::shared_ptr<Material>& mat);
     void SubmitModel(const glm::mat4& model, Model& modelObj, 
         const std::shared_ptr<Shader>& shader);
+    void SubmitSkybox(Entity* skyEntity);
     void EndScene();
 
 private:

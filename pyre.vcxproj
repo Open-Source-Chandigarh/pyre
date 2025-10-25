@@ -173,7 +173,7 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
     <ClCompile Include="src\core\Entity.cpp" />
     <ClCompile Include="src\core\InputManager.cpp" />
     <ClCompile Include="src\core\LightManager.cpp" />
-    <ClCompile Include="src\core\postprocessing\InversionEffect.cpp" />
+    <ClCompile Include="src\core\postprocessing\GenericPostEffect.cpp" />
     <ClCompile Include="src\core\postprocessing\PostProcessingPipeline.cpp" />
     <ClCompile Include="src\core\rendering\Framebuffer.cpp" />
     <ClCompile Include="src\core\rendering\Model.cpp" />
@@ -196,8 +196,8 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
   <ItemGroup>
     <ClInclude Include="includes\core\Entity.h" />
     <ClInclude Include="includes\core\LightManager.h" />
-    <ClInclude Include="includes\core\postprocessing\InversionEffect.h" />
-    <ClInclude Include="includes\core\postprocessing\postEffect.h" />
+    <ClInclude Include="includes\core\postprocessing\GenericPostEffect.h" />
+    <ClInclude Include="includes\core\postprocessing\PostEffect.h" />
     <ClInclude Include="includes\core\postprocessing\PostProcessingPipeline.h" />
     <ClInclude Include="includes\core\rendering\Framebuffer.h" />
     <ClInclude Include="includes\core\rendering\geometry\GeometryFactory.h" />
@@ -205,9 +205,9 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
     <ClInclude Include="includes\core\rendering\Model.h" />
     <ClInclude Include="includes\core\rendering\Renderer.h" />
     <ClInclude Include="includes\helpers\Utils.h" />
-    <ClInclude Include="includes\scenes\backpack.h" />
-    <ClInclude Include="includes\scenes\test.h" />
-    <ClInclude Include="includes\state\appState.h" />
+    <ClInclude Include="includes\scenes\Backpack.h" />
+    <ClInclude Include="includes\scenes\Test.h" />
+    <ClInclude Include="includes\state\AppState.h" />
     <ClInclude Include="includes\core\InputManager.h" />
     <ClInclude Include="includes\core\ResourceManager.h" />
     <ClInclude Include="includes\thirdparty\glad\glad.h" />
@@ -505,10 +505,10 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
     <ClInclude Include="includes\thirdparty\KHR\khrplatform.h" />
     <ClInclude Include="includes\thirdparty\stb_image.h" />
     <ClInclude Include="includes\core\Window.h" />
-    <ClInclude Include="includes\helpers\camera.h" />
-    <ClInclude Include="includes\helpers\shaderClass.h" />
-    <ClInclude Include="includes\scenes\factoryScene.h" />
-    <ClInclude Include="includes\scenes\scene.h" />
+    <ClInclude Include="includes\helpers\Camera.h" />
+    <ClInclude Include="includes\helpers\ShaderClass.h" />
+    <ClInclude Include="includes\scenes\FactoryScene.h" />
+    <ClInclude Include="includes\scenes\Scene.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitattributes" />
@@ -666,13 +666,17 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
     <None Include="pyre\x64\Debug\pyre.tlog\pyre.lastbuildstate" />
     <None Include="pyre\x64\Debug\vc143.idb" />
     <None Include="pyre\x64\Debug\vc143.pdb" />
+    <None Include="shaders\grayscale.fs" />
     <None Include="shaders\inversion.fs" />
     <None Include="shaders\modularFragmentShader.fs" />
     <None Include="shaders\modularVertexShader.vs" />
+    <None Include="shaders\sharpen.fs" />
     <None Include="shaders\simpleTexture.fs" />
     <None Include="shaders\simpleTexture.vs" />
     <None Include="shaders\singleColor.fs" />
     <None Include="shaders\singleColor.vs" />
+    <None Include="shaders\skyBox.fs" />
+    <None Include="shaders\skyBox.vs" />
     <None Include="x64\Debug\pyre.exe" />
     <None Include="x64\Debug\pyre.pdb" />
   </ItemGroup>
