@@ -2,6 +2,7 @@
 #include "core/Entity.h"
 #include "core/ResourceManager.h"
 #include "core/rendering/geometry/GeometryFactory.h"
+#include "core/rendering/GlobalUBO.h"
 #include <sstream>
 #include <iostream>
 
@@ -40,6 +41,50 @@ void LightManager::ClearSpotLights()
 
 static constexpr int GLSL_MAX_POINT_LIGHTS = 8; // must match shader (#define MAX_POINT_LIGHTS 8)
 static constexpr int GLSL_MAX_SPOT_LIGHTS = 4; // must match shader (#define MAX_SPOT_LIGHTS 4)
+
+void LightManager::UploadToUBO(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& cameraPos)
+{
+    LightUBO ubo;
+    memset(&ubo, 0, sizeof(ubo));
+    ubo.view = view;
+    ubo.proj = proj;
+    ubo.viewPos = glm::vec4(cameraPos, 0.0f);
+
+    // directional
+    ubo.dir_direction = glm::vec4(dir, 0.0f);
+    ubo.dir_ambient = glm::vec4(dirAmbient, 0.0f);
+    ubo.dir_diffuse = glm::vec4(dirDiffuse, 0.0f);
+    ubo.dir_specular = glm::vec4(dirSpec, 0.0f);
+
+    // point lights
+    int pcount = std::min((int)points.size(), 8);
+    ubo.numPointLights = pcount;
+    for (int i = 0; i < pcount; ++i) {
+        const auto& p = points[i];
+        ubo.point_position[i] = glm::vec4(p.position, 0.0f);
+        ubo.point_ambient[i] = glm::vec4(p.ambient, 0.0f);
+        ubo.point_diffuse[i] = glm::vec4(p.diffuse, 0.0f);
+        ubo.point_specular[i] = glm::vec4(p.specular, 0.0f);
+        ubo.point_params[i] = glm::vec4(p.constant, p.linear, p.quadratic, 0.0f);
+    }
+
+    // spot lights
+    int scount = std::min((int)spots.size(), 4);
+    ubo.numSpotLights = scount;
+    for (int i = 0; i < scount; ++i) {
+        const auto& s = spots[i];
+        ubo.spot_position[i] = glm::vec4(s.position, 0.0f);
+        ubo.spot_direction[i] = glm::vec4(s.direction, 0.0f);
+        ubo.spot_cutoffs[i] = glm::vec4(s.innerCutOff, s.outerCutOff, 0.0f, 0.0f);
+        ubo.spot_ambient[i] = glm::vec4(s.ambient, 0.0f);
+        ubo.spot_diffuse[i] = glm::vec4(s.diffuse, 0.0f);
+        ubo.spot_specular[i] = glm::vec4(s.specular, 0.0f);
+        ubo.spot_params[i] = glm::vec4(s.constant, s.linear, s.quadratic, 0.0f);
+    }
+    RenderDebugLights(view, proj);
+    // Upload
+    UpdateGlobalUBO(ubo);
+}
 
 void LightManager::ApplyToShader(Shader& shader, Renderer& renderer,
     const glm::mat4& view, const glm::mat4& proj) 
@@ -86,11 +131,9 @@ void LightManager::ApplyToShader(Shader& shader, Renderer& renderer,
         shader.setFloat((base + "linear").c_str(), s.linear);
         shader.setFloat((base + "quadratic").c_str(), s.quadratic);
     }
-
-    RenderDebugLights(renderer, view, proj);
 }
 
-void LightManager::RenderDebugLights(Renderer& renderer,
+void LightManager::RenderDebugLights(
     const glm::mat4& view, const glm::mat4& proj)
 {
     if (!showDebugSpheres) return;

@@ -24,13 +24,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Helpers\shaderClass.cpp">
+    <ClCompile Include="src\helpers\ShaderClass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\scenes\factoryScene.cpp">
+    <ClCompile Include="src\scenes\FactoryScene.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\core\Window.cpp">
@@ -72,10 +72,10 @@
     <ClCompile Include="src\core\rendering\Model.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\scenes\backpack.cpp">
+    <ClCompile Include="src\scenes\Backpack.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Scenes\test.cpp">
+    <ClCompile Include="src\Scenes\Test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\core\rendering\Framebuffer.cpp">
@@ -85,6 +85,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\core\postprocessing\GenericPostEffect.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\rendering\GlobalUBO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1034,6 +1037,9 @@
     <ClInclude Include="includes\core\postprocessing\GenericPostEffect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="includes\core\rendering\GlobalUBO.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitattributes" />
@@ -1502,6 +1508,15 @@
     <None Include="shaders\skyBox.fs">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="shaders\includes\globalUbos.glsl" />
+    <None Include="shaders\includes\lightingCommon.glsl" />
+    <None Include="shaders\includes\materialCommon.glsl" />
+    <None Include="shaders\toon.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\toon.fs">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="pyre\x64\Debug\pyre.log" />
@@ -1551,6 +1566,24 @@
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="resources\models\backpack\specular.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\textures\crateDiff.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\textures\crateSpec.jpg">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\textures\transparent_window.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\textures\woodDiff.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\textures\woodSpec.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="resources\textures\grass.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

@@ -176,16 +176,17 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
     <ClCompile Include="src\core\postprocessing\GenericPostEffect.cpp" />
     <ClCompile Include="src\core\postprocessing\PostProcessingPipeline.cpp" />
     <ClCompile Include="src\core\rendering\Framebuffer.cpp" />
+    <ClCompile Include="src\core\rendering\GlobalUBO.cpp" />
     <ClCompile Include="src\core\rendering\Model.cpp" />
     <ClCompile Include="src\core\rendering\geometry\GeometryFactory.cpp" />
     <ClCompile Include="src\core\rendering\Mesh.cpp" />
     <ClCompile Include="src\core\rendering\Renderer.cpp" />
     <ClCompile Include="src\core\ResourceManager.cpp" />
     <ClCompile Include="src\core\Window.cpp" />
-    <ClCompile Include="src\helpers\shaderClass.cpp" />
-    <ClCompile Include="src\scenes\backpack.cpp" />
-    <ClCompile Include="src\scenes\factoryScene.cpp" />
-    <ClCompile Include="src\Scenes\test.cpp" />
+    <ClCompile Include="src\helpers\ShaderClass.cpp" />
+    <ClCompile Include="src\scenes\Backpack.cpp" />
+    <ClCompile Include="src\scenes\FactoryScene.cpp" />
+    <ClCompile Include="src\Scenes\Test.cpp" />
     <None Include="libs\assimp\assimp-vc143-mtd.dll" />
     <None Include="libs\GLFW\glfw3.dll" />
     <None Include="libs\lib-vc2022\assimp-vc143-mtd.dll" />
@@ -201,6 +202,7 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
     <ClInclude Include="includes\core\postprocessing\PostProcessingPipeline.h" />
     <ClInclude Include="includes\core\rendering\Framebuffer.h" />
     <ClInclude Include="includes\core\rendering\geometry\GeometryFactory.h" />
+    <ClInclude Include="includes\core\rendering\GlobalUBO.h" />
     <ClInclude Include="includes\core\rendering\Mesh.h" />
     <ClInclude Include="includes\core\rendering\Model.h" />
     <ClInclude Include="includes\core\rendering\Renderer.h" />
@@ -667,6 +669,9 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
     <None Include="pyre\x64\Debug\vc143.idb" />
     <None Include="pyre\x64\Debug\vc143.pdb" />
     <None Include="shaders\grayscale.fs" />
+    <None Include="shaders\includes\globalUbos.glsl" />
+    <None Include="shaders\includes\lightingCommon.glsl" />
+    <None Include="shaders\includes\materialCommon.glsl" />
     <None Include="shaders\inversion.fs" />
     <None Include="shaders\modularFragmentShader.fs" />
     <None Include="shaders\modularVertexShader.vs" />
@@ -677,6 +682,8 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
     <None Include="shaders\singleColor.vs" />
     <None Include="shaders\skyBox.fs" />
     <None Include="shaders\skyBox.vs" />
+    <None Include="shaders\toon.fs" />
+    <None Include="shaders\toon.vs" />
     <None Include="x64\Debug\pyre.exe" />
     <None Include="x64\Debug\pyre.pdb" />
   </ItemGroup>
@@ -700,10 +707,16 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
     <Image Include="resources\textures\container2.jpg" />
     <Image Include="resources\textures\container3.png" />
     <Image Include="resources\textures\container3Spec.png" />
+    <Image Include="resources\textures\crateDiff.jpg" />
+    <Image Include="resources\textures\crateSpec.jpg" />
     <Image Include="resources\textures\dirt.jpg" />
+    <Image Include="resources\textures\grass.png" />
     <Image Include="resources\textures\icon.png" />
     <Image Include="resources\textures\metalDiff.png" />
     <Image Include="resources\textures\metalSpec.png" />
+    <Image Include="resources\textures\transparent_window.png" />
+    <Image Include="resources\textures\woodDiff.png" />
+    <Image Include="resources\textures\woodSpec.png" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="libs\assimp\assimp-vc143-mtd.lib" />

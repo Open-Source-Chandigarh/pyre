@@ -116,7 +116,7 @@ void Backpack::render()
         lightManager.spots[0].direction = win.GetAppState()->camera.Front;
     }
 
-    if (shader) lightManager.ApplyToShader(*shader, renderer, view, proj);
+    lightManager.UploadToUBO(view, proj, app->camera.Position);
 
     // Draw entities
     for (auto& e : entities) {

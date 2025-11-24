@@ -49,6 +49,8 @@ public:
     void ApplyToShader(Shader& shader, Renderer& renderer,
         const glm::mat4& view, const glm::mat4& proj);
 
+    void UploadToUBO(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& cameraPos);
+
     void ShowDebugLights(bool show) { showDebugSpheres = show; }
 
     std::vector<PointLight> points;
@@ -63,6 +65,5 @@ private:
     Mesh debugSphere;
     std::shared_ptr<Shader> debugShader;
     // Show debug spheres for lights
-    void RenderDebugLights(Renderer& renderer,
-        const glm::mat4& view, const glm::mat4& proj);
+    void RenderDebugLights(const glm::mat4& view, const glm::mat4& proj);
 };

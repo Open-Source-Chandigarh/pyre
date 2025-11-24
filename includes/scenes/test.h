@@ -35,6 +35,8 @@ private:
     // The shader program for this scene
     std::shared_ptr<Shader> shader;
 
+    std::shared_ptr<Shader> toonShader;
+
     Mesh cube;
     Mesh plane;
     Mesh skyMesh;

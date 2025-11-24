@@ -1,5 +1,4 @@
 #version 420 core
-// Vertex shader: uses global UBO names view/proj defined in global_ubos.glsl
 #include "includes/globalUbos.glsl"
 
 layout (location = 0) in vec3 aPos;
@@ -17,7 +16,7 @@ void main()
     FragPos = vec3(model * vec4(aPos, 1.0));
     Normal = mat3(transpose(inverse(model))) * aNormal;
     TexCoords = aTexCoords;
-
-    // use view/proj directly from the UBO
+    
+    // UBO provides proj and view
     gl_Position = proj * view * vec4(FragPos, 1.0);
 }
