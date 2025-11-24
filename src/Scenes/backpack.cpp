@@ -91,7 +91,8 @@ void Backpack::init()
 
 }
 
-void Backpack::update() {
+void Backpack::update() 
+{
     auto app = win.GetAppState();
     rotationAngle -= rotationSpeed * (app ? app->deltaTime : 0.016f);
     for (size_t i = 0; i < entities.size(); ++i) {

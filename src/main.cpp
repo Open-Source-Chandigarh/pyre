@@ -7,6 +7,7 @@
 //#include "Scenes/pointLightScene.h"
 //#include "Scenes/flashLightScene.h"
 #include "scenes/factoryScene.h"
+#include "scenes/ToonScene.h"
 #include "scenes/backpack.h"
 #include "state/appState.h"
 #include "core/Window.h"
@@ -34,6 +35,7 @@ int main()
     appState.scenes.push_back(new FactoryScene(win));
     appState.scenes.push_back(new Backpack(win));
     appState.scenes.push_back(new Test(win));
+    appState.scenes.push_back(new ToonScene(win));
 
     for (auto* scene : appState.scenes)
         scene->init();
@@ -101,7 +103,7 @@ int main()
         appState.deltaTime = currentFrame - appState.lastFrame;
         appState.lastFrame = currentFrame;
 
-        glClearColor(0.08f, 0.08f, 0.11f, 1.0f);
+        glClearColor(0.53f, 0.81f, 0.92f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 

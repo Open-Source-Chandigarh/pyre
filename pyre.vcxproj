@@ -187,6 +187,7 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
     <ClCompile Include="src\scenes\Backpack.cpp" />
     <ClCompile Include="src\scenes\FactoryScene.cpp" />
     <ClCompile Include="src\Scenes\Test.cpp" />
+    <ClCompile Include="src\Scenes\ToonScene.cpp" />
     <None Include="libs\assimp\assimp-vc143-mtd.dll" />
     <None Include="libs\GLFW\glfw3.dll" />
     <None Include="libs\lib-vc2022\assimp-vc143-mtd.dll" />
@@ -209,6 +210,7 @@ xcopy "$(ProjectDir)libs\GLFW\*.dll" "$(OutDir)" /Y
     <ClInclude Include="includes\helpers\Utils.h" />
     <ClInclude Include="includes\scenes\Backpack.h" />
     <ClInclude Include="includes\scenes\Test.h" />
+    <ClInclude Include="includes\scenes\ToonScene.h" />
     <ClInclude Include="includes\state\AppState.h" />
     <ClInclude Include="includes\core\InputManager.h" />
     <ClInclude Include="includes\core\ResourceManager.h" />

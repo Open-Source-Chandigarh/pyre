@@ -6,10 +6,10 @@
 #include "core/Entity.h"
 
 
-class Test : public Scene
+class ToonScene : public Scene
 {
 public:
-    Test(Window& win);
+    ToonScene(Window& win);
 
     // called once when the scene is loaded
     virtual void init();
@@ -21,23 +21,18 @@ public:
     virtual void render();
 
     // optional: scene name
-    virtual std::string name() const { return "Test Scene"; };
+    virtual std::string name() const { return "Toon Scene"; };
 
     virtual void OnResize(int w, int h) override {}
 
 private:
     Window& win;
 
-    // Textures (diffuse = color, specular = shininess highlights)
-    std::shared_ptr<Texture> cubeDiffuseMap, cubeSpecularMap;
-    std::shared_ptr<Texture> floorDiffuseMap, floorSpecularMap;
-
-    // The shader program for this scene
-    std::shared_ptr<Shader> shader;
+    std::shared_ptr<Shader> toonShader;
 
     Mesh cube;
-    Mesh plane;
-    Mesh skyMesh;
+    Mesh sphere;
+    Mesh torus;
 
     Renderer renderer;
     LightManager lightManager;

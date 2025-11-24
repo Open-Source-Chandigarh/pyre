@@ -20,8 +20,6 @@ void Test::init()
         "shaders/modularFragmentShader.fs"
     );
 
-    toonShader = ResourceManager::LoadShader("toon", "shaders/toon.vs", "shaders/toon.fs");
-
     // Skybox shader
     ResourceManager::LoadShader(
         "skybox",
@@ -90,7 +88,7 @@ void Test::init()
         e->meshRenderer.shader = shader;
         e->meshRenderer.material = std::make_shared<Material>(mat);
 
-        e->transform.position = glm::vec3(1.5f, 0.0f, 2.0f);
+        e->transform.position = glm::vec3(1.5f, 0.5f, 4.0f);
         e->transform.rotation = glm::vec3(270, 0, 0);
         e->transform.scale = glm::vec3(1);
 
@@ -115,7 +113,7 @@ void Test::init()
         e->meshRenderer.shader = shader;
         e->meshRenderer.material = std::make_shared<Material>(mat);
 
-        e->transform.position = glm::vec3(0, 0, 2);
+        e->transform.position = glm::vec3(0.0f, 0.5f, 4.0f);
         e->transform.rotation = glm::vec3(270, 0, 0);
         e->transform.scale = glm::vec3(1);
 
@@ -123,25 +121,10 @@ void Test::init()
     }
 
     Material toonMat;
-    toonMat.vec3s["material_diffuseColor"] = glm::vec3(0.2f, 0.5f, 0.9f); // Bright Blue
+    toonMat.vec3s["material_diffuseColor"] = glm::vec3(0.8f, 0.5f, 0.9f); // Bright Blue
     toonMat.floats["material_shininess"] = 32.0f;
     toonMat.outlineEnabled = true; 
     toonMat.outlineColor = glm::vec3(0.0f, 0.0f, 0.0f); // Black outline
-
-    // 3. Create the Entity
-    Entity* toonEntity = new Entity();
-    toonEntity->type = Entity::Type::Mesh;
-    static Mesh sphereMesh = GeometryFactory::CreateSphere(0.5f, 16, 16);
-    toonEntity->meshRenderer.mesh = &sphereMesh;
-
-    toonEntity->meshRenderer.shader = toonShader;
-    toonEntity->meshRenderer.material = std::make_shared<Material>(toonMat);
-
-    // Position it clearly visible
-    toonEntity->transform.position = glm::vec3(3.0f, 3.0f, 2.0f);
-    toonEntity->transform.scale = glm::vec3(2.0f);
-
-    entities.push_back(toonEntity);
 
     // -------------------------
     // CUBE STACK
@@ -149,7 +132,7 @@ void Test::init()
     Material cubeMat;
     cubeMat.textures["material_diffuse"] = cubeDiffuseMap;
     cubeMat.textures["material_specular"] = cubeSpecularMap;
-    cubeMat.floats["material_shininess"] = 96.0f;
+    cubeMat.floats["material_shininess"] =32.0f;
     cubeMat.vec3s["material_diffuseColor"] = glm::vec3(1.0f);
     cubeMat.vec3s["material_specularColor"] = glm::vec3(1.0f);
     cubeMat.outlineEnabled = true;

@@ -90,6 +90,9 @@
     <ClCompile Include="src\core\rendering\GlobalUBO.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\Scenes\ToonScene.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="includes\core\Window.h">
@@ -1038,6 +1041,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="includes\core\rendering\GlobalUBO.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="includes\scenes\ToonScene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

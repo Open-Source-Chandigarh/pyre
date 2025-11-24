@@ -96,12 +96,12 @@ void Renderer::RenderScene(std::vector<Entity*> entities, Camera& camera,
         {
             e->Render(*this);
         }
+        if (skyboxEntity) {
+            SubmitSkybox(skyboxEntity);
+        }
         for (auto& e : transparentEntities)
         {
             e->Render(*this);
-        }
-        if (skyboxEntity) {
-            SubmitSkybox(skyboxEntity);
         }
     } 
 }
