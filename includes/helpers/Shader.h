@@ -11,7 +11,7 @@ public:
     unsigned int ID;
 
     // Constructor
-    Shader(const char* vertexPath, const char* fragmentPath);
+    Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr);
     ~Shader();
 
     // Delete copy, allow move
@@ -36,8 +36,6 @@ public:
 
 private:
     mutable std::unordered_map<std::string, int> uniformCache;
-
-    std::string vertexPath;
 
     int getUniformLocation(const std::string& name) const;
     std::string loadFileToString(const std::string& path);

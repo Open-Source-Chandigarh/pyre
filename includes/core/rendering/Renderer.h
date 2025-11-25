@@ -1,7 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <memory>
-#include "helpers/shaderClass.h"
+#include "helpers/Shader.h"
 #include "core/rendering/Mesh.h"
 
 class Model;

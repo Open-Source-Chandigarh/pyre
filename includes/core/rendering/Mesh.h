@@ -6,7 +6,7 @@
 #include <vector>
 #include <memory>
 #include <iostream>
-#include "helpers/shaderClass.h"
+#include "helpers/Shader.h"
 
 // ----------------------------------------------------------------------------
 // POD vertex

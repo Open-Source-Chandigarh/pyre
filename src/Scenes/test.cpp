@@ -1,8 +1,8 @@
-﻿#include "scenes/test.h"
+﻿#include "scenes/Test.h"
 #include "core/ResourceManager.h"
 #include "core/rendering/geometry/GeometryFactory.h"
-#include "core/rendering/GlobalUBO.h"     // <-- IMPORTANT
-#include "helpers/shaderClass.h"
+#include "core/rendering/GlobalUBO.h"   
+#include "helpers/Shader.h"
 
 Test::Test(Window& win) : win(win), shader(nullptr)
 {

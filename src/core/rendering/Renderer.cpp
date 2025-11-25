@@ -107,7 +107,7 @@ void Renderer::RenderScene(std::vector<Entity*> entities, Camera& camera,
 }
 
 // --------------------------------------------
-// SubmitMesh – Draws a single mesh with material
+// SubmitMesh Draws a single mesh with material
 // --------------------------------------------
 void Renderer::SubmitMesh(const glm::mat4& model,
     const Mesh& mesh,
@@ -159,7 +159,7 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     glm::mat4 outlineModel = glm::scale(model, glm::vec3(outlineScale));
 
     auto outlineShader = ResourceManager::LoadShader("unlit",
-        "shaders/singleColor.vs", "shaders/singleColor.fs");
+        "shaders/common/singleColor.vs", "shaders/common/singleColor.fs");
     if (outlineShader)
     {
         outlineShader->use();
@@ -182,7 +182,7 @@ void Renderer::SubmitMesh(const glm::mat4& model,
 
   
 // --------------------------------------------
-// SubmitModel – Draws an entire model (with per-mesh materials)
+// SubmitModel Draws an entire model (with per-mesh materials)
 // --------------------------------------------
 void Renderer::SubmitModel(const glm::mat4& model,
     Model& modelObj,

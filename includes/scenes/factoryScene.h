@@ -2,7 +2,7 @@
 #include <thirdparty/glm/glm.hpp>
 #include <vector>
 #include "Scene.h"
-#include "helpers/shaderClass.h"
+#include "helpers/Shader.h"
 #include "helpers/camera.h"
 #include "core/Window.h"
 #include "state/appState.h"

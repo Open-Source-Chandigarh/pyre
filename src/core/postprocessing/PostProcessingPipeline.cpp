@@ -13,14 +13,14 @@ PostProcessingPipeline::PostProcessingPipeline(unsigned int w, unsigned int h)
 
     // make sure simple texture shader is loaded (used by DrawToScreen)
     ResourceManager::LoadShader("simpleTex", 
-        "shaders/simpleTexture.vs", "shaders/simpleTexture.fs");
+        "shaders/common/simpleTexture.vs", "shaders/common/simpleTexture.fs");
 
     ResourceManager::LoadShader("post_invert", 
-        "shaders/simpleTexture.vs", "shaders/inversion.fs");
+        "shaders/common/simpleTexture.vs", "shaders/postprocessing/inversion.fs");
     ResourceManager::LoadShader("post_grayscale", 
-        "shaders/simpleTexture.vs", "shaders/grayscale.fs");
+        "shaders/common/simpleTexture.vs", "shaders/postprocessing/grayscale.fs");
     ResourceManager::LoadShader("post_sharpen",
-        "shaders/simpleTexture.vs", "shaders/sharpen.fs");
+        "shaders/common/simpleTexture.vs", "shaders/postprocessing/sharpen.fs");
 }
 
 void PostProcessingPipeline::EnsureQuad()

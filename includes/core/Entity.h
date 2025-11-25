@@ -4,7 +4,7 @@
 #include <iostream>
 #include "core/rendering/Mesh.h"
 #include "core/rendering/Model.h"
-#include "helpers/shaderClass.h"
+#include "helpers/Shader.h"
 #include "core/rendering/Renderer.h"
 
 struct Transform

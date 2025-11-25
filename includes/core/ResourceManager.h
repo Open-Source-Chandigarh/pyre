@@ -3,7 +3,7 @@
 #include <map>
 #include <memory>
 #include <glad/glad.h>
-#include "helpers/shaderClass.h"
+#include "helpers/Shader.h"
 #include "core/rendering/Mesh.h"
 
 class ResourceManager

@@ -5,24 +5,32 @@
 #include <unordered_set>
 #include <filesystem>
 #include <regex>
-#include "helpers/ShaderClass.h"
+#include "helpers/Shader.h"
 
-Shader::Shader(const char* vertexPath, const char* fragmentPath) {
+Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath)
+{
     std::string vertexCode = preprocessShaderIncludes(vertexPath);
     std::string fragmentCode = preprocessShaderIncludes(fragmentPath);
-    this->vertexPath = vertexPath;
+
     const char* vShaderCode = vertexCode.c_str();
     const char* fShaderCode = fragmentCode.c_str();
-
+    
     unsigned int vertex = compileShader(GL_VERTEX_SHADER, vShaderCode);
     unsigned int fragment = compileShader(GL_FRAGMENT_SHADER, fShaderCode);
-
+    
     ID = glCreateProgram();
     glAttachShader(ID, vertex);
     glAttachShader(ID, fragment);
+    if(geometryPath)
+    {
+        std::string geometryCode = preprocessShaderIncludes(geometryPath);
+        const char* gShaderCode = geometryCode.c_str();
+        unsigned int geometry = compileShader(GL_GEOMETRY_SHADER, gShaderCode);
+        glAttachShader(ID, geometry);
+    }
     glLinkProgram(ID);
-
-    checkCompileErrors(ID, "PROGRAM");
+    std::string programName = "PROGRAM:" + std::string(vertexPath) + ":" + std::string(fragmentPath);
+    checkCompileErrors(ID, programName);
 
     bindUBO("GlobalLights", 0);
 
@@ -53,7 +61,6 @@ void Shader::bindUBO(const std::string& blockName, GLuint bindingPoint)
 {
     GLuint index = glGetUniformBlockIndex(ID, blockName.c_str());
     if (index == GL_INVALID_INDEX) {
-        std::cerr << "Warning: UBO block '" << blockName << "' not found in shader" << ": " << vertexPath << "\n";
         return;
     }
     glUniformBlockBinding(ID, index, bindingPoint);
@@ -87,7 +94,7 @@ void Shader::setVec3(const std::string& name, float x, float y, float z) const {
 int Shader::getUniformLocation(const std::string& name) const {
     if (uniformCache.find(name) != uniformCache.end()) return uniformCache[name];
     int location = glGetUniformLocation(ID, name.c_str());
-    if (location == -1) std::cerr << "WARNING::SHADER::UNIFORM '" << name << "' NOT FOUND\n";
+    if (location == -1) return -1;
     uniformCache[name] = location;
     return location;
 }

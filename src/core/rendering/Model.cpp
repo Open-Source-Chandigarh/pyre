@@ -1,7 +1,7 @@
 #include <iostream>
 #include <filesystem>
 #include "core/rendering/Model.h"
-#include "helpers/shaderClass.h"
+#include "helpers/Shader.h"
 #include "core/ResourceManager.h"
 
 void Model::Draw(Shader& shader)
@@ -29,7 +29,7 @@ void Model::loadModel(std::string path)
 
 void Model::processNode(aiNode* node, const aiScene* scene)
 {
-	// process all the node’s meshes (if any)
+	// process all the nodeï¿½s meshes (if any)
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];

@@ -2,10 +2,7 @@
 #include <thirdparty/GLFW/glfw3.h>
 #include <iostream>
 #include <vector>
-#include "Helpers/camera.h"
-//#include "Scenes/directionalLightScene.h"
-//#include "Scenes/pointLightScene.h"
-//#include "Scenes/flashLightScene.h"
+#include "helpers/camera.h"
 #include "scenes/factoryScene.h"
 #include "scenes/ToonScene.h"
 #include "scenes/backpack.h"
@@ -14,6 +11,8 @@
 #include "core/InputManager.h"
 #include "core/rendering/Model.h"
 #include "scenes/test.h"
+
+void SetupInput(Window &win);
 
 int main()
 {
@@ -24,13 +23,13 @@ int main()
     appState.camera = Camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
     // -------------------------
-    // 2. Initialize GLFW
+    // 2. Initialize Window
     // -------------------------
     Window win(800, 600, "win");
     win.SetAppState(&appState);
 
     // -------------------------
-    // 5. Init scenes
+    // 3. Init scenes
     // -------------------------
     appState.scenes.push_back(new FactoryScene(win));
     appState.scenes.push_back(new Backpack(win));
@@ -40,62 +39,18 @@ int main()
     for (auto* scene : appState.scenes)
         scene->init();
 
+    // -------------------------
+    // 4. Setup input and configure global opengl state
+    // -------------------------
 
-    // 3. Bind inputs
-    InputManager* input = win.GetInputManager();
-
-    // Continuous movement (bind to keys; callbacks receive dt)
-    input->BindKeyContinuous(GLFW_KEY_W, [&](float dt) { appState.camera.ProcessKeyboard(FORWARD, dt); });
-    input->BindKeyContinuous(GLFW_KEY_S, [&](float dt) { appState.camera.ProcessKeyboard(BACKWARD, dt); });
-    input->BindKeyContinuous(GLFW_KEY_A, [&](float dt) { appState.camera.ProcessKeyboard(LEFT, dt); });
-    input->BindKeyContinuous(GLFW_KEY_D, [&](float dt) { appState.camera.ProcessKeyboard(RIGHT, dt); });
-
-    // Mouse movement -> camera rotation (mouse callback gives offsets)
-    input->BindMouseMove([&](double xoffset, double yoffset) {
-            appState.camera.ProcessMouseMovement((float)xoffset, (float)yoffset);
-        });
-
-    // Scroll -> camera zoom
-    input->BindScroll([&](double yoffset) {
-        appState.camera.ProcessMouseScroll((float)yoffset);
-        });
-
-    // Event bindings
-    input->BindKeyEvent(GLFW_KEY_F, GLFW_RELEASE, [&]() {
-        if (appState.wireframeEnabled) { glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); appState.wireframeEnabled = false; }
-        else { glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); appState.wireframeEnabled = true; }
-     });
-
-    input->BindKeyEvent(GLFW_KEY_R, GLFW_RELEASE, [&]() {
-        appState.camera.Reset();
-        });
-
-    // Scene switching (event)
-    input->BindKeyEvent(GLFW_KEY_RIGHT, GLFW_RELEASE, [&]() {
-        appState.currentSceneIndex = (appState.currentSceneIndex + 1) % appState.scenes.size();
-        if (!appState.scenes.empty())
-            glfwSetWindowTitle(win.GetNative(), appState.scenes[appState.currentSceneIndex]->name().c_str());
-        });
-
-    input->BindKeyEvent(GLFW_KEY_LEFT, GLFW_RELEASE, [&]() {
-        int n = (int)appState.scenes.size();
-        appState.currentSceneIndex = (appState.currentSceneIndex + n - 1) % n;
-        if (!appState.scenes.empty())
-            glfwSetWindowTitle(win.GetNative(), appState.scenes[appState.currentSceneIndex]->name().c_str());
-        });
-
-    // Toggle mouse capture (press ESC)
-    input->BindKeyEvent(GLFW_KEY_ESCAPE, GLFW_PRESS, [&]() {
-        input->ToggleMouseCapture();
-    });
-
+    SetupInput(win);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
 
     // -------------------------
-    // 7. Main render loop
+    // 5. Main render loop
     // -------------------------
     while (!win.ShouldClose())
     {
@@ -107,7 +62,7 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 
-        input->Update(appState.deltaTime);
+        win.GetInputManager()->Update(appState.deltaTime);
 
         if (!appState.scenes.empty()) {
             appState.scenes[appState.currentSceneIndex]->update();
@@ -125,4 +80,68 @@ int main()
 
     glfwTerminate();
     return 0;
+}
+
+void SetupInput(Window &win)
+{
+    InputManager* input = win.GetInputManager();
+    AppState* appState = win.GetAppState();
+    
+    // Continuous movement
+    input->BindKeyContinuous(GLFW_KEY_W, [appState](float dt) { 
+        appState->camera.ProcessKeyboard(FORWARD, dt); 
+    });
+    input->BindKeyContinuous(GLFW_KEY_S, [appState](float dt) { 
+        appState->camera.ProcessKeyboard(BACKWARD, dt); 
+    });
+    input->BindKeyContinuous(GLFW_KEY_A, [appState](float dt) { 
+        appState->camera.ProcessKeyboard(LEFT, dt); 
+    });
+    input->BindKeyContinuous(GLFW_KEY_D, [appState](float dt) { 
+        appState->camera.ProcessKeyboard(RIGHT, dt); 
+    });
+
+    // Mouse movement
+    input->BindMouseMove([appState](double xoffset, double yoffset) {
+        appState->camera.ProcessMouseMovement((float)xoffset, (float)yoffset);
+    });
+
+    // Scroll
+    input->BindScroll([appState](double yoffset) {
+        appState->camera.ProcessMouseScroll((float)yoffset);
+    });
+
+    input->BindKeyEvent(GLFW_KEY_F, GLFW_RELEASE, [appState]() {
+        if (appState->wireframeEnabled) { 
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); 
+            appState->wireframeEnabled = false; 
+        }
+        else { 
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); 
+            appState->wireframeEnabled = true; 
+        }
+    });
+
+    input->BindKeyEvent(GLFW_KEY_R, GLFW_RELEASE, [appState]() {
+        appState->camera.Reset();
+    });
+
+    GLFWwindow* nativeWin = win.GetNative();
+
+    input->BindKeyEvent(GLFW_KEY_RIGHT, GLFW_RELEASE, [appState, nativeWin]() {
+        appState->currentSceneIndex = (appState->currentSceneIndex + 1) % appState->scenes.size();
+        if (!appState->scenes.empty())
+            glfwSetWindowTitle(nativeWin, appState->scenes[appState->currentSceneIndex]->name().c_str());
+    });
+
+    input->BindKeyEvent(GLFW_KEY_LEFT, GLFW_RELEASE, [appState, nativeWin]() {
+        int n = (int)appState->scenes.size();
+        appState->currentSceneIndex = (appState->currentSceneIndex + n - 1) % n;
+        if (!appState->scenes.empty())
+            glfwSetWindowTitle(nativeWin, appState->scenes[appState->currentSceneIndex]->name().c_str());
+    });
+
+    input->BindKeyEvent(GLFW_KEY_ESCAPE, GLFW_PRESS, [input]() {
+        input->ToggleMouseCapture();
+    });
 }

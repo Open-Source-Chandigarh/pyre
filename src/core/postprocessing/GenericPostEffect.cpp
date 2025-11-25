@@ -1,6 +1,6 @@
 #include "core/postprocessing/GenericPostEffect.h"
 #include "core/ResourceManager.h"
-#include "helpers/shaderClass.h"
+#include "helpers/Shader.h"
 #include <thirdparty/glad/glad.h>
 
 GenericPostEffect::GenericPostEffect(std::shared_ptr<Shader> shader,

@@ -4,7 +4,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include "helpers/shaderClass.h"
+#include "helpers/Shader.h"
 #include "core/rendering/Mesh.h"
 
 struct MeshEntry {

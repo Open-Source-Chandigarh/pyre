@@ -4,7 +4,7 @@
 
 class Scene {
 public:
-    virtual ~Scene() {}
+    virtual ~Scene() = default;
 
     // called once when the scene is loaded
     virtual void init() = 0;

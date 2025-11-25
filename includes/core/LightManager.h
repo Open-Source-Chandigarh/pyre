@@ -1,7 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <vector>
-#include "helpers/shaderClass.h"
+#include "helpers/Shader.h"
 #include "core/rendering/Mesh.h"
 #include "core/rendering/Renderer.h"
 
