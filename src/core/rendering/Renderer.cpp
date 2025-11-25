@@ -96,12 +96,12 @@ void Renderer::RenderScene(std::vector<Entity*> entities, Camera& camera,
         {
             e->Render(*this);
         }
+        if (skyboxEntity) {
+            SubmitSkybox(skyboxEntity);
+        }
         for (auto& e : transparentEntities)
         {
             e->Render(*this);
-        }
-        if (skyboxEntity) {
-            SubmitSkybox(skyboxEntity);
         }
     } 
 }
@@ -118,14 +118,17 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     // --- NON-OUTLINE: simple draw (ensure stencil not written) ---
     if (!mat->outlineEnabled)
     {
-        // Prevent writing to stencil for regular objects
-        glStencilMask(0x00);        // disable writing to stencil
-      
+        glStencilMask(0x00); // disable stencil writes
+
         shader->use();
-        shader->setMat4("model", model);
-        shader->setMat4("view", viewMatrix);
-        shader->setMat4("projection", projMatrix);
-        shader->setVec3("viewPos", viewPosition);
+
+        // set per-object 'model' if shader expects it
+        if (shader->hasUniform("model")) shader->setMat4("model", model);
+
+        // For view/proj/viewPos: set only if shader has legacy uniforms.
+        if (shader->hasUniform("view"))       shader->setMat4("view", viewMatrix);
+        if (shader->hasUniform("projection")) shader->setMat4("projection", projMatrix);
+        if (shader->hasUniform("viewPos"))    shader->setVec3("viewPos", viewPosition);
 
         mesh.Draw(*shader, *mat);
         return;
@@ -134,50 +137,49 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     // --- OUTLINE: two-pass technique ---
 
     // 1) Render object and write stencil = 1 where fragments pass depth.
-    glStencilFunc(GL_ALWAYS, 1, 0xFF); // stencil value becomes 1 where object draws
-    glStencilMask(0xFF);               // allow writing to stencil buffer
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    glStencilMask(0xFF);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-    // Ensure normal rendering state
     glEnable(GL_DEPTH_TEST);
-  
-    shader->use();
-    shader->setMat4("model", model);
-    shader->setMat4("view", viewMatrix);
-    shader->setMat4("projection", projMatrix);
-    shader->setVec3("viewPos", viewPosition);
 
-    // Draw the actual object (this writes stencil=1 where fragments drew)
+    shader->use();
+    if (shader->hasUniform("model")) shader->setMat4("model", model);
+    if (shader->hasUniform("view"))       shader->setMat4("view", viewMatrix);
+    if (shader->hasUniform("projection")) shader->setMat4("projection", projMatrix);
+    if (shader->hasUniform("viewPos"))    shader->setVec3("viewPos", viewPosition);
+
     mesh.Draw(*shader, *mat);
 
     // 2) Outline pass: draw where stencil != 1.
+    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+    glStencilMask(0x00);
 
-    // Now configure stencil test for outline; don't write to stencil
-    glStencilFunc(GL_NOTEQUAL, 1, 0xFF); // draw only where stencil != 1
-    glStencilMask(0x00);                 // disable stencil writes for outline
-  
-    // Slightly scale the model for rim size (smaller factor avoids self-intersection)
-    const float outlineScale = 1.04f; // tweak between 1.01 - 1.1 depending on mesh
+    const float outlineScale = 1.04f;
     glm::mat4 outlineModel = glm::scale(model, glm::vec3(outlineScale));
 
-    std::shared_ptr<Shader> outlineShader = ResourceManager::LoadShader("unlit",
+    auto outlineShader = ResourceManager::LoadShader("unlit",
         "shaders/singleColor.vs", "shaders/singleColor.fs");
     if (outlineShader)
     {
         outlineShader->use();
-        outlineShader->setMat4("model", outlineModel);
-        outlineShader->setMat4("view", viewMatrix);
-        outlineShader->setMat4("projection", projMatrix);
-        outlineShader->setVec3("color", mat->outlineColor);
+        if (outlineShader->hasUniform("model")) outlineShader->setMat4("model", outlineModel);
+        if (outlineShader->hasUniform("view")) outlineShader->setMat4("view", viewMatrix);
+        if (outlineShader->hasUniform("projection")) outlineShader->setMat4("projection", projMatrix);
+        if (outlineShader->hasUniform("color")) outlineShader->setVec3("color", mat->outlineColor);
 
-        // Draw raw geometry for the rim (no textures/material)
+        // Draw raw geometry for the rim (no material applied)
         mesh.DrawSimple();
     }
 
-    // Restore stencil defaults for subsequent draws
+    // Restore stencil defaults
     glStencilMask(0xFF);
     glStencilFunc(GL_ALWAYS, 0, 0xFF);
+
+    // reset active texture unit to 0 to be safe (Material::ApplyToShader already does this)
+    glActiveTexture(GL_TEXTURE0);
 }
+
   
 // --------------------------------------------
 // SubmitModel – Draws an entire model (with per-mesh materials)
@@ -189,11 +191,12 @@ void Renderer::SubmitModel(const glm::mat4& model,
     if (!shader) return;
 
     shader->use();
-    shader->setMat4("model", model);
-    shader->setMat4("view", viewMatrix);
-    shader->setMat4("projection", projMatrix);
-    shader->setVec3("viewPos", viewPosition);
-    
+
+    if (shader->hasUniform("model")) shader->setMat4("model", model);
+    if (shader->hasUniform("view")) shader->setMat4("view", viewMatrix);
+    if (shader->hasUniform("projection")) shader->setMat4("projection", projMatrix);
+    if (shader->hasUniform("viewPos")) shader->setVec3("viewPos", viewPosition);
+
     modelObj.Draw(*shader);
 }
 
@@ -203,30 +206,49 @@ void Renderer::SubmitSkybox(Entity* skyEntity)
     if (!skyEntity->meshRenderer.mesh || !skyEntity->meshRenderer.shader) return;
     auto mat = skyEntity->meshRenderer.material;
     if (!mat) return;
-    if (mat->textures.empty()) return;
 
-    GLuint cubemapID = mat->textures[0]->ID; // assuming cubemap is stored here and is a GL_TEXTURE_CUBE_MAP
+    // Find cubemap texture in material by convention:
+    // prefer "skybox" key, else first Texture with type TEX_CUBEMAP
+    std::shared_ptr<Texture> cubeTex = nullptr;
+    auto it = mat->textures.find("skybox");
+    if (it != mat->textures.end()) cubeTex = it->second;
+    else {
+        for (const auto& kv : mat->textures) {
+            if (kv.second && kv.second->type == TextureType::TEX_CUBEMAP) {
+                cubeTex = kv.second;
+                break;
+            }
+        }
+    }
+    if (!cubeTex) return;
 
-    // Use depth <= so skybox isn't clipped by far plane and will pass at far depth
+    GLuint cubemapID = cubeTex->ID;
+
+    // Depth func so skybox passes at far plane
     glDepthFunc(GL_LEQUAL);
- 
-    // Use view without translation so skybox is always centered on camera
-    glm::mat4 viewNoTrans = glm::mat4(glm::mat3(viewMatrix)); // viewMatrix is set in BeginScene
+
+    // Use view without translation so skybox is camera-centered
+    glm::mat4 viewNoTrans = glm::mat4(glm::mat3(viewMatrix));
     glm::mat4 proj = projMatrix;
 
     auto skyShader = skyEntity->meshRenderer.shader;
     skyShader->use();
-    skyShader->setMat4("view", viewNoTrans);
-    skyShader->setMat4("projection", proj);
-    skyShader->setInt("skybox", 0);
 
+    // Set uniforms only if present (shader may read from UBO instead)
+    if (skyShader->hasUniform("view")) skyShader->setMat4("view", viewNoTrans);
+    if (skyShader->hasUniform("projection")) skyShader->setMat4("projection", proj);
+    if (skyShader->hasUniform("skybox")) skyShader->setInt("skybox", 0);
+
+    // bind cubemap to unit 0 (match the sampler set above if any)
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapID);
 
+    // Draw the sky mesh (DrawSimple should not depend on material)
     skyEntity->meshRenderer.mesh->DrawSimple();
 
     // restore state
     glDepthFunc(GL_LESS);
+    glActiveTexture(GL_TEXTURE0);
 }
 
 void Renderer::EndScene()

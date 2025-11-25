@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <iostream>
 #include "helpers/shaderClass.h"
 
 // ----------------------------------------------------------------------------
@@ -88,33 +89,108 @@ private:
 
 // ----------------------------------------------------------------------------
 // Material : describes surface appearance and references textures (shared)
-// - store shared_ptr<Texture> so multiple materials/entities can share the same Texture
-struct Material
-{
-    std::vector<std::shared_ptr<Texture>> textures; // texture resources, optional
-    glm::vec3 diffuseColor = glm::vec3(0.8f, 0.8f, 0.8f);
-    glm::vec3 specularColor = glm::vec3(1.0f, 1.0f, 1.0f);
-    float shininess = 32.0f;
-    bool useDiffuseMap = false;
-    bool useSpecularMap = false;
+struct Material {
+    std::unordered_map<std::string, std::shared_ptr<Texture>> textures;
+    std::unordered_map<std::string, float> floats;
+    std::unordered_map<std::string, glm::vec3> vec3s;
+    glm::vec3 defaultDiffuseColor = glm::vec3(0.8f);
+    float defaultShininess = 32.0f;
     bool outlineEnabled = false;
     glm::vec3 outlineColor = glm::vec3(1.0f);
     bool isTransparent = false;
     CullMode cullMode = CullMode::Back;
 
-    Material() = default;
+    void ApplyToShader(Shader& shader) const
+    {
+        shader.use();
 
-    // convenience: find first texture of given type
-    std::shared_ptr<Texture> GetTexture(TextureType t) const {
-        for (auto& tex : textures) {
-            if (tex && tex->type == t) return tex;
+        int texUnit = 0;
+
+        // --------------------------------------------------------------------
+        // STEP 1: Initialize all present flags to 0 IF they actually exist.
+        // (Do NOT set them to 0 if shader doesn't declare them)
+        // --------------------------------------------------------------------
+        const char* presentUniforms[] = {
+            "material_diffuse_present",
+            "material_specular_present",
+            "material_shininess_present"
+        };
+
+        for (auto& p : presentUniforms)
+            if (shader.hasUniform(p))
+                shader.setInt(p, 0);   // default OFF
+
+        // --------------------------------------------------------------------
+        // STEP 2: Bind textures & set *_present = 1 for those actually bound.
+        // --------------------------------------------------------------------
+        for (auto& kv : textures)
+        {
+            const std::string& name = kv.first;
+            const auto& tex = kv.second;
+
+            if (!tex) continue;
+            if (!shader.hasUniform(name)) continue;  // shader doesn't want this texture
+
+            GLenum target = (tex->type == TextureType::TEX_CUBEMAP)
+                ? GL_TEXTURE_CUBE_MAP
+                : GL_TEXTURE_2D;
+
+            glActiveTexture(GL_TEXTURE0 + texUnit);
+            glBindTexture(target, tex->ID);
+
+            shader.setInt(name, texUnit);
+
+            // Also set presence flag
+            const std::string presentName = name + "_present";
+            if (shader.hasUniform(presentName))
+                shader.setInt(presentName, 1);
+
+            texUnit++;
         }
-        return nullptr;
+
+
+        // --------------------------------------------------------------------
+        // STEP 3: Push float & vec3 uniforms
+        // --------------------------------------------------------------------
+        for (auto& kv : floats)
+            if (shader.hasUniform(kv.first))
+                shader.setFloat(kv.first, kv.second);
+
+        for (auto& kv : vec3s)
+            if (shader.hasUniform(kv.first))
+                shader.setVec3(kv.first, kv.second);
+
+
+        // --------------------------------------------------------------------
+        // STEP 4: Fallback values if not overridden by textures
+        // --------------------------------------------------------------------
+        if (shader.hasUniform("material_diffuseColor"))
+        {
+            if (vec3s.count("material_diffuseColor"))
+                shader.setVec3("material_diffuseColor", vec3s.at("material_diffuseColor"));
+            else
+                shader.setVec3("material_diffuseColor", defaultDiffuseColor);
+        }
+
+        if (shader.hasUniform("material_specularColor"))
+        {
+            if (vec3s.count("material_specularColor"))
+                shader.setVec3("material_specularColor", vec3s.at("material_specularColor"));
+            else
+                shader.setVec3("material_specularColor", glm::vec3(1.0f)); // good default
+        }
+
+        if (shader.hasUniform("material_shininess"))
+        {
+            if (floats.count("material_shininess"))
+                shader.setFloat("material_shininess", floats.at("material_shininess"));
+            else
+                shader.setFloat("material_shininess", defaultShininess);
+        }
+
+        glActiveTexture(GL_TEXTURE0);
     }
 
-    // helper booleans
-    bool HasDiffuseTexture() const { return useDiffuseMap && (GetTexture(TextureType::TEX_DIFFUSE) != nullptr); }
-    bool HasSpecularTexture() const { return useSpecularMap && (GetTexture(TextureType::TEX_SPECULAR) != nullptr); }
 };
 
 

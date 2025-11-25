@@ -1,27 +1,16 @@
-#include "helpers/shaderClass.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <unordered_set>
+#include <filesystem>
+#include <regex>
+#include "helpers/ShaderClass.h"
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath) {
-    std::string vertexCode, fragmentCode;
-    try {
-        std::ifstream vFile(vertexPath);
-        std::ifstream fFile(fragmentPath);
-        if (!vFile.is_open() || !fFile.is_open())
-            throw std::runtime_error("Cannot open shader file");
-
-        std::stringstream vStream, fStream;
-        vStream << vFile.rdbuf();
-        fStream << fFile.rdbuf();
-        vertexCode = vStream.str();
-        fragmentCode = fStream.str();
-    }
-    catch (const std::exception& e) {
-        std::cerr << "ERROR::SHADER::FILE_NOT_READ\n" << e.what() << std::endl;
-    }
-
+    std::string vertexCode = preprocessShaderIncludes(vertexPath);
+    std::string fragmentCode = preprocessShaderIncludes(fragmentPath);
+    this->vertexPath = vertexPath;
     const char* vShaderCode = vertexCode.c_str();
     const char* fShaderCode = fragmentCode.c_str();
 
@@ -32,7 +21,10 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath) {
     glAttachShader(ID, vertex);
     glAttachShader(ID, fragment);
     glLinkProgram(ID);
+
     checkCompileErrors(ID, "PROGRAM");
+
+    bindUBO("GlobalLights", 0);
 
     glDeleteShader(vertex);
     glDeleteShader(fragment);
@@ -57,12 +49,40 @@ Shader& Shader::operator=(Shader&& other) noexcept {
 
 void Shader::use() const { glUseProgram(ID); }
 
-void Shader::setBool(const std::string& name, bool value) const { glUniform1i(getUniformLocation(name), (int)value); }
-void Shader::setInt(const std::string& name, int value) const { glUniform1i(getUniformLocation(name), value); }
-void Shader::setFloat(const std::string& name, float value) const { glUniform1f(getUniformLocation(name), value); }
-void Shader::setMat4(const std::string& name, const glm::mat4& value) const { glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, glm::value_ptr(value)); }
-void Shader::setVec3(const std::string& name, const glm::vec3& value) const { glUniform3fv(getUniformLocation(name), 1, glm::value_ptr(value)); }
-void Shader::setVec3(const std::string& name, float x, float y, float z) const { setVec3(name, glm::vec3(x, y, z)); }
+void Shader::bindUBO(const std::string& blockName, GLuint bindingPoint)
+{
+    GLuint index = glGetUniformBlockIndex(ID, blockName.c_str());
+    if (index == GL_INVALID_INDEX) {
+        std::cerr << "Warning: UBO block '" << blockName << "' not found in shader" << ": " << vertexPath << "\n";
+        return;
+    }
+    glUniformBlockBinding(ID, index, bindingPoint);
+}
+
+void Shader::setBool(const std::string& name, bool value) const { 
+    if (!hasUniform(name)) return;
+    glUniform1i(getUniformLocation(name), (int)value); 
+}
+void Shader::setInt(const std::string& name, int value) const { 
+    if (!hasUniform(name)) return;
+    glUniform1i(getUniformLocation(name), value); 
+}
+void Shader::setFloat(const std::string& name, float value) const {
+    if (!hasUniform(name)) return;
+    glUniform1f(getUniformLocation(name), value); 
+}
+void Shader::setMat4(const std::string& name, const glm::mat4& value) const { 
+    if (!hasUniform(name)) return;
+    glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, glm::value_ptr(value)); 
+}
+void Shader::setVec3(const std::string& name, const glm::vec3& value) const { 
+    if (!hasUniform(name)) return;
+    glUniform3fv(getUniformLocation(name), 1, glm::value_ptr(value)); 
+}
+void Shader::setVec3(const std::string& name, float x, float y, float z) const { 
+    if (!hasUniform(name)) return;
+    setVec3(name, glm::vec3(x, y, z)); 
+}
 
 int Shader::getUniformLocation(const std::string& name) const {
     if (uniformCache.find(name) != uniformCache.end()) return uniformCache[name];
@@ -97,4 +117,59 @@ void Shader::checkCompileErrors(unsigned int shader, const std::string& type) co
             std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
         }
     }
+}
+
+std::string Shader::loadFileToString(const std::string& path){
+    std::ifstream file(path);
+
+    if (!file.is_open()) {
+        std::cerr << "Shader: failed to open " << path << "\n";
+        return "";
+    }
+
+    std::stringstream ss; 
+    ss << file.rdbuf();
+    return ss.str();
+}
+
+std::string Shader::resolveIncludePath(const std::string& baseFile, const std::string& includePath){
+    std::filesystem::path base(baseFile);
+    auto parent = base.parent_path();
+    std::filesystem::path resolved = parent / includePath;
+    return resolved.lexically_normal().string();
+}
+
+std::string Shader::preprocessInternal(const std::string& filename, std::unordered_set<std::string>& visited){
+    if (visited.count(filename)) return "";
+
+    visited.insert(filename);
+    std::string src = loadFileToString(filename);
+    if (src.empty()) return "";
+
+    std::stringstream out;
+    std::istringstream in(src);
+    std::string line;
+    std::regex includeRegex(R"(^\s*#\s*include\s*\"(.+)\"\s*)");
+
+    while (std::getline(in, line)) {
+        std::smatch m;
+        if (std::regex_search(line, m, includeRegex)) {
+            std::string inc = m[1].str();
+            std::string resolved = resolveIncludePath(filename, inc);
+            out << "// Begin include: " << inc << "\n";
+            out << preprocessInternal(resolved, visited);
+            out << "// End include: " << inc << "\n";
+        }
+        else out << line << "\n";
+    }
+    return out.str();
+}
+
+std::string Shader::preprocessShaderIncludes(const std::string& filename){
+    std::unordered_set<std::string> visited;
+    return preprocessInternal(filename, visited);
+}
+
+bool Shader::hasUniform(const std::string& name) const {
+    return getUniformLocation(name.c_str()) != -1;
 }

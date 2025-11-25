@@ -8,6 +8,7 @@
 #include "helpers/Utils.h"
 #include "core/postprocessing/GenericPostEffect.h"
 #include "core/rendering/geometry/GeometryFactory.h"
+#include "core/rendering/GlobalUBO.h"
 
 
 FactoryScene::FactoryScene(Window& win)
@@ -23,7 +24,7 @@ FactoryScene::FactoryScene(Window& win)
     // Create post processing pipeline and add effects
     postPipeline = std::make_unique<PostProcessingPipeline>((unsigned int)win.Width(), 
         (unsigned int)win.Height());
-    postPipeline->AddInversion();
+    // postPipeline->AddInversion();
     //postPipeline->AddGrayscale();
     postPipeline->AddSharpen(10.0f);
 
@@ -46,6 +47,7 @@ FactoryScene::~FactoryScene()
 
 void FactoryScene::init()
 {
+    CreateGlobalUBO();
     // shaders
     shader = ResourceManager::LoadShader("factory",
         "shaders/modularVertexShader.vs",
@@ -78,7 +80,7 @@ void FactoryScene::init()
 
     // store cubemap texture in material
     std::shared_ptr<Material> skyMat = std::make_shared<Material>();
-    skyMat->textures.push_back(skyBox); // ResourceManager::LoadCubeMap(...) result
+    skyMat->textures["skybox"] = skyBox;
     skyEntity->meshRenderer.material = skyMat;
     entities.push_back(std::move(skyEntity));
 
@@ -103,19 +105,13 @@ void FactoryScene::init()
         int randomInt = Utils::RandomInt(0, 4);
         // Construct a Material for this mesh
         std::shared_ptr<Material> mat = std::make_shared<Material>();
-        mat->useDiffuseMap = true;
-        mat->useSpecularMap = true;
-        mat->diffuseColor = glm::vec3(1.0f);   // fallback
-        mat->specularColor = glm::vec3(1.0f);
-        mat->shininess = 108.0f;             // default, can tweak per shape
-
-        // Pack textures (reuse the same loaded textures)
-        mat->textures.push_back(diffuseMap);
-        mat->textures.push_back(specularMap);
+        mat -> textures["material_diffuse"] = diffuseMap;
+        mat -> textures["material_specular"] = specularMap;
+        mat -> floats["material_shininess"] = 96.0f;
 
         // Optionally tweak material per primitive type for visual variety
-        if (randomInt == 0) { mat->shininess = 64.0f; mat->specularColor = glm::vec3(0.9f); } // sphere - glossier
-        if (randomInt == 2) { mat->shininess = 24.0f; mat->specularColor = glm::vec3(0.6f); } // torus - slightly rougher
+        if (randomInt == 0) { mat->floats["material_shininess"] = 96.0f; } // sphere - glossier
+        if (randomInt == 2) { mat->floats["material_shininess"] = 24.0f; } // torus - slightly rougher
         Entity* e = new Entity();
         e->type = Entity::Type::Mesh;
         e->meshRenderer.mesh = &mesh[i];
@@ -179,7 +175,8 @@ void FactoryScene::init()
     lightManager.AddSpotLight(s);
 }
 
-void FactoryScene::update() {
+void FactoryScene::update() 
+{
     auto app = win.GetAppState();
     rotationAngle -= rotationSpeed * (app ? app->deltaTime : 0.016f);
     for (size_t i = 0; i < entities.size(); ++i) {
@@ -205,7 +202,9 @@ void FactoryScene::render()
         lightManager.spots[0].direction = win.GetAppState()->camera.Front;
     }
 
-    if (shader) lightManager.ApplyToShader(*shader, renderer, view, proj);
+    //if (shader) lightManager.ApplyToShader(*shader, renderer, view, proj);
+
+    lightManager.UploadToUBO(view, proj, app->camera.Position);
 
     renderer.RenderScene(entities, app->camera, sceneFBO.get(), postPipeline.get(), app->wireframeEnabled);
 

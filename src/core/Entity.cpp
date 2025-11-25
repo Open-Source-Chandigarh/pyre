@@ -4,14 +4,17 @@
 // --- Default material (created once) ---
 static std::shared_ptr<Material> defaultMaterial = []() {
     auto mat = std::make_shared<Material>();
-    mat->useDiffuseMap = false;
-    mat->useSpecularMap = false;
-    mat->diffuseColor = glm::vec3(1.0f);      // pure white
-    mat->specularColor = glm::vec3(0.04f);    // subtle specular
-    mat->shininess = 16.0f;
+
+    // Use built-in defaults (these are used by Material::ApplyToShader fallback logic)
+    mat->defaultDiffuseColor = glm::vec3(1.0f);    // white
+    mat->defaultShininess = 16.0f;
+
+    // Also provide uniform-style entries so shaders that check for material_diffuseColor get a value
+    mat->vec3s["material_diffuseColor"] = mat->defaultDiffuseColor;
+    mat->floats["material_shininess"] = mat->defaultShininess;
+
     return mat;
     }();
-
 glm::mat4 Transform::GetModelMatrix() const 
 {
     glm::mat4 m(1.0f);

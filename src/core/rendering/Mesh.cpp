@@ -74,48 +74,8 @@ void Mesh::Draw(Shader& shader, Material& material) const
         break;
     }
 
-    // ---------------------------
-    // Handle texture binding
-    // ---------------------------
-    unsigned int diffuseID = 0;
-    unsigned int specularID = 0;
-
-    for (const auto& tex : material.textures) {
-        if (tex -> type == TextureType::TEX_DIFFUSE && diffuseID == 0)
-            diffuseID = tex -> ID;
-        else if (tex -> type == TextureType::TEX_SPECULAR && specularID == 0)
-            specularID = tex -> ID;
-    }
-
-    // Bind textures (if available)
-    if (material.useDiffuseMap && diffuseID != 0) {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, diffuseID);
-        shader.setInt("material.diffuse", 0);
-    }
-    else {
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, 0); // no texture
-    }
-
-    if (material.useSpecularMap && specularID != 0) {
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, specularID);
-        shader.setInt("material.specular", 1);
-    }
-    else {
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
-
-    // ---------------------------
-    // Send all material uniforms
-    // ---------------------------
-    shader.setBool("material.useDiffuseMap", material.useDiffuseMap);
-    shader.setBool("material.useSpecularMap", material.useSpecularMap);
-    shader.setVec3("material.diffuseColor", material.diffuseColor);
-    shader.setVec3("material.specularColor", material.specularColor);
-    shader.setFloat("material.shininess", material.shininess);
+    // apply material data (bind textures and set material uniforms if shader has them)
+    material.ApplyToShader(shader);
 
     // ---------------------------
     // Draw
