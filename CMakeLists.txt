@@ -76,7 +76,7 @@ else()
 endif()
 
 # -----------------------------------------------------------------------------
-# 6. ASSET COPYING (The Fix for "File Not Found")
+# 6. ASSET COPYING
 # -----------------------------------------------------------------------------
 # This creates the folders inside build/Debug/ and copies the files.
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
@@ -96,8 +96,6 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 # -----------------------------------------------------------------------------
 # 7. VS DEBUGGER CONFIGURATION
 # -----------------------------------------------------------------------------
-# This fixes the "It works in VS but not CMake" issue.
-# It tells Visual Studio to run the .exe from the folder where the assets were copied.
 if(MSVC)
     set_target_properties(${PROJECT_NAME} PROPERTIES 
         VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
