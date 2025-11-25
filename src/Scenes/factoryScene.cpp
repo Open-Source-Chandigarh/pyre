@@ -8,6 +8,7 @@
 #include "helpers/Utils.h"
 #include "core/postprocessing/GenericPostEffect.h"
 #include "core/rendering/geometry/GeometryFactory.h"
+#include "core/rendering/GlobalUBO.h"
 
 
 FactoryScene::FactoryScene(Window& win)
@@ -23,9 +24,9 @@ FactoryScene::FactoryScene(Window& win)
     // Create post processing pipeline and add effects
     postPipeline = std::make_unique<PostProcessingPipeline>((unsigned int)win.Width(), 
         (unsigned int)win.Height());
-    //postPipeline->AddInversion();
+    // postPipeline->AddInversion();
     //postPipeline->AddGrayscale();
-    //postPipeline->AddSharpen(10.0f);
+    postPipeline->AddSharpen(10.0f);
 
     // cube positions
     cubePositions[0] = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -46,6 +47,7 @@ FactoryScene::~FactoryScene()
 
 void FactoryScene::init()
 {
+    CreateGlobalUBO();
     // shaders
     shader = ResourceManager::LoadShader("factory",
         "shaders/modularVertexShader.vs",

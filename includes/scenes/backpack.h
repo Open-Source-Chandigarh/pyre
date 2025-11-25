@@ -1,6 +1,7 @@
 #pragma once
 #include <thirdparty/glm/glm.hpp>
 #include <vector>
+#include <memory>
 #include "Scene.h"
 #include "helpers/shaderClass.h"
 #include "helpers/camera.h"
@@ -45,7 +46,7 @@ private:
 
     std::vector<Entity> entities;
 
-    Model obj;
+    std::shared_ptr<Model> obj;
 
     // Animation control for rotations
     float rotationAngle;

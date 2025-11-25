@@ -6,12 +6,13 @@
 #include "scenes/backpack.h"
 #include "core/ResourceManager.h"
 #include "helpers/Utils.h"
+#include "core/rendering/GlobalUBO.h"
 
 
 Backpack::Backpack(Window& win)
     : shader(nullptr),
     rotationAngle(0.0f), rotationSpeed(50.0f),
-    win(win), obj("resources/models/backpack/backpack.obj")
+    win(win), obj(nullptr)
 {
   
 }
@@ -22,7 +23,11 @@ Backpack::~Backpack()
 
 void Backpack::init()
 {
-    std::cerr << "Backpack model mesh count: " << obj.GetMeshCount() << "\n";
+
+    CreateGlobalUBO();
+    obj = std::make_shared<Model>("resources/models/backpack/backpack.obj");
+    if(!obj) return;
+    std::cerr << "Backpack model mesh count: " << obj -> GetMeshCount() << "\n";
 
     // shaders
     shader = ResourceManager::LoadShader("factory",
@@ -32,7 +37,7 @@ void Backpack::init()
     entities.clear();
     Entity e;
     e.type = Entity::Type::Model;
-    e.modelRenderer.model = &obj;
+    e.modelRenderer.model = obj.get();
     e.modelRenderer.shader = shader;
     e.transform.position = glm::vec3(0.0f);
     e.transform.scale = glm::vec3(1.0f);
