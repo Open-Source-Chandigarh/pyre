@@ -13,7 +13,7 @@ public:
     // Shaders
     static std::shared_ptr<Shader> LoadShader(const std::string& name,
         const std::string& vsPath,
-        const std::string& fsPath);
+        const std::string& fsPath, const std::string& gsPath = "");
     static std::shared_ptr<Shader> GetShader(const std::string& name);
 
     // Textures

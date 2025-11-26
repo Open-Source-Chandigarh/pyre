@@ -58,7 +58,7 @@ int main()
         appState.deltaTime = currentFrame - appState.lastFrame;
         appState.lastFrame = currentFrame;
 
-        glClearColor(0.53f, 0.81f, 0.92f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 

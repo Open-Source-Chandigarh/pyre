@@ -12,6 +12,16 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
     std::string vertexCode = preprocessShaderIncludes(vertexPath);
     std::string fragmentCode = preprocessShaderIncludes(fragmentPath);
 
+    if(geometryPath)
+    {
+        size_t versionPos = vertexCode.find("#version");
+        if(versionPos != std::string::npos)
+        {
+            size_t nextLine = vertexCode.find('\n', versionPos) + 1;
+            vertexCode.insert(nextLine, "#define HAS_GEOMETRY_SHADER\n");
+        }
+    }
+
     const char* vShaderCode = vertexCode.c_str();
     const char* fShaderCode = fragmentCode.c_str();
     

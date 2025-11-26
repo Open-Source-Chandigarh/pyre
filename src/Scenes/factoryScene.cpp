@@ -26,7 +26,7 @@ FactoryScene::FactoryScene(Window& win)
         (unsigned int)win.Height());
     // postPipeline->AddInversion();
     //postPipeline->AddGrayscale();
-    postPipeline->AddSharpen(10.0f);
+    // postPipeline->AddSharpen(10.0f);
 
     // cube positions
     cubePositions[0] = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -107,11 +107,11 @@ void FactoryScene::init()
         std::shared_ptr<Material> mat = std::make_shared<Material>();
         mat -> textures["material_diffuse"] = diffuseMap;
         mat -> textures["material_specular"] = specularMap;
-        mat -> floats["material_shininess"] = 96.0f;
+        mat -> floats["material_shininess"] = 5.0f;
 
         // Optionally tweak material per primitive type for visual variety
-        if (randomInt == 0) { mat->floats["material_shininess"] = 96.0f; } // sphere - glossier
-        if (randomInt == 2) { mat->floats["material_shininess"] = 24.0f; } // torus - slightly rougher
+        if (randomInt == 0) { mat->floats["material_shininess"] = 3.0f; } // sphere - glossier
+        if (randomInt == 2) { mat->floats["material_shininess"] = 10.0f; } // torus - slightly rougher
         Entity* e = new Entity();
         e->type = Entity::Type::Mesh;
         e->meshRenderer.mesh = &mesh[i];

@@ -12,17 +12,9 @@ uniform vec3 material_specularColor;
 
 uniform float material_shininess;
 
-#ifndef material_diffuse_present
 uniform int material_diffuse_present;
-#endif
 
-#ifndef material_specular_present
 uniform int material_specular_present;
-#endif
-
-#ifndef material_shininess_present
-uniform int material_shininess_present;
-#endif
 
 // Helper accessors used by lighting_common.glsl
 vec3 GetDiffuseColor()
@@ -41,7 +33,5 @@ vec3 GetSpecularColor()
 
 float GetShininess()
 {
-    if (material_shininess_present == 1)
-        return material_shininess;
-    return 32.0;
+    return material_shininess;
 }

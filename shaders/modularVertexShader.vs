@@ -6,18 +6,39 @@ layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec2 aTexCoords;
 
-out vec3 FragPos;
-out vec3 Normal;
-out vec2 TexCoords;
+// --- CONDITIONAL INTERFACE BLOCK ---
+#ifdef HAS_GEOMETRY_SHADER
+    // If GS exists, package outputs into a struct
+    out VS_OUT {
+        vec3 FragPos;
+        vec3 Normal;
+        vec2 TexCoords;
+    } vs_out;
+#else
+    // If NO GS, output standard globals for the FS
+    out vec3 FragPos;
+    out vec3 Normal;
+    out vec2 TexCoords;
+#endif
 
 uniform mat4 model;
 
 void main()
 {
-    FragPos = vec3(model * vec4(aPos, 1.0));
-    Normal = mat3(transpose(inverse(model))) * aNormal;
-    TexCoords = aTexCoords;
+    vec3 worldPos = vec3(model * vec4(aPos, 1.0));
+    vec3 worldNormal = mat3(transpose(inverse(model))) * aNormal;
 
-    // use view/proj directly from the UBO
-    gl_Position = proj * view * vec4(FragPos, 1.0);
+    // --- CONDITIONAL ASSIGNMENT ---
+    #ifdef HAS_GEOMETRY_SHADER
+        vs_out.FragPos = worldPos;
+        vs_out.Normal = worldNormal;
+        vs_out.TexCoords = aTexCoords;
+    #else
+        FragPos = worldPos;
+        Normal = worldNormal;
+        TexCoords = aTexCoords;
+    #endif
+    // -----------------------------
+
+    gl_Position = proj * view * vec4(worldPos, 1.0);
 }

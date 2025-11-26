@@ -26,6 +26,9 @@ public:
     void SubmitSkybox(Entity* skyEntity);
     void EndScene();
 
+    std::shared_ptr<Shader> outlineShader;
+    std::shared_ptr<Shader> normalShader;
+
 private:
     glm::mat4 viewMatrix;
     glm::mat4 projMatrix;

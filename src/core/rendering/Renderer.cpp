@@ -20,6 +20,12 @@ void Renderer::BeginScene(const glm::mat4& view, const glm::mat4& projection,
     // Clear color, depth and stencil at frame start to avoid stale values.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+    outlineShader = ResourceManager::LoadShader("outline",
+        "shaders/common/singleColor.vs", "shaders/common/singleColor.fs");
+
+    normalShader = ResourceManager::LoadShader("normal_debug", 
+        "shaders/common/normal.vs", "shaders/common/normal.fs", "shaders/common/normal.gs");
+
     viewMatrix = view;
     projMatrix = projection;
     viewPosition = viewPos;
@@ -158,8 +164,6 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     const float outlineScale = 1.04f;
     glm::mat4 outlineModel = glm::scale(model, glm::vec3(outlineScale));
 
-    auto outlineShader = ResourceManager::LoadShader("unlit",
-        "shaders/common/singleColor.vs", "shaders/common/singleColor.fs");
     if (outlineShader)
     {
         outlineShader->use();
@@ -169,6 +173,16 @@ void Renderer::SubmitMesh(const glm::mat4& model,
         if (outlineShader->hasUniform("color")) outlineShader->setVec3("color", mat->outlineColor);
 
         // Draw raw geometry for the rim (no material applied)
+        mesh.DrawSimple();
+    }
+
+    if(mat->showNormals && normalShader)
+    {
+        normalShader->use();
+        if (normalShader->hasUniform("model")) normalShader->setMat4("model", model);
+        if (normalShader->hasUniform("view")) normalShader->setMat4("view", viewMatrix);
+        if (normalShader->hasUniform("projection")) normalShader->setMat4("projection", projMatrix);
+
         mesh.DrawSimple();
     }
 

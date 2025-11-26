@@ -12,7 +12,7 @@ void ToonScene::init()
 {
 	CreateGlobalUBO();
 
-	toonShader = ResourceManager::LoadShader("toon", "shaders/toon.vs", "shaders/toon.fs");
+	toonShader = ResourceManager::LoadShader("toon", "shaders/modularVertexShader.vs", "shaders/toon.fs");
 
 	cube = GeometryFactory::CreateCube();
 	sphere = GeometryFactory::CreateSphere();
@@ -119,7 +119,7 @@ void ToonScene::init()
 
 void ToonScene::update()
 {
-
+	glClearColor(0.5, 0.8, 0.9, 1.0);
 }
 
 void ToonScene::render()
@@ -143,7 +143,7 @@ void ToonScene::render()
 		lightManager.spots[0].direction = app->camera.Front;
 	}
 
-	// Upload global UBO (lights + camera) — replaces old ApplyToShader()
+	// Upload global UBO (lights + camera) ï¿½ replaces old ApplyToShader()
 	lightManager.UploadToUBO(view, proj, app->camera.Position);
 
 	// Draw everything

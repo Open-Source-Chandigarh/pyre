@@ -6,16 +6,27 @@ std::map<std::string, std::shared_ptr<Shader>> ResourceManager::shaders;
 std::map<std::string, std::shared_ptr<Texture>> ResourceManager::textures;
 
 std::shared_ptr<Shader> ResourceManager::LoadShader(const std::string& name,
-    const std::string& vsPath, const std::string& fsPath)
+    const std::string& vsPath, const std::string& fsPath, const std::string& gsPath)
 {
     auto it = shaders.find(name);
     if (it != shaders.end()) return it->second;
-    try {
-        auto s = std::make_shared<Shader>(vsPath.c_str(), fsPath.c_str());
-        shaders[name] = s;
-        return s;
+    try 
+    { 
+        if(gsPath != "")
+        {
+            auto s = std::make_shared<Shader>(vsPath.c_str(), fsPath.c_str(), gsPath.c_str());
+            shaders[name] = s;
+            return s;
+        }
+        else
+        {
+            auto s = std::make_shared<Shader>(vsPath.c_str(), fsPath.c_str());
+            shaders[name] = s;
+            return s;
+        }
     }
-    catch (const std::exception& e) {
+    catch (const std::exception& e) 
+    {
         std::cerr << "ResourceManager::LoadShader failed: " << e.what() << "\n";
         return nullptr;
     }
