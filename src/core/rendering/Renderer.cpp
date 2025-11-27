@@ -112,106 +112,128 @@ void Renderer::RenderScene(std::vector<Entity*> entities, Camera& camera,
     } 
 }
 
-// --------------------------------------------
-// SubmitMesh Draws a single mesh with material
-// --------------------------------------------
-void Renderer::SubmitMesh(const glm::mat4& model,
-    const Mesh& mesh,
-    const std::shared_ptr<Shader>& shader, const std::shared_ptr<Material>& mat)
+// -----------------------------------------------------------------------------
+// SUBMIT MESH 
+// Handles Main Pass + Debug Passes (Normals, Outlines)
+// -----------------------------------------------------------------------------
+void Renderer::SubmitMesh(const glm::mat4& model, 
+                          const Mesh& mesh, 
+                          const std::shared_ptr<Shader>& shader, 
+                          const std::shared_ptr<Material>& mat,
+                          const RenderSettings& overrides)
 {
-    if (!shader) return;
+    if (!shader || !mat) return;
 
-    // --- NON-OUTLINE: simple draw (ensure stencil not written) ---
-    if (!mat->outlineEnabled)
-    {
-        glStencilMask(0x00); // disable stencil writes
+    // --- DECISION LOGIC: Combine Material flags with Override flags ---
+    bool doShowNormals  = mat->showNormals    || overrides.showNormals;
+    bool doOutline      = mat->outlineEnabled || overrides.outlineEnabled;
+    glm::vec3 outlineCol = (overrides.outlineEnabled) ? overrides.outlineColor : mat->outlineColor;
 
-        shader->use();
-
-        // set per-object 'model' if shader expects it
-        if (shader->hasUniform("model")) shader->setMat4("model", model);
-
-        // For view/proj/viewPos: set only if shader has legacy uniforms.
-        if (shader->hasUniform("view"))       shader->setMat4("view", viewMatrix);
-        if (shader->hasUniform("projection")) shader->setMat4("projection", projMatrix);
-        if (shader->hasUniform("viewPos"))    shader->setVec3("viewPos", viewPosition);
-
-        mesh.Draw(*shader, *mat);
-        return;
+    // ===========================
+    // PASS 1: Main Render
+    // ===========================
+    // If outlining, write to stencil buffer. If not, don't touch stencil.
+    if (doOutline) {
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
+        glStencilMask(0xFF);
+    } else {
+        glStencilMask(0x00); 
     }
 
-    // --- OUTLINE: two-pass technique ---
-
-    // 1) Render object and write stencil = 1 where fragments pass depth.
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    glStencilMask(0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-    glEnable(GL_DEPTH_TEST);
-
     shader->use();
-    if (shader->hasUniform("model")) shader->setMat4("model", model);
+    
+    // Set Standard Uniforms
+    if (shader->hasUniform("model"))      shader->setMat4("model", model);
     if (shader->hasUniform("view"))       shader->setMat4("view", viewMatrix);
     if (shader->hasUniform("projection")) shader->setMat4("projection", projMatrix);
     if (shader->hasUniform("viewPos"))    shader->setVec3("viewPos", viewPosition);
 
     mesh.Draw(*shader, *mat);
 
-    // 2) Outline pass: draw where stencil != 1.
-    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-    glStencilMask(0x00);
-
-    const float outlineScale = 1.04f;
-    glm::mat4 outlineModel = glm::scale(model, glm::vec3(outlineScale));
-
-    if (outlineShader)
+    // ===========================
+    // PASS 2: Outline (Optional)
+    // ===========================
+    if (doOutline && outlineShader)
     {
-        outlineShader->use();
-        if (outlineShader->hasUniform("model")) outlineShader->setMat4("model", outlineModel);
-        if (outlineShader->hasUniform("view")) outlineShader->setMat4("view", viewMatrix);
-        if (outlineShader->hasUniform("projection")) outlineShader->setMat4("projection", projMatrix);
-        if (outlineShader->hasUniform("color")) outlineShader->setVec3("color", mat->outlineColor);
+        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+        glStencilMask(0x00);
 
-        // Draw raw geometry for the rim (no material applied)
+        outlineShader->use();
+        
+        // Scale up slightly
+        glm::mat4 outlineModel = glm::scale(model, glm::vec3(1.03f)); 
+
+        outlineShader->setMat4("model", outlineModel);
+        outlineShader->setMat4("view", viewMatrix);
+        outlineShader->setMat4("projection", projMatrix);
+        outlineShader->setVec3("color", outlineCol);
+
         mesh.DrawSimple();
+
+        // Restore State
+        glStencilMask(0xFF);
+        glStencilFunc(GL_ALWAYS, 0, 0xFF);
     }
 
-    if(mat->showNormals && normalShader)
+    // ===========================
+    // PASS 3: Normals (Optional)
+    // ===========================
+    if (doShowNormals && normalShader)
     {
         normalShader->use();
-        if (normalShader->hasUniform("model")) normalShader->setMat4("model", model);
-        if (normalShader->hasUniform("view")) normalShader->setMat4("view", viewMatrix);
-        if (normalShader->hasUniform("projection")) normalShader->setMat4("projection", projMatrix);
+        
+        // Normals need the ORIGINAL model matrix (to stick to surface)
+        normalShader->setMat4("model", model);
+        normalShader->setMat4("view", viewMatrix);
+        normalShader->setMat4("projection", projMatrix);
+        
+        // Yellow color
+        if(normalShader->hasUniform("color")) 
+            normalShader->setVec3("color", glm::vec3(1.0f, 1.0f, 0.0f));
 
         mesh.DrawSimple();
     }
 
-    // Restore stencil defaults
-    glStencilMask(0xFF);
-    glStencilFunc(GL_ALWAYS, 0, 0xFF);
-
-    // reset active texture unit to 0 to be safe (Material::ApplyToShader already does this)
+    // Reset active texture to be safe for next draw call
     glActiveTexture(GL_TEXTURE0);
 }
 
-  
-// --------------------------------------------
-// SubmitModel Draws an entire model (with per-mesh materials)
-// --------------------------------------------
-void Renderer::SubmitModel(const glm::mat4& model,
-    Model& modelObj,
-    const std::shared_ptr<Shader>& shader)
+// -----------------------------------------------------------------------------
+// SUBMIT MODEL
+// Just delegates to SubmitMesh for every piece of the model
+// -----------------------------------------------------------------------------
+void Renderer::SubmitModel(const glm::mat4& modelMatrix, 
+                           Model& modelObj, 
+                           const std::shared_ptr<Shader>& shader,
+                           const RenderSettings& settings)
 {
     if (!shader) return;
 
-    shader->use();
+    // We don't need to bind the shader here because SubmitMesh handles it.
+    // However, for optimization, we *could* bind global uniforms once here.
+    // For simplicity/correctness with overrides, let SubmitMesh handle state changes.
 
-    if (shader->hasUniform("model")) shader->setMat4("model", model);
-    if (shader->hasUniform("view")) shader->setMat4("view", viewMatrix);
-    if (shader->hasUniform("projection")) shader->setMat4("projection", projMatrix);
-    if (shader->hasUniform("viewPos")) shader->setVec3("viewPos", viewPosition);
+    const auto& meshes = modelObj.GetMeshes();
+    for (const auto& entry : meshes)
+    {
+        SubmitMesh(modelMatrix, 
+                   *entry.mesh, 
+                   shader, 
+                   entry.material, 
+                   settings); // Pass the model-wide settings down!
+    }
+}
 
-    modelObj.Draw(*shader);
+void Renderer::SubmitMesh(const glm::mat4& model, const Mesh& mesh, 
+    const std::shared_ptr<Shader>& shader, const std::shared_ptr<Material>& mat)
+{
+    SubmitMesh(model, mesh, shader, mat, RenderSettings()); // Call main logic with defaults
+}
+
+void Renderer::SubmitModel(const glm::mat4& model, Model& modelObj, 
+    const std::shared_ptr<Shader>& shader)
+{
+    SubmitModel(model, modelObj, shader, RenderSettings()); // Call main logic with defaults
 }
 
 void Renderer::SubmitSkybox(Entity* skyEntity)

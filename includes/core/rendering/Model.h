@@ -20,6 +20,7 @@ public:
 		loadModel(path);
 	}
 	size_t GetMeshCount() const { return meshes.size(); }
+	std::vector<MeshEntry> GetMeshes() const { return meshes; }
 	void Draw(Shader& shader);
 private:
 	// model data

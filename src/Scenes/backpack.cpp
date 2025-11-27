@@ -39,6 +39,7 @@ void Backpack::init()
     e.type = Entity::Type::Model;
     e.modelRenderer.model = obj.get();
     e.modelRenderer.shader = shader;
+    e.modelRenderer.settings.outlineEnabled = true;
     e.transform.position = glm::vec3(0.0f);
     e.transform.scale = glm::vec3(1.0f);
     entities.push_back(std::move(e));

@@ -23,10 +23,18 @@ struct MeshRenderer
     std::shared_ptr<Material> material = nullptr;      // optional material
 };
 
+struct RenderSettings
+{
+    bool showNormals = false;
+    bool outlineEnabled = false;
+    glm::vec3 outlineColor = glm::vec3(1.0f, 1.0f, 1.0f);
+};
+
 struct ModelRenderer
 {
     Model* model = nullptr;                            // pointer to model
     std::shared_ptr<Shader> shader;
+    RenderSettings settings;
 };
 
 struct Entity

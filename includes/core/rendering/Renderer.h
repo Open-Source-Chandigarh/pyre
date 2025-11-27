@@ -9,6 +9,7 @@ class Camera;
 class Framebuffer;
 class PostProcessingPipeline;
 struct Entity;
+struct RenderSettings;
 
 class Renderer 
 {
@@ -18,11 +19,29 @@ public:
     void RenderScene(std::vector<Entity*> entities, Camera& camera,
         Framebuffer* sceneFBO = nullptr, PostProcessingPipeline* postProcessor = nullptr,
         bool wireFrame = false);
-    void SubmitMesh(const glm::mat4& model,
-        const Mesh& mesh,
-        const std::shared_ptr<Shader>& shader, const std::shared_ptr<Material>& mat);
-    void SubmitModel(const glm::mat4& model, Model& modelObj, 
-        const std::shared_ptr<Shader>& shader);
+        
+   // 1. SubmitMesh Overloads
+    void SubmitMesh(const glm::mat4& model, 
+                    const Mesh& mesh, 
+                    const std::shared_ptr<Shader>& shader, 
+                    const std::shared_ptr<Material>& mat);
+
+    void SubmitMesh(const glm::mat4& model, 
+                    const Mesh& mesh, 
+                    const std::shared_ptr<Shader>& shader, 
+                    const std::shared_ptr<Material>& mat,
+                    const RenderSettings& overrides);
+
+    // 2. SubmitModel Overloads
+    void SubmitModel(const glm::mat4& model, 
+                     Model& modelObj, 
+                     const std::shared_ptr<Shader>& shader);
+
+    void SubmitModel(const glm::mat4& model, 
+                     Model& modelObj, 
+                     const std::shared_ptr<Shader>& shader,
+                     const RenderSettings& settings);
+
     void SubmitSkybox(Entity* skyEntity);
     void EndScene();
 

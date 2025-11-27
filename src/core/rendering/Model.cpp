@@ -91,7 +91,7 @@ MeshEntry Model::processMesh(aiMesh* mesh, const aiScene* scene)
             indices.push_back(face.mIndices[j]);
     }
 
-    // ---- Material (NEW API) ----
+    // ---- Material ----
     Material mat; // uses unordered_map textures/floats/vec3s and default fields
 
     // set default fallback colors/shininess (will be used if shader doesn't provide textures)

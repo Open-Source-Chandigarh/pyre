@@ -52,7 +52,7 @@ void Entity::Render(Renderer& renderer)
         {
             renderer.SubmitModel(modelMatrix,
                 *modelRenderer.model,
-                modelRenderer.shader);
+                modelRenderer.shader, modelRenderer.settings);
         }
         break;
 
