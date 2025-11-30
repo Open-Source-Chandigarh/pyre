@@ -73,7 +73,7 @@ void FactoryScene::init()
         ResourceManager::LoadCubeMap(faces);
     skyMesh = GeometryFactory::CreateSkyboxCube(); // position-only mesh (36 verts)
 
-    Entity* skyEntity = new Entity();
+    std::shared_ptr<Entity> skyEntity = Entity::Create();
     skyEntity->type = Entity::Type::SkyBox;
     skyEntity->meshRenderer.mesh = &skyMesh;
     skyEntity->meshRenderer.shader = ResourceManager::GetShader("skybox");
@@ -112,7 +112,7 @@ void FactoryScene::init()
         // Optionally tweak material per primitive type for visual variety
         if (randomInt == 0) { mat->floats["material_shininess"] = 3.0f; } // sphere - glossier
         if (randomInt == 2) { mat->floats["material_shininess"] = 10.0f; } // torus - slightly rougher
-        Entity* e = new Entity();
+        std::shared_ptr<Entity> e = Entity::Create();
         e->type = Entity::Type::Mesh;
         e->meshRenderer.mesh = &mesh[i];
         e->meshRenderer.material = mat;

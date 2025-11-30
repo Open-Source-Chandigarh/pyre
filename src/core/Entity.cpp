@@ -15,6 +15,7 @@ static std::shared_ptr<Material> defaultMaterial = []() {
 
     return mat;
     }();
+
 glm::mat4 Transform::GetModelMatrix() const 
 {
     glm::mat4 m(1.0f);
@@ -48,16 +49,33 @@ void Entity::Render(Renderer& renderer)
         break;
 
     case Type::Model:
-        if (modelRenderer.model && modelRenderer.shader)
+       if (modelRenderer.model && modelRenderer.shader)
         {
-            renderer.SubmitModel(modelMatrix,
-                *modelRenderer.model,
-                modelRenderer.shader, modelRenderer.settings);
+            if (modelRenderer.instanceCount > 1)
+            {
+                // Instanced Draw (Position/Scale in 'transform' is IGNORED here)
+                // The transforms come from the Mesh VBO
+                renderer.SubmitInstancedModel(
+                    *modelRenderer.model, 
+                    modelRenderer.shader, 
+                    modelRenderer.instanceCount
+                );
+            }
+            else
+            {
+                // Standard Single Draw
+                renderer.SubmitModel(
+                    modelMatrix, 
+                    *modelRenderer.model, 
+                    modelRenderer.shader, 
+                    modelRenderer.settings
+                );
+            }
         }
         break;
 
     case Type::SkyBox:
-        renderer.SubmitSkybox(this);
+        renderer.SubmitSkybox(shared_from_this());
         break;
 
     default:

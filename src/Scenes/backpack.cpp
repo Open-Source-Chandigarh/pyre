@@ -35,13 +35,13 @@ void Backpack::init()
         "shaders/modularFragmentShader.fs");
 
     entities.clear();
-    Entity e;
-    e.type = Entity::Type::Model;
-    e.modelRenderer.model = obj.get();
-    e.modelRenderer.shader = shader;
-    e.modelRenderer.settings.outlineEnabled = true;
-    e.transform.position = glm::vec3(0.0f);
-    e.transform.scale = glm::vec3(1.0f);
+    std::shared_ptr<Entity> e = Entity::Create();
+    e->type = Entity::Type::Model;
+    e->modelRenderer.model = obj.get();
+    e->modelRenderer.shader = shader;
+    e->modelRenderer.settings.outlineEnabled = true;
+    e->transform.position = glm::vec3(0.0f);
+    e->transform.scale = glm::vec3(1.0f);
     entities.push_back(std::move(e));
 
     glm::vec3 lightColor(0.2f, 0.4f, 0.8f);
@@ -103,7 +103,7 @@ void Backpack::update()
     rotationAngle -= rotationSpeed * (app ? app->deltaTime : 0.016f);
     for (size_t i = 0; i < entities.size(); ++i) {
         float offset = 29.5f + 0.1f * sin(i);
-        entities[i].transform.rotation.y = rotationAngle + offset * float(i);
+        entities[i] -> transform.rotation.y = rotationAngle + offset * float(i);
     }
 }
 
@@ -125,9 +125,6 @@ void Backpack::render()
 
     lightManager.UploadToUBO(view, proj, app->camera.Position);
 
-    // Draw entities
-    for (auto& e : entities) {
-        e.Render(renderer);
-    }
+    renderer.RenderScene(entities, app -> camera);
     renderer.EndScene();
 }

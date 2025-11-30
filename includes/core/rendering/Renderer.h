@@ -16,7 +16,7 @@ class Renderer
 public:
     void BeginScene(const glm::mat4& view, const glm::mat4& projection, 
         const glm::vec3& viewPos);
-    void RenderScene(std::vector<Entity*> entities, Camera& camera,
+    void RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera& camera,
         Framebuffer* sceneFBO = nullptr, PostProcessingPipeline* postProcessor = nullptr,
         bool wireFrame = false);
         
@@ -42,7 +42,12 @@ public:
                      const std::shared_ptr<Shader>& shader,
                      const RenderSettings& settings);
 
-    void SubmitSkybox(Entity* skyEntity);
+    // Draw a Model N times
+    void SubmitInstancedModel(Model& modelObj, 
+                              const std::shared_ptr<Shader>& shader, 
+                              int instanceCount);
+
+    void SubmitSkybox(std::shared_ptr<Entity> skyEntity);
     void EndScene();
 
     std::shared_ptr<Shader> outlineShader;

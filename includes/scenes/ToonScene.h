@@ -37,5 +37,5 @@ private:
     Renderer renderer;
     LightManager lightManager;
 
-    std::vector<Entity*> entities;
+    std::vector<std::shared_ptr<Entity>> entities;
 };

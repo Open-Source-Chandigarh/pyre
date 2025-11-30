@@ -4,6 +4,7 @@
 #include <vector>
 #include "helpers/camera.h"
 #include "scenes/factoryScene.h"
+#include "scenes/Space.h"
 #include "scenes/ToonScene.h"
 #include "scenes/backpack.h"
 #include "state/appState.h"
@@ -35,15 +36,17 @@ int main()
     appState.scenes.push_back(new Backpack(win));
     appState.scenes.push_back(new Test(win));
     appState.scenes.push_back(new ToonScene(win));
+    appState.scenes.push_back(new Space(win));
 
     for (auto* scene : appState.scenes)
         scene->init();
 
-    // -------------------------
-    // 4. Setup input and configure global opengl state
-    // -------------------------
+    // // -------------------------
+    // // 4. Setup input and configure global opengl state
+    // // -------------------------
 
     SetupInput(win);
+
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

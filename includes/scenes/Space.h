@@ -13,13 +13,10 @@
 #include "core/Entity.h"
 #include "core/rendering/Model.h"
 
-
-// This class represents a Scene that demonstrates lighting with all the light types combined (directional, point, spot).
-// It derives from the base Scene class, so it must implement init(), update(), render(), and name().
-class Backpack : public Scene {
+class Space : public Scene {
 public:
-    Backpack(Window& win);
-    ~Backpack();
+    Space(Window& win);
+    ~Space() = default;
 
     // Called once when the scene is created (setup VAOs, VBOs, shaders, textures, etc.)
     void init() override;
@@ -31,7 +28,7 @@ public:
     void render() override;
 
     // Scene display name (helpful when switching scenes)
-    std::string name() const override { return "Model Loading Demo Scene"; }
+    std::string name() const override { return "Space Scene"; }
 
     virtual void OnResize(int w, int h) override {}
 
@@ -39,14 +36,20 @@ private:
     Window& win;
 
     // The shader program for this scene
-    std::shared_ptr<Shader> shader;
+    std::shared_ptr<Shader> planetShader;
+    std::shared_ptr<Shader> asteroidShader;
 
     Renderer renderer;
     LightManager lightManager;
 
     std::vector<std::shared_ptr<Entity>> entities;
 
-    std::shared_ptr<Model> obj;
+    std::shared_ptr<Model> planet;
+    std::shared_ptr<Model> asteroid;
+
+    Mesh skyMesh;
+
+    std::vector<glm::mat4> asteroidTransforms;
 
     // Animation control for rotations
     float rotationAngle;

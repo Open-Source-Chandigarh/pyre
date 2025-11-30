@@ -21,12 +21,17 @@ public:
 	}
 	size_t GetMeshCount() const { return meshes.size(); }
 	std::vector<MeshEntry> GetMeshes() const { return meshes; }
+
+	// Helper to setup instancing for all sub-meshes
+    void SetupInstancing(const std::vector<glm::mat4>& matrices);
 	void Draw(Shader& shader);
+	
 private:
 	// model data
 	std::vector<MeshEntry> meshes;
 	std::string directory;
 	void loadModel(std::string path);
+	std::shared_ptr<Texture> LoadStandardMap(TextureType type);
 	void processNode(aiNode* node, const aiScene* scene);
 	MeshEntry processMesh(aiMesh* mesh, const aiScene* scene);
 	std::vector<std::shared_ptr<Texture>> loadMaterialTextures(aiMaterial* mat,

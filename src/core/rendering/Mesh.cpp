@@ -40,6 +40,30 @@ void Mesh::setupMesh()
     glBindVertexArray(0);
 }
 
+void Mesh::SetupInstancing(const std::vector<glm::mat4>& models)
+{
+    glBindVertexArray(VAO);
+
+    // Create Buffer
+    glGenBuffers(1, &instanceVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    glBufferData(GL_ARRAY_BUFFER, models.size() * sizeof(glm::mat4), models.data(), GL_STATIC_DRAW);
+
+    // Setup Attributes (mat4 requires 4 vec4 slots)
+    std::size_t vec4Size = sizeof(glm::vec4);
+
+    for (int i = 0; i < 4; i++) 
+    {
+        glEnableVertexAttribArray(3 + i); 
+        glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(i * vec4Size));
+        // Tell OpenGL this attribute changes per INSTANCE, not per vertex
+        glVertexAttribDivisor(3 + i, 1); 
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
+
 // Mesh::DrawSimple - just bind and issue draw call (no texture binding/no shader use)
 void Mesh::DrawSimple() const
 {
@@ -92,6 +116,26 @@ void Mesh::Draw(Shader& shader, Material& material) const
     // ---------------------------
     // Reset state
     // ---------------------------
+    glActiveTexture(GL_TEXTURE0);
+}
+
+void Mesh::DrawInstanced(Shader& shader, Material& material, int count) const
+{
+    shader.use();
+    shader.setBool("isInstanced", true); // Trigger the shader switch
+
+    material.ApplyToShader(shader); 
+
+    glBindVertexArray(VAO);
+    if (!indices.empty()) {
+        glDrawElementsInstanced(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0, count);
+    } else {
+        glDrawArraysInstanced(GL_TRIANGLES, 0, vertexCount, count);
+    }
+    
+    glBindVertexArray(0);
+
+    shader.setBool("isInstanced", false); // Reset state
     glActiveTexture(GL_TEXTURE0);
 }
 

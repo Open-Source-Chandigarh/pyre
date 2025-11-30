@@ -19,7 +19,7 @@ void ToonScene::init()
 	torus = GeometryFactory::CreateTorus();
 
 	{
-		Entity* e = new Entity();
+		std::shared_ptr<Entity> e = Entity::Create();
 		e->type = Entity::Type::Mesh;
 		e->meshRenderer.mesh = &cube;
 		e->meshRenderer.shader = toonShader;
@@ -37,7 +37,7 @@ void ToonScene::init()
 	}
 
 	{
-		Entity* e = new Entity();
+		std::shared_ptr<Entity> e = Entity::Create();
 		e->type = Entity::Type::Mesh;
 		e->meshRenderer.mesh = &sphere;
 		e->meshRenderer.shader = toonShader;
@@ -55,7 +55,7 @@ void ToonScene::init()
 	}
 
 	{
-		Entity* e = new Entity();
+		std::shared_ptr<Entity> e = Entity::Create();
 		e->type = Entity::Type::Mesh;
 		e->meshRenderer.mesh = &torus;
 		e->meshRenderer.shader = toonShader;
@@ -143,7 +143,7 @@ void ToonScene::render()
 		lightManager.spots[0].direction = app->camera.Front;
 	}
 
-	// Upload global UBO (lights + camera) � replaces old ApplyToShader()
+	// Upload global UBO (lights + camera)
 	lightManager.UploadToUBO(view, proj, app->camera.Position);
 
 	// Draw everything

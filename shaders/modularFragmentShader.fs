@@ -13,7 +13,7 @@ out vec4 FragColor;
 void main()
 {
     if (material_diffuse_present != 1) {
-    FragColor = vec4(1, 0, 1, 1); // Magic pink: texture is NOT bound
+        FragColor = vec4(1, 0, 1, 1); // Magic pink: texture is NOT bound
     return;
     }
     vec3 N = normalize(Normal);

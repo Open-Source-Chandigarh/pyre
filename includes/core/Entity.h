@@ -35,10 +35,18 @@ struct ModelRenderer
     Model* model = nullptr;                            // pointer to model
     std::shared_ptr<Shader> shader;
     RenderSettings settings;
+    // Count (Default 1 = Normal, >1 = Instanced)
+    int instanceCount = 1; 
 };
 
-struct Entity
+struct Entity : public std::enable_shared_from_this<Entity>
 {
+    // only way to create an Entity
+    static std::shared_ptr<Entity> Create() 
+    {
+        return std::shared_ptr<Entity>(new Entity());
+    }
+
     Transform transform;
 
     enum class Type { None, Mesh, Model, SkyBox } type = Type::None;
@@ -47,4 +55,9 @@ struct Entity
     ModelRenderer modelRenderer;
 
     void Render(Renderer& renderer);
+
+private:
+    // PRIVATE CONSTRUCTOR
+    // This prevents "Entity e;" (stack) and "std::make_shared<Entity>()" (external)
+    Entity() = default;
 };

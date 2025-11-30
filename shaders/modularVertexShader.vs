@@ -6,6 +6,10 @@ layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec2 aTexCoords;
 
+// A mat4 is treated as 4 vec4s by the driver
+// Instancing Matrix (Takes up locations 3, 4, 5, 6)
+layout (location = 3) in mat4 aInstanceMatrix;
+
 // --- CONDITIONAL INTERFACE BLOCK ---
 #ifdef HAS_GEOMETRY_SHADER
     // If GS exists, package outputs into a struct
@@ -21,13 +25,17 @@ layout (location = 2) in vec2 aTexCoords;
     out vec2 TexCoords;
 #endif
 
-uniform mat4 model;
+uniform mat4 model;        // Used when isInstanced = false
+uniform bool isInstanced;  // Model matrix Switch
 
 void main()
 {
-    vec3 worldPos = vec3(model * vec4(aPos, 1.0));
-    vec3 worldNormal = mat3(transpose(inverse(model))) * aNormal;
+    // If instanced, use the attribute. If not, use the uniform
+    mat4 currentModel = isInstanced ? aInstanceMatrix : model;
 
+    vec3 worldPos = vec3(currentModel * vec4(aPos, 1.0));
+    vec3 worldNormal = mat3(transpose(inverse(currentModel))) * aNormal;
+    
     // --- CONDITIONAL ASSIGNMENT ---
     #ifdef HAS_GEOMETRY_SHADER
         vs_out.FragPos = worldPos;

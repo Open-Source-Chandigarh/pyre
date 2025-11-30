@@ -42,12 +42,19 @@ public:
     // Draw raw geometry (assumes caller set shader and uniforms). Useful for outline pass.
     void DrawSimple() const;
 
+    // Upload a list of matrices to the GPU (Call once in init)
+    void SetupInstancing(const std::vector<glm::mat4>& models);
+
+    // Draw 'count' copies of this mesh
+    void DrawInstanced(Shader& shader, Material& material, int count) const;
+
     // Destroy GPU objects
     void Destroy();
 
     unsigned int VAO = 0;
     unsigned int VBO = 0;
     unsigned int EBO = 0;
+    unsigned int instanceVBO = 0;
     int vertexCount = 0;
     int indexCount = 0;
 

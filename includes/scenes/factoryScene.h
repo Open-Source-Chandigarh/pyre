@@ -50,7 +50,7 @@ private:
     LightManager lightManager;
 
 
-    std::vector<Entity*> entities;
+    std::vector<std::shared_ptr<Entity>> entities;
     // Fixed positions of cubes in the scene
     glm::vec3 cubePositions[10];
 

@@ -31,13 +31,13 @@ void Renderer::BeginScene(const glm::mat4& view, const glm::mat4& projection,
     viewPosition = viewPos;
 }
 
-void Renderer::RenderScene(std::vector<Entity*> entities, Camera& camera,
+void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera& camera,
     Framebuffer* sceneFBO, PostProcessingPipeline* postProcessor,
     bool wireFrame)
 {
-    std::vector<Entity*> transparentEntities;
-    std::vector<Entity*> opaqueEntities;
-    Entity* skyboxEntity = nullptr;
+    std::vector<std::shared_ptr<Entity>> transparentEntities;
+    std::vector<std::shared_ptr<Entity>> opaqueEntities;
+    std::shared_ptr<Entity> skyboxEntity = nullptr;
 
     // split lists and detect skybox (only use first skybox entity)
     for (auto& e : entities)
@@ -59,7 +59,7 @@ void Renderer::RenderScene(std::vector<Entity*> entities, Camera& camera,
     // sort transparent back-to-front
     glm::vec3 camPosition = camera.Position;
     std::sort(transparentEntities.begin(), transparentEntities.end(),
-        [&camPosition](const Entity* a, const Entity* b) {
+        [&camPosition](const std::shared_ptr<Entity> a, const std::shared_ptr<Entity> b) {
             float da = glm::dot(camPosition - a->transform.position, camPosition - a->transform.position);
             float db = glm::dot(camPosition - b->transform.position, camPosition - b->transform.position);
             return da > db; // far first
@@ -110,6 +110,25 @@ void Renderer::RenderScene(std::vector<Entity*> entities, Camera& camera,
             e->Render(*this);
         }
     } 
+}
+
+void Renderer::SubmitInstancedModel(Model& modelObj, 
+                                    const std::shared_ptr<Shader>& shader, 
+                                    int instanceCount)
+{
+    if (!shader) return;
+    shader->use();
+    
+    // Set Globals (We don't set 'model' matrix because VBO handles it)
+    if (shader->hasUniform("view"))       shader->setMat4("view", viewMatrix);
+    if (shader->hasUniform("projection")) shader->setMat4("projection", projMatrix);
+    if (shader->hasUniform("viewPos"))    shader->setVec3("viewPos", viewPosition);
+
+    // Iterate meshes in the model
+    for (const auto& entry : modelObj.GetMeshes())
+    {
+        entry.mesh->DrawInstanced(*shader, *entry.material, instanceCount);
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -236,7 +255,7 @@ void Renderer::SubmitModel(const glm::mat4& model, Model& modelObj,
     SubmitModel(model, modelObj, shader, RenderSettings()); // Call main logic with defaults
 }
 
-void Renderer::SubmitSkybox(Entity* skyEntity)
+void Renderer::SubmitSkybox(std::shared_ptr<Entity> skyEntity)
 {
     if (!skyEntity) return;
     if (!skyEntity->meshRenderer.mesh || !skyEntity->meshRenderer.shader) return;

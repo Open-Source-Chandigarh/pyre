@@ -59,7 +59,7 @@ void Test::init()
     // SKYBOX ENTITY
     // -------------------------
     {
-        Entity* e = new Entity();
+        std::shared_ptr<Entity> e = Entity::Create();
         e->type = Entity::Type::SkyBox;
         e->meshRenderer.mesh = &skyMesh;
         e->meshRenderer.shader = ResourceManager::GetShader("skybox");
@@ -82,7 +82,7 @@ void Test::init()
         mat.textures["material_diffuse"] = grassDiffuseMap;
         mat.floats["material_shininess"] = 16.0f;
 
-        Entity* e = new Entity();
+        std::shared_ptr<Entity> e = Entity::Create();
         e->type = Entity::Type::Mesh;
         e->meshRenderer.mesh = &plane;
         e->meshRenderer.shader = shader;
@@ -107,7 +107,7 @@ void Test::init()
         mat.textures["material_specular"] = windowSpecMap;
         mat.floats["material_shininess"] = 100.0f;
 
-        Entity* e = new Entity();
+        std::shared_ptr<Entity> e = Entity::Create();
         e->type = Entity::Type::Mesh;
         e->meshRenderer.mesh = &plane;
         e->meshRenderer.shader = shader;
@@ -144,7 +144,7 @@ void Test::init()
         for (int i = 0; i < base - layer; i++)
             for (int j = 0; j < base - layer; j++)
             {
-                Entity* e = new Entity();
+                std::shared_ptr<Entity> e = Entity::Create();
                 e->type = Entity::Type::Mesh;
                 e->meshRenderer.mesh = &cube;
                 e->meshRenderer.shader = shader;
@@ -168,7 +168,7 @@ void Test::init()
         mat.textures["material_specular"] = floorSpecularMap;
         mat.floats["material_shininess"] = 32.0f;
 
-        Entity* e = new Entity();
+        std::shared_ptr<Entity> e = Entity::Create();
         e->type = Entity::Type::Mesh;
         e->meshRenderer.mesh = &plane;
         e->meshRenderer.shader = shader;

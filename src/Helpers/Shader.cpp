@@ -48,15 +48,18 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
     glDeleteShader(fragment);
 }
 
-Shader::~Shader() {
+Shader::~Shader() 
+{
     if (ID) glDeleteProgram(ID);
 }
 
-Shader::Shader(Shader&& other) noexcept : ID(other.ID) {
+Shader::Shader(Shader&& other) noexcept : ID(other.ID) 
+{
     other.ID = 0;
 }
 
-Shader& Shader::operator=(Shader&& other) noexcept {
+Shader& Shader::operator=(Shader&& other) noexcept 
+{
     if (this != &other) {
         if (ID) glDeleteProgram(ID);
         ID = other.ID;
@@ -76,32 +79,39 @@ void Shader::bindUBO(const std::string& blockName, GLuint bindingPoint)
     glUniformBlockBinding(ID, index, bindingPoint);
 }
 
-void Shader::setBool(const std::string& name, bool value) const { 
+void Shader::setBool(const std::string& name, bool value) const 
+{ 
     if (!hasUniform(name)) return;
     glUniform1i(getUniformLocation(name), (int)value); 
 }
-void Shader::setInt(const std::string& name, int value) const { 
+void Shader::setInt(const std::string& name, int value) const 
+{ 
     if (!hasUniform(name)) return;
     glUniform1i(getUniformLocation(name), value); 
 }
-void Shader::setFloat(const std::string& name, float value) const {
+void Shader::setFloat(const std::string& name, float value) const 
+{
     if (!hasUniform(name)) return;
     glUniform1f(getUniformLocation(name), value); 
 }
-void Shader::setMat4(const std::string& name, const glm::mat4& value) const { 
+void Shader::setMat4(const std::string& name, const glm::mat4& value) const 
+{ 
     if (!hasUniform(name)) return;
     glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, glm::value_ptr(value)); 
 }
-void Shader::setVec3(const std::string& name, const glm::vec3& value) const { 
+void Shader::setVec3(const std::string& name, const glm::vec3& value) const 
+{ 
     if (!hasUniform(name)) return;
     glUniform3fv(getUniformLocation(name), 1, glm::value_ptr(value)); 
 }
-void Shader::setVec3(const std::string& name, float x, float y, float z) const { 
+void Shader::setVec3(const std::string& name, float x, float y, float z) const 
+{ 
     if (!hasUniform(name)) return;
     setVec3(name, glm::vec3(x, y, z)); 
 }
 
-int Shader::getUniformLocation(const std::string& name) const {
+int Shader::getUniformLocation(const std::string& name) const 
+{
     if (uniformCache.find(name) != uniformCache.end()) return uniformCache[name];
     int location = glGetUniformLocation(ID, name.c_str());
     if (location == -1) return -1;
@@ -109,7 +119,8 @@ int Shader::getUniformLocation(const std::string& name) const {
     return location;
 }
 
-unsigned int Shader::compileShader(unsigned int type, const char* code) const {
+unsigned int Shader::compileShader(unsigned int type, const char* code) const 
+{
     unsigned int shader = glCreateShader(type);
     glShaderSource(shader, 1, &code, nullptr);
     glCompileShader(shader);
@@ -117,7 +128,8 @@ unsigned int Shader::compileShader(unsigned int type, const char* code) const {
     return shader;
 }
 
-void Shader::checkCompileErrors(unsigned int shader, const std::string& type) const {
+void Shader::checkCompileErrors(unsigned int shader, const std::string& type) const
+{
     int success;
     char infoLog[1024];
     if (type != "PROGRAM") {
@@ -136,7 +148,8 @@ void Shader::checkCompileErrors(unsigned int shader, const std::string& type) co
     }
 }
 
-std::string Shader::loadFileToString(const std::string& path){
+std::string Shader::loadFileToString(const std::string& path)
+{
     std::ifstream file(path);
 
     if (!file.is_open()) {
@@ -149,14 +162,16 @@ std::string Shader::loadFileToString(const std::string& path){
     return ss.str();
 }
 
-std::string Shader::resolveIncludePath(const std::string& baseFile, const std::string& includePath){
+std::string Shader::resolveIncludePath(const std::string& baseFile, const std::string& includePath)
+{
     std::filesystem::path base(baseFile);
     auto parent = base.parent_path();
     std::filesystem::path resolved = parent / includePath;
     return resolved.lexically_normal().string();
 }
 
-std::string Shader::preprocessInternal(const std::string& filename, std::unordered_set<std::string>& visited){
+std::string Shader::preprocessInternal(const std::string& filename, std::unordered_set<std::string>& visited)
+{
     if (visited.count(filename)) return "";
 
     visited.insert(filename);
@@ -182,11 +197,13 @@ std::string Shader::preprocessInternal(const std::string& filename, std::unorder
     return out.str();
 }
 
-std::string Shader::preprocessShaderIncludes(const std::string& filename){
+std::string Shader::preprocessShaderIncludes(const std::string& filename)
+{
     std::unordered_set<std::string> visited;
     return preprocessInternal(filename, visited);
 }
 
-bool Shader::hasUniform(const std::string& name) const {
+bool Shader::hasUniform(const std::string& name) const 
+{
     return getUniformLocation(name.c_str()) != -1;
 }
