@@ -67,8 +67,8 @@ void Space::init()
     asteroidTransforms.reserve(amount);
     
     srand(static_cast<unsigned int>(glfwGetTime())); // Cast to avoid warnings
-    float radius = 80.0f;
-    float offset = 27.0f;
+    float radius = 110.0f;
+    float offset = 50.0f;
 
     for (unsigned int i = 0; i < amount; i++)
     {
@@ -79,7 +79,7 @@ void Space::init()
         float x = sin(angle) * radius + displacement;
         
         displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-        float y = displacement * 2.3f; // Keep height variation smaller (disk shape)
+        float y = displacement * 4.0f; // Keep height variation smaller (disk shape)
         
         displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
         float z = cos(angle) * radius + displacement;
