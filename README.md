@@ -16,7 +16,7 @@ See Pyre's rendering features in action.
 
 | **Standard Blinn-Phong Lighting** | **Cel-Shading (Toon)** |
 | :---: | :---: |
-| <img src="resources/screenshots/standard_lighting.png" alt="Standard Lighting Scene" width="100%"> | <img src="resources/screenshots/toon scene.png" alt="Toon Shading Effect" width="100%"> |
+| <img src="resources/screenshots/test scene.png" alt="Standard Lighting Scene" width="100%"> | <img src="resources/screenshots/toon scene.png" alt="Toon Shading Effect" width="100%"> |
 | *Classic lighting model with multiple light sources.* | *Stylized rendering with rim lighting and distinct bands.* |
 
 | **Instanced Rendering (1M+ Meshes) at 144+ fps** | **Post-Processing (Inversion)** |
