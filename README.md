@@ -1,111 +1,88 @@
-# Pyre – Just Another Graphics Engine
+# Pyre – Graphics Engine
 
-**Pyre** is a lightweight graphics engine built with **OpenGL, GLFW, GLAD, GLM, and Assimp**, inspired by the concepts and techniques taught in the [LearnOpenGL](https://learnopengl.com/) book.
-It aims to provide a clear, modular, and educational implementation of modern rendering techniques, making it a great project for learning and experimenting with real-time graphics.
+**Pyre** is a modular, educational **3D graphics engine** built from scratch using **Modern OpenGL** and **C++20**. Inspired by the brilliant work behind **LearnOpenGL**, Pyre explores advanced real-time rendering concepts, including **Instancing**, **Geometry Shaders**, **Post‑Processing**, and **Toon Shading**.
+
+It features a **custom CMake build system** that automatically fetches and configures dependencies like **GLFW** and **Assimp**, making the engine cross‑platform and effortless to build.
 
 <div align="center">
-  <img src="resources/textures/icon.png" alt="Pyre Logo" width="200"/>
+  <img src="resources/textures/icon.png" alt="Pyre Logo" width="150"/>
 </div>
+
+---
+
+## 📸 Visual Showcase
+
+See Pyre's rendering features in action.
+
+| **Standard Blinn-Phong Lighting** | **Cel-Shading (Toon)** |
+| :---: | :---: |
+| <img src="resources/screenshots/standard_lighting.png" alt="Standard Lighting Scene" width="100%"> | <img src="resources/screenshots/toon scene.png" alt="Toon Shading Effect" width="100%"> |
+| *Classic lighting model with multiple light sources.* | *Stylized rendering with rim lighting and distinct bands.* |
+
+| **Instanced Rendering (1M+ Meshes) at 144+ fps** | **Post-Processing (Inversion)** |
+| :---: | :---: |
+| <img src="resources/screenshots/moon.png" alt="Moon" width="100%"> | <img src="resources/screenshots/post_inversion.png" alt="Post-Processing" width="100%"> |
+| *Instanced Rendering using vertex atrrib model matrices.* | *Framebuffer-based inversion effect with ping pong post processing.* |
 
 ---
 
 ## ✨ Features
 
-* **Core Rendering**: Modern OpenGL pipeline with GLFW for window/input, GLAD for loading, and GLM for math.
-* **Lighting System**: Fully functional **Phong lighting model** with **directional, point, and spotlights**.
-* **Texture Mapping**: Supports **diffuse** and **specular maps** for realistic materials.
-* **Model Loading**: Integrated **Assimp** support for loading external 3D models (OBJ, FBX, etc.).
-* **Primitives**: Built-in generation of cubes, spheres, planes, and more through a geometry factory.
-* **Sandbox Demo Scene**: Walk freely using **WASD**, look around with the **mouse**, toggle **wireframe mode (F)**, **reset camera (R)**, and **switch scenes (arrow keys)**.
-* **Scene System**: Modular architecture allowing multiple demos/scenes to be easily loaded and extended.
-* **Educational Focus**: Developed step-by-step alongside LearnOpenGL concepts for clarity and understanding.
+### 🎨 Rendering Pipeline
 
-> 🕐 **Note:** When you first run Pyre, the screen may remain black for a few seconds (5–10s) while assets and shaders load — this is normal.
+* **Modular Shaders**: Custom preprocessor enabling `#include` directives inside GLSL.
+* **Lighting**: **Blinn‑Phong** lighting supporting **Directional**, **Point**, and **Spotlights**, powered by **Uniform Buffer Objects (UBOs)**.
+* **Instanced Rendering**: Efficient rendering for thousands of identical meshes (e.g., asteroid fields, particle clouds).
+* **Geometry Shaders**: Used for **normal visualization** and dramatic **mesh explosion** effects.
+* **Post‑Processing Stack**: Framebuffer‑based pipeline supporting **Inversion**, **Grayscale**, **Sharpening**, and **Outline detection**.
+* **Toon Shading**: Cel‑shaded rendering with stylized **rim‑lighting**.
 
----
+### 🛠 Core Architecture
 
-## 📂 Folder Structure
-
-```
-Pyre/
-├── includes/                 # Header files and third-party includes
-├── libs/                     # External libraries (GLFW, GLAD, Assimp, etc.)
-├── resources/                # Assets used by the engine
-│   ├── models/               # 3D model files (e.g., backpack.obj)
-│   ├── textures/             # Diffuse/specular/normal maps and icons
-│   └── shaders/              # GLSL shader files
-│       ├── modularFragmentShader.fs
-│       └── modularVertexShader.vs
-├── src/                      # Core source code
-│   ├── core/
-│   │   ├── rendering/
-│   │   │   ├── geometry/     # Procedural geometry generators
-│   │   │   │   └── GeometryFactory.cpp
-│   │   │   ├── Mesh.cpp
-│   │   │   ├── Model.cpp
-│   │   │   └── Renderer.cpp
-│   │   ├── Entity.cpp
-│   │   ├── InputManager.cpp
-│   │   ├── LightManager.cpp
-│   │   ├── ResourceManager.cpp
-│   │   └── Window.cpp
-│   ├── helpers/
-│   │   └── shaderClass.cpp   # Shader compilation/loading utilities
-│   ├── Scenes/               # Demo/test scenes
-│   │   ├── backpack.cpp
-│   │   └── factoryScene.cpp
-│   └── main.cpp              # Entry point
-└── Pyre.sln                  # Visual Studio solution file
-```
+* **Entity‑Component Layout**: `Entity`, `MeshRenderer`, `ModelRenderer` for clean object representation.
+* **Centralized Asset Manager**: Texture caching, model loading, and safe path handling.
+* **Scene System**: Hot‑swappable environments (`Factory`, `Backpack`, `Toon`, `Test`) controlled via a global application state.
+* **Debug Utilities**: Wireframe mode, shader hot‑reload, and visual debugging tools.
 
 ---
 
-## 🔧 Installation
+## 💻 Prerequisites
 
-Clone the repository:
+Before building Pyre, ensure these tools are installed:
+
+* **C++20 Compiler**
+  * Windows → Visual Studio 2022 (MSVC)
+  * Linux → GCC 10+ or Clang 10+
+  * macOS → Xcode Command Line Tools
+* **CMake ≥ 3.16**
+* **Git**
+
+> You do **not** need to install GLFW, Assimp, GLM, or GLAD manually — the CMake script does everything.
+
+---
+
+## 🔨 Build & Installation
+
+### **Option A – Visual Studio 2022 (Recommended)**
+
+1. Clone the repository.
+2. Open **Visual Studio**.
+3. Select **Open a Local Folder** and choose `pyre`.
+4. Let VS detect and configure `CMakeLists.txt`.
+5. Select **Pyre.exe** as the startup target and press **F5** to run.
+
+### **Option B – Command Line (Windows / Linux / macOS)**
 
 ```bash
-git clone https://github.com/Open-Source-Chandigarh/pyre.git
+# Clone the repository
+git clone [https://github.com/Open-Source-Chandigarh/pyre.git](https://github.com/Open-Source-Chandigarh/pyre.git)
 cd pyre
-```
 
----
+# Create a build directory
+mkdir build && cd build
 
-## 🚀 Usage
+# Configure (downloads third‑party dependencies)
+cmake ..
 
-1. Open the project in **Visual Studio**.
-2. Double-click the **Pyre.sln** file.
-3. Select **Build > Build Solution** or press `Ctrl + Shift + B`.
-4. Make sure configuration is set to **Debug** or **Release** as needed.
-5. Run **main.cpp**:
-
-   * `F5` → Start debugging
-   * `Ctrl + F5` → Run without debugging
-
-You’ll start in a **sandbox scene** where you can walk around, toggle rendering modes, and explore the engine.
-
----
-
-## 🤝 Contributing
-
-Contributions, bug reports, and suggestions are welcome!
-If you’d like to contribute, please read the [CONTRIBUTING.md](https://github.com/Open-Source-Chandigarh/pyre?tab=contributing-ov-file).
-
----
-
-## 📚 Learning Resource
-
-This project is being developed alongside the **LearnOpenGL** guide, serving as a practical, code-based implementation of its concepts.
-
----
-
-## 🙌 Credits
-
-* **LearnOpenGL by Joey de Vries** – Primary educational resource inspiring this engine.
-* **OpenGL, GLFW, GLAD, GLM, Assimp** – Core libraries powering Pyre.
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License** – see the LICENSE file for details.
+# Build
+cmake --build . --config Debug
