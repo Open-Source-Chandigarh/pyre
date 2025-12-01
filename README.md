@@ -10,6 +10,22 @@ It features a **custom CMake build system** that automatically fetches and confi
 
 ---
 
+## 📸 Visual Showcase
+
+See Pyre's rendering features in action.
+
+| **Standard Blinn-Phong Lighting** | **Cel-Shading (Toon)** |
+| :---: | :---: |
+| <img src="resources/screenshots/standard_lighting.png" alt="Standard Lighting Scene" width="100%"> | <img src="resources/screenshots/toon scene.png" alt="Toon Shading Effect" width="100%"> |
+| *Classic lighting model with multiple light sources.* | *Stylized rendering with rim lighting and distinct bands.* |
+
+| **Instanced Rendering (1M+ Meshes) at 144+ fps** | **Post-Processing (Inversion)** |
+| :---: | :---: |
+| <img src="resources/screenshots/moon.png" alt="Moon" width="100%"> | <img src="resources/screenshots/post_inversion.png" alt="Post-Processing" width="100%"> |
+| *Instanced Rendering using vertex atrrib model matrices.* | *Framebuffer-based inversion effect with ping pong post processing.* |
+
+---
+
 ## ✨ Features
 
 ### 🎨 Rendering Pipeline
@@ -35,7 +51,6 @@ It features a **custom CMake build system** that automatically fetches and confi
 Before building Pyre, ensure these tools are installed:
 
 * **C++20 Compiler**
-
   * Windows → Visual Studio 2022 (MSVC)
   * Linux → GCC 10+ or Clang 10+
   * macOS → Xcode Command Line Tools
@@ -60,7 +75,7 @@ Before building Pyre, ensure these tools are installed:
 
 ```bash
 # Clone the repository
-git clone https://github.com/Open-Source-Chandigarh/pyre.git
+git clone [https://github.com/Open-Source-Chandigarh/pyre.git](https://github.com/Open-Source-Chandigarh/pyre.git)
 cd pyre
 
 # Create a build directory
@@ -71,90 +86,3 @@ cmake ..
 
 # Build
 cmake --build . --config Debug
-```
-
-### **Run the Engine**
-
-```bash
-# Windows
-.\/Debug\/Pyre.exe
-
-# Linux / macOS
-./Pyre
-```
-
----
-
-## 🎮 Controls
-
-```
-Key             Action
-W, A, S, D       Move Camera
-Mouse            Look Around
-Scroll           Adjust FOV
-Right Arrow      Next Scene
-Left Arrow       Previous Scene
-F                Toggle Wireframe
-R                Reset Camera
-ESC              Lock/Unlock Mouse
-```
-
----
-
-## 📂 Project Structure
-
-```
-Pyre/
-├── CMakeLists.txt            # Build configuration
-├── .gitignore                # Ignore build artifacts
-├── src/                      # Engine source
-│   ├── main.cpp              # Entry point & game loop
-│   ├── core/                 # Engine internals
-│   │   ├── rendering/        # Renderer, Mesh, Model, FBO
-│   │   │   └── geometry/     # Procedural shapes (Cube, Sphere, Torus)
-│   │   ├── Window.cpp        # GLFW window wrapper
-│   │   └── InputManager.cpp  # Input processing
-│   └── scenes/               # Example scenes
-├── includes/                 # Public headers
-│   ├── core/                 # Engine interfaces
-│   ├── scenes/               # Scene declarations
-│   └── thirdparty/           # GLAD, stb_image, etc.
-├── shaders/                  # GLSL programs
-│   ├── modularVertex.vs      # Vertex uber-shader
-│   ├── modularFragment.fs    # Lighting uber-shader
-│   ├── includes/             # Shared GLSL modules
-│   └── postprocessing/       # Screen effects
-└── resources/                # Assets
-    ├── models/               # OBJ files
-    └── textures/             # Diffuse/specular maps, skyboxes
-```
-
----
-
-## 🤝 Contributing
-
-Want to implement **Shadow Mapping**, **Normal Mapping**, or optimizations?
-
-```bash
-git checkout -b feature/AmazingFeature
-# implement your changes
-git commit -m "Add AmazingFeature"
-git push origin feature/AmazingFeature
-```
-
-Then open a **Pull Request**.
-
-If you’d like to contribute, please read the [CONTRIBUTING.md](https://github.com/Open-Source-Chandigarh/pyre?tab=contributing-ov-file).
-
----
-
-## 🙌 Credits
-
-* **Joey de Vries** – Creator of LearnOpenGL
-* **GLFW, GLAD, GLM, Assimp, stb_image** – The tech stack powering Pyre
-
----
-
-## 📄 License
-
-Licensed under the **MIT License**. See the `LICENSE` file for details.
