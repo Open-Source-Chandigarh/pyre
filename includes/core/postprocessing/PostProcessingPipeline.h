@@ -20,7 +20,7 @@ public:
         effects.push_back(std::make_shared<T>(std::forward<Args>(args)...));
     }
 
-    // New helpers: add effect by shader key (ResourceManager::GetShader must return shader)
+    // add effect by shader key (ResourceManager::GetShader must return shader)
     std::shared_ptr<PostEffect> AddEffectFromShader(const std::string& shaderKey,
         std::function<void(Shader&)> setter = {});
 

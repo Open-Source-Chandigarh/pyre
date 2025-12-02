@@ -119,7 +119,7 @@ void LightManager::ApplyToShader(Shader& shader, Renderer& renderer,
     shader.setInt("numSpotLights", spotCount);
     for (int i = 0; i < spotCount; ++i) {
         const auto& s = spots[i];
-        std::string base = "spotLights[" + std::to_string(i) + "]."; // IMPORTANT: "spotLights" not "pointLights"
+        std::string base = "spotLights[" + std::to_string(i) + "]."; 
         shader.setVec3((base + "position").c_str(), s.position);
         shader.setVec3((base + "direction").c_str(), s.direction);
         shader.setFloat((base + "innerCutOff").c_str(), s.innerCutOff);

@@ -1,7 +1,7 @@
 #include "core/Entity.h"
 #include <glm/gtc/matrix_transform.hpp>
 
-// --- Default material (created once) ---
+// Default material
 static std::shared_ptr<Material> defaultMaterial = []() {
     auto mat = std::make_shared<Material>();
 
@@ -53,7 +53,7 @@ void Entity::Render(Renderer& renderer)
         {
             if (modelRenderer.instanceCount > 1)
             {
-                // Instanced Draw (Position/Scale in 'transform' is IGNORED here)
+                // Instanced Draw (Position/Scale in 'transform' is ignored because that is stored inside the mat4 model vertex attrib)
                 // The transforms come from the Mesh VBO
                 renderer.SubmitInstancedModel(
                     *modelRenderer.model, 

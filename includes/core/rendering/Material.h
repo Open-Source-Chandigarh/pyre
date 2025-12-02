@@ -16,7 +16,6 @@ enum class CullMode
     None
 };
 
-// ----------------------------------------------------------------------------
 // Material : describes surface appearance and references textures (shared)
 struct Material 
 {
@@ -36,11 +35,8 @@ struct Material
         shader.use();
 
         int texUnit = 0;
-
-        // --------------------------------------------------------------------
-        // STEP 1: Initialize all present flags to 0 IF they actually exist.
-        // (Do NOT set them to 0 if shader doesn't declare them)
-        // --------------------------------------------------------------------
+        // Initialize all present flags to 0 if they actually exist.
+        // (Do not set them to 0 if shader doesn't declare them)
         const char* presentUniforms[] = {
             "material_diffuse_present",
             "material_specular_present"
@@ -50,9 +46,7 @@ struct Material
             if (shader.hasUniform(p))
                 shader.setInt(p, 0);   // default OFF
 
-        // --------------------------------------------------------------------
-        // STEP 2: Bind textures & set *_present = 1 for those actually bound.
-        // --------------------------------------------------------------------
+        // Bind textures & set *_present = 1 for those actually bound.
         for (auto& kv : textures)
         {
             const std::string& name = kv.first;
@@ -79,9 +73,7 @@ struct Material
         }
 
 
-        // --------------------------------------------------------------------
-        // STEP 3: Push float & vec3 uniforms
-        // --------------------------------------------------------------------
+        // Push float & vec3 uniforms
         for (auto& kv : floats)
             if (shader.hasUniform(kv.first))
                 shader.setFloat(kv.first, kv.second);
@@ -91,9 +83,7 @@ struct Material
                 shader.setVec3(kv.first, kv.second);
 
 
-        // --------------------------------------------------------------------
-        // STEP 4: Fallback values if not overridden by textures
-        // --------------------------------------------------------------------
+        // Fallback values if not overridden by textures
         if (shader.hasUniform("material_diffuseColor"))
         {
             if (vec3s.count("material_diffuseColor"))

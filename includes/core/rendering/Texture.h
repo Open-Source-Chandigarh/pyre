@@ -14,9 +14,9 @@ enum class TextureType
 };
 
 // RAII wrapper for an OpenGL texture.
-// - non-copyable (to avoid double-delete)
-// - movable (transfers ownership)
-// - destructor deletes GL handle (must run with GL context current)
+// non-copyable (to avoid double-delete)
+// movable (transfers ownership)
+// destructor deletes GL handle (must run with GL context current)
 struct Texture
 {
     unsigned int ID = 0;
@@ -31,8 +31,7 @@ struct Texture
     // ensure GL resource is freed when object is destroyed
     ~Texture() {
         if (ID != 0) {
-            // IMPORTANT: glDeleteTextures must be called with a valid GL context.
-            // Make sure ResourceManager::Clear() (or similar) is called before the GL context is destroyed.
+            // glDeleteTextures must be called with a valid GL context.
             glDeleteTextures(1, &ID);
             ID = 0;
         }

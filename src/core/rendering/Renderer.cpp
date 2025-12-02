@@ -87,10 +87,10 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
         // Render skybox before doing post processing
         if (skyboxEntity) SubmitSkybox(skyboxEntity);
 
-        // 2) Run post-processing pipeline on scene texture
+        // Run post-processing pipeline on scene texture
         GLuint processed = postProcessor->Apply(sceneFBO->GetColorTexture());
 
-        // 3) Blit final result to screen
+        // Blit final result to screen
         postProcessor->DrawToScreen(processed);
 
         // Restore default GL state expected by main loop if needed
@@ -131,10 +131,7 @@ void Renderer::SubmitInstancedModel(Model& modelObj,
     }
 }
 
-// -----------------------------------------------------------------------------
-// SUBMIT MESH 
 // Handles Main Pass + Debug Passes (Normals, Outlines)
-// -----------------------------------------------------------------------------
 void Renderer::SubmitMesh(const glm::mat4& model, 
                           const Mesh& mesh, 
                           const std::shared_ptr<Shader>& shader, 
@@ -143,15 +140,12 @@ void Renderer::SubmitMesh(const glm::mat4& model,
 {
     if (!shader || !mat) return;
 
-    // --- DECISION LOGIC: Combine Material flags with Override flags ---
+    // Combine Material flags with Override flags 
     bool doShowNormals  = mat->showNormals    || overrides.showNormals;
     bool doOutline      = mat->outlineEnabled || overrides.outlineEnabled;
     glm::vec3 outlineCol = (overrides.outlineEnabled) ? overrides.outlineColor : mat->outlineColor;
 
-    // ===========================
-    // PASS 1: Main Render
-    // ===========================
-    // If outlining, write to stencil buffer. If not, don't touch stencil.
+    // If outlining, write to stencil buffer If not, don't touch stencil
     if (doOutline) {
         glStencilFunc(GL_ALWAYS, 1, 0xFF);
         glStencilMask(0xFF);
@@ -169,9 +163,7 @@ void Renderer::SubmitMesh(const glm::mat4& model,
 
     mesh.Draw(*shader, *mat);
 
-    // ===========================
-    // PASS 2: Outline (Optional)
-    // ===========================
+    // Outline (Optional)
     if (doOutline && outlineShader)
     {
         glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
@@ -194,14 +186,12 @@ void Renderer::SubmitMesh(const glm::mat4& model,
         glStencilFunc(GL_ALWAYS, 0, 0xFF);
     }
 
-    // ===========================
-    // PASS 3: Normals (Optional)
-    // ===========================
+    // Normals (Optional)
     if (doShowNormals && normalShader)
     {
         normalShader->use();
         
-        // Normals need the ORIGINAL model matrix (to stick to surface)
+        // Normals need the model matrix (to stick to surface)
         normalShader->setMat4("model", model);
         normalShader->setMat4("view", viewMatrix);
         normalShader->setMat4("projection", projMatrix);
@@ -217,10 +207,7 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     glActiveTexture(GL_TEXTURE0);
 }
 
-// -----------------------------------------------------------------------------
-// SUBMIT MODEL
 // Just delegates to SubmitMesh for every piece of the model
-// -----------------------------------------------------------------------------
 void Renderer::SubmitModel(const glm::mat4& modelMatrix, 
                            Model& modelObj, 
                            const std::shared_ptr<Shader>& shader,

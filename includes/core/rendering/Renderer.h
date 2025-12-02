@@ -20,7 +20,7 @@ public:
         Framebuffer* sceneFBO = nullptr, PostProcessingPipeline* postProcessor = nullptr,
         bool wireFrame = false);
         
-   // 1. SubmitMesh Overloads
+   // SubmitMesh Overloads
     void SubmitMesh(const glm::mat4& model, 
                     const Mesh& mesh, 
                     const std::shared_ptr<Shader>& shader, 
@@ -32,7 +32,7 @@ public:
                     const std::shared_ptr<Material>& mat,
                     const RenderSettings& overrides);
 
-    // 2. SubmitModel Overloads
+    // SubmitModel Overloads
     void SubmitModel(const glm::mat4& model, 
                      Model& modelObj, 
                      const std::shared_ptr<Shader>& shader);
