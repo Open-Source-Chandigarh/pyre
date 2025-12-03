@@ -121,9 +121,7 @@ void Space::init()
         entities.push_back(e);
     }
 
-    // -------------------------------------------------------------------------
-    // LIGHTING SETUP
-    // -------------------------------------------------------------------------
+  
     lightManager.ClearPointLights();
 
     // Sun (Directional)
@@ -186,7 +184,6 @@ void Space::render()
     renderer.BeginScene(view, proj, app->camera.Position);
     lightManager.UploadToUBO(view, proj, app->camera.Position);
 
-    // Handles both Planet and Asteroids automatically.
     renderer.RenderScene(entities, app->camera);
 
     renderer.EndScene();

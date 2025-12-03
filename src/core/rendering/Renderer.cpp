@@ -87,8 +87,10 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
         // Render skybox before doing post processing
         if (skyboxEntity) SubmitSkybox(skyboxEntity);
 
+        sceneFBO -> ResolveToScreen();
+
         // Run post-processing pipeline on scene texture
-        GLuint processed = postProcessor->Apply(sceneFBO->GetColorTexture());
+        GLuint processed = postProcessor->Apply(sceneFBO->GetIntermediateTexture());
 
         // Blit final result to screen
         postProcessor->DrawToScreen(processed);

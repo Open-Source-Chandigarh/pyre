@@ -19,14 +19,14 @@ FactoryScene::FactoryScene(Window& win)
 
     // Create scene framebuffer once
     sceneFBO = std::make_unique<Framebuffer>((unsigned int)win.Width(), 
-        (unsigned int)win.Height(), true);
+        (unsigned int)win.Height(), true, true);
 
     // Create post processing pipeline and add effects
     postPipeline = std::make_unique<PostProcessingPipeline>((unsigned int)win.Width(), 
         (unsigned int)win.Height());
-    postPipeline->AddInversion();
-    //postPipeline->AddGrayscale();
-    // postPipeline->AddSharpen(10.0f);
+    // postPipeline->AddInversion();
+    // postPipeline->AddGrayscale();
+    postPipeline->AddSharpen(5.0f);
 
     // cube positions
     cubePositions[0] = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -177,13 +177,13 @@ void FactoryScene::init()
 
 void FactoryScene::update() 
 {
-    auto app = win.GetAppState();
-    rotationAngle -= rotationSpeed * (app ? app->deltaTime : 0.016f);
-    for (size_t i = 0; i < entities.size(); ++i) {
-        float offset = 29.5f + 0.1f * sin(i);
-        entities[i]->transform.rotation.x = rotationAngle + offset * float(i);
-        entities[i]->transform.rotation.y = rotationAngle + offset * float(i);
-    }
+    // auto app = win.GetAppState();
+    // rotationAngle -= rotationSpeed * (app ? app->deltaTime : 0.016f);
+    // for (size_t i = 0; i < entities.size(); ++i) {
+    //     float offset = 29.5f + 0.1f * sin(i);
+    //     entities[i]->transform.rotation.x = rotationAngle + offset * float(i);
+    //     entities[i]->transform.rotation.y = rotationAngle + offset * float(i);
+    // }
 }
 
 void FactoryScene::render()
