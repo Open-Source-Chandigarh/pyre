@@ -5,7 +5,7 @@
 It features a **custom CMake build system** that automatically fetches and configures dependencies like **GLFW** and **Assimp**, making the engine cross‑platform and effortless to build.
 
 <div align="center">
-  <img src="resources/textures/icon.png" alt="Pyre Logo" width="150"/>
+  <img src="resources/textures/icon.png" alt="Pyre Logo" width="200"/>
 </div>
 
 ---
