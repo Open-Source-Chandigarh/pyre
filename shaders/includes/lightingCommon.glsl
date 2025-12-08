@@ -1,14 +1,14 @@
-// lightingCommon.glsl  (NO #version here)
+// lightingCommon.glsl
 // Assumes GetDiffuseColor(), GetSpecularColor(), GetShininess() are available.
 
 vec3 CalcDirLight(vec3 normal, vec3 fragPos, vec3 viewDir)
 {
     vec3 lightDir = normalize(-vec3(dir_direction));
     float diff = max(dot(normal, lightDir), 0.0);
-    vec3 reflectDir = reflect(-lightDir, normal);
+    vec3 halfWayDir = normalize(lightDir + viewDir);
 
     float shininess = GetShininess();
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+    float spec = pow(max(dot(normal, halfWayDir), 0.0), shininess);
 
     vec3 diffuseColor = GetDiffuseColor();
     vec3 specColor = GetSpecularColor();
@@ -25,10 +25,10 @@ vec3 CalcPointLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir)
     vec3 lightPos = vec3(point_position[idx]);
     vec3 lightDir = normalize(lightPos - fragPos);
     float diff = max(dot(normal, lightDir), 0.0);
-    vec3 reflectDir = reflect(-lightDir, normal);
+    vec3 halfWayDir = normalize(lightDir + viewDir);
 
     float shininess = GetShininess();
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+    float spec = pow(max(dot(normal, halfWayDir), 0.0), shininess);
 
     float constant = point_params[idx].x;
     float linear   = point_params[idx].y;
@@ -55,10 +55,10 @@ vec3 CalcSpotLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir)
     vec3 lightPos = vec3(spot_position[idx]);
     vec3 lightDir = normalize(lightPos - fragPos);
     float diff = max(dot(normal, lightDir), 0.0);
-    vec3 reflectDir = reflect(-lightDir, normal);
+    vec3 halfWayDir = normalize(lightDir + viewDir);
 
     float shininess = GetShininess();
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininess);
+    float spec = pow(max(dot(normal, halfWayDir), 0.0), shininess);
 
     float distance = length(lightPos - fragPos);
     float constant = spot_params[idx].x;
