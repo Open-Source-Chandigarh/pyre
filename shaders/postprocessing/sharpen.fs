@@ -21,7 +21,7 @@ void main()
         vec2( offset, -offset)
     );
 
-    // simple blur kernel (box blur)
+    // simple blur kernel 
     float blurKernel[9] = float[](
          1, 1, 1,
          1, 1, 1,
@@ -32,7 +32,7 @@ void main()
     for (int i = 0; i < 9; ++i)
         sample[i] = texture(scene, TexCoords + offsets[i]).rgb;
 
-    // compute blur (average)
+    // compute blur
     vec3 blurred = vec3(0.0);
     for (int i = 0; i < 9; ++i)
         blurred += sample[i] * blurKernel[i];
@@ -42,7 +42,7 @@ void main()
 
     float s = clamp(strength, 0.0, 1.0);
 
-    // unsharp mask: original + amount * (original - blurred)
+    // unsharp mask
     vec3 result = original + s * (original - blurred);
 
     FragColor = vec4(result, 1.0);

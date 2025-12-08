@@ -26,7 +26,8 @@ FactoryScene::FactoryScene(Window& win)
         (unsigned int)win.Height());
     // postPipeline->AddInversion();
     // postPipeline->AddGrayscale();
-    postPipeline->AddSharpen(5.0f);
+    // postPipeline->AddSharpen(5.0f);
+    postPipeline->AddGammaCorrection(2.2f);
 
     // cube positions
     cubePositions[0] = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -107,11 +108,11 @@ void FactoryScene::init()
         std::shared_ptr<Material> mat = std::make_shared<Material>();
         mat -> textures["material_diffuse"] = diffuseMap;
         mat -> textures["material_specular"] = specularMap;
-        mat -> floats["material_shininess"] = 5.0f;
+        mat -> floats["material_shininess"] = 64.0f;
 
         // Optionally tweak material per primitive type for visual variety
-        if (randomInt == 0) { mat->floats["material_shininess"] = 3.0f; } // sphere - glossier
-        if (randomInt == 2) { mat->floats["material_shininess"] = 10.0f; } // torus - slightly rougher
+        if (randomInt == 0) { mat->floats["material_shininess"] = 84.0f; } // sphere - glossier
+        if (randomInt == 2) { mat->floats["material_shininess"] = 50.0f; } // torus - slightly rougher
         std::shared_ptr<Entity> e = Entity::Create();
         e->type = Entity::Type::Mesh;
         e->meshRenderer.mesh = &mesh[i];
@@ -177,13 +178,13 @@ void FactoryScene::init()
 
 void FactoryScene::update() 
 {
-    // auto app = win.GetAppState();
-    // rotationAngle -= rotationSpeed * (app ? app->deltaTime : 0.016f);
-    // for (size_t i = 0; i < entities.size(); ++i) {
-    //     float offset = 29.5f + 0.1f * sin(i);
-    //     entities[i]->transform.rotation.x = rotationAngle + offset * float(i);
-    //     entities[i]->transform.rotation.y = rotationAngle + offset * float(i);
-    // }
+    auto app = win.GetAppState();
+    rotationAngle -= rotationSpeed * (app ? app->deltaTime : 0.016f);
+    for (size_t i = 0; i < entities.size(); ++i) {
+        float offset = 29.5f + 0.1f * sin(i);
+        entities[i]->transform.rotation.x = rotationAngle + offset * float(i);
+        entities[i]->transform.rotation.y = rotationAngle + offset * float(i);
+    }
 }
 
 void FactoryScene::render()

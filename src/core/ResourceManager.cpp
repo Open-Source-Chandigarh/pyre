@@ -1,5 +1,5 @@
 #include <iostream>
-#include <stb_image.h>
+#include <thirdparty/stb_image.h>
 #include "core/ResourceManager.h"
 
 std::map<std::string, std::shared_ptr<Shader>> ResourceManager::shaders;
@@ -48,26 +48,51 @@ std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& path, T
     unsigned char* data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
     if (!data) {
         std::cerr << "ResourceManager: Failed to load texture " << path << "\n";
-        return 0;
+        return nullptr;
     }
 
-    GLenum format = (nrChannels == 1) ? GL_RED : (nrChannels == 3) ? GL_RGB : GL_RGBA;
+    // Determine the Data Format
+    GLenum dataFormat;
+    if (nrChannels == 1)
+        dataFormat = GL_RED;
+    else if (nrChannels == 3)
+        dataFormat = GL_RGB;
+    else if (nrChannels == 4)
+        dataFormat = GL_RGBA;
+
+    // Determine the Internal Format 
+    // We only use sRGB for Diffuse textures 
+    // Specular/Normal maps must remain linear
+    GLenum internalFormat = dataFormat;
+    if (type == TextureType::TEX_DIFFUSE)
+    {
+        if (dataFormat == GL_RGB)
+            internalFormat = GL_SRGB;
+        else if (dataFormat == GL_RGBA)
+            internalFormat = GL_SRGB_ALPHA;
+    }
 
     unsigned int tex;
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+
+    // Upload: internalFormat (2nd arg), dataFormat (7th arg)
+    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
     
-    if(format != GL_RGBA)
+    // Repeat for non-alpha textures, Clamp for others
+    if(dataFormat != GL_RGBA)
     { 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     }
+    else
+    {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    }
  
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     stbi_image_free(data);
@@ -88,6 +113,7 @@ std::shared_ptr<Texture> ResourceManager::LoadCubeMap(
 {
     std::string key = name.empty() ? combinePaths(faces) : name;
     if (textures.count(key)) return textures[key];
+    
     stbi_set_flip_vertically_on_load(false);
 
     unsigned int tex;
@@ -98,11 +124,20 @@ std::shared_ptr<Texture> ResourceManager::LoadCubeMap(
     for (unsigned int i = 0; i < faces.size(); i++)
     {
         unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
-        GLenum format = (nrChannels == 1) ? GL_RED : (nrChannels == 3) ? GL_RGB : GL_RGBA;
         if (data)
         {
+            // Calculate Data Format
+            GLenum dataFormat = (nrChannels == 1) ? GL_RED : (nrChannels == 3) ? GL_RGB : GL_RGBA;
+            
+            // Calculate Internal Format (Skyboxes are visual, so usually sRGB)
+            GLenum internalFormat = dataFormat;
+            if (dataFormat == GL_RGB)
+                internalFormat = GL_SRGB;
+            else if (dataFormat == GL_RGBA)
+                internalFormat = GL_SRGB_ALPHA;
+
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data
+                0, internalFormat, width, height, 0, dataFormat, GL_UNSIGNED_BYTE, data
             );
             stbi_image_free(data);
         }
@@ -133,7 +168,7 @@ std::shared_ptr<Texture> ResourceManager::LoadCubeMap(
 std::shared_ptr<Texture> ResourceManager::GetTexture(const std::string& path)
 {
     auto it = textures.find(path);
-    if (it == textures.end()) return 0;
+    if (it == textures.end()) return nullptr;
     return it->second;
 }
 
@@ -142,7 +177,7 @@ std::string ResourceManager::combinePaths(std::vector<std::string> paths)
     std::string key = "";
     for (auto&& s : paths)
     {
-        key += s + "#"; // # for seperation
+        key += s + "#"; 
     }
     return key;
 }

@@ -14,7 +14,15 @@ Space::Space(Window& win)
     rotationAngle(0.0f), rotationSpeed(50.0f),
     win(win), planet(nullptr), asteroid(nullptr)
 {
-  
+    // Create scene framebuffer once
+    sceneFBO = std::make_unique<Framebuffer>((unsigned int)win.Width(), 
+        (unsigned int)win.Height(), true, true);
+
+    // Create post processing pipeline and add effects
+    postPipeline = std::make_unique<PostProcessingPipeline>((unsigned int)win.Width(), 
+        (unsigned int)win.Height());
+
+    postPipeline->AddGammaCorrection(2.2f);
 }
 
 void Space::init()
@@ -184,7 +192,7 @@ void Space::render()
     renderer.BeginScene(view, proj, app->camera.Position);
     lightManager.UploadToUBO(view, proj, app->camera.Position);
 
-    renderer.RenderScene(entities, app->camera);
+    renderer.RenderScene(entities, app->camera, sceneFBO.get(), postPipeline.get(), app->wireframeEnabled);
 
     renderer.EndScene();
 }

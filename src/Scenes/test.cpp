@@ -55,9 +55,6 @@ void Test::init()
     plane = GeometryFactory::CreatePlane();
     skyMesh = GeometryFactory::CreateSkyboxCube();
 
-    // -------------------------
-    // SKYBOX ENTITY
-    // -------------------------
     {
         std::shared_ptr<Entity> e = Entity::Create();
         e->type = Entity::Type::SkyBox;
@@ -71,9 +68,6 @@ void Test::init()
         entities.push_back(e);
     }
 
-    // -------------------------
-    // GRASS ENTITY
-    // -------------------------
     {
         Material mat;
         mat.cullMode = CullMode::None;
@@ -95,9 +89,6 @@ void Test::init()
         entities.push_back(e);
     }
 
-    // -------------------------
-    // WINDOW ENTITY
-    // -------------------------
     {
         Material mat;
         mat.isTransparent = true;
@@ -120,9 +111,6 @@ void Test::init()
         entities.push_back(e);
     }
 
-    // -------------------------
-    // CUBE STACK
-    // -------------------------
     Material cubeMat;
     cubeMat.textures["material_diffuse"] = cubeDiffuseMap;
     cubeMat.textures["material_specular"] = cubeSpecularMap;
@@ -157,9 +145,7 @@ void Test::init()
             }
     }
 
-    // -------------------------
-    // FLOOR
-    // -------------------------
+
     {
         Material mat;
         mat.cullMode = CullMode::Front;
@@ -178,9 +164,7 @@ void Test::init()
         entities.push_back(e);
     }
 
-    // -------------------------
-    // LIGHTS
-    // -------------------------
+
     lightManager.ClearPointLights();
 
     lightManager.SetDirectional(
@@ -240,7 +224,7 @@ void Test::render()
         lightManager.spots[0].direction = app->camera.Front;
     }
 
-    // Upload global UBO (lights + camera) — replaces old ApplyToShader()
+    // Upload global UBO (lights + camera)
     lightManager.UploadToUBO(view, proj, app->camera.Position);
 
     // Draw everything
