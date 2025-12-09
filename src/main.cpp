@@ -17,21 +17,15 @@ void SetupInput(Window &win);
 
 int main()
 {
-    // -------------------------
-    // 1. Initialize AppState
-    // -------------------------
+   
     AppState appState;
     appState.camera = Camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
-    // -------------------------
-    // 2. Initialize Window
-    // -------------------------
+    
     Window win(800, 600, "win");
     win.SetAppState(&appState);
 
-    // -------------------------
-    // 3. Init scenes
-    // -------------------------
+
     appState.scenes.push_back(new FactoryScene(win));
     appState.scenes.push_back(new Backpack(win));
     appState.scenes.push_back(new Test(win));
@@ -41,9 +35,7 @@ int main()
     for (auto* scene : appState.scenes)
         scene->init();
 
-    // // -------------------------
-    // // 4. Setup input and configure global opengl state
-    // // -------------------------
+   
 
     SetupInput(win);
 
@@ -52,9 +44,6 @@ int main()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_DEPTH_TEST);
 
-    // -------------------------
-    // 5. Main render loop
-    // -------------------------
     while (!win.ShouldClose())
     {
         float currentFrame = static_cast<float>(glfwGetTime());

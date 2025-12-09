@@ -76,7 +76,6 @@ std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& path, T
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
 
-    // Upload: internalFormat (2nd arg), dataFormat (7th arg)
     glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
     
@@ -129,7 +128,7 @@ std::shared_ptr<Texture> ResourceManager::LoadCubeMap(
             // Calculate Data Format
             GLenum dataFormat = (nrChannels == 1) ? GL_RED : (nrChannels == 3) ? GL_RGB : GL_RGBA;
             
-            // Calculate Internal Format (Skyboxes are visual, so usually sRGB)
+            // Calculate Internal Format
             GLenum internalFormat = dataFormat;
             if (dataFormat == GL_RGB)
                 internalFormat = GL_SRGB;

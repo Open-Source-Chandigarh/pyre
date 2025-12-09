@@ -38,16 +38,16 @@ public:
     }
 
 private:
-    std::unique_ptr<Framebuffer> sceneFBO;
-    std::unique_ptr<PostProcessingPipeline> postPipeline;
+    std::shared_ptr<Framebuffer> sceneFBO;
+    std::shared_ptr<PostProcessingPipeline> postPipeline;
     Window& win;
 
     // The shader program for this scene
     std::shared_ptr<Shader> planetShader;
     std::shared_ptr<Shader> asteroidShader;
 
-    Renderer renderer;
-    LightManager lightManager;
+    std::shared_ptr<Renderer> renderer;
+    std::shared_ptr<LightManager> lightManager;
 
     std::vector<std::shared_ptr<Entity>> entities;
 

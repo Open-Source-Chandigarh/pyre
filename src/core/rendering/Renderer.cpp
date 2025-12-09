@@ -31,9 +31,9 @@ void Renderer::BeginScene(const glm::mat4& view, const glm::mat4& projection,
     viewPosition = viewPos;
 }
 
-void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera& camera,
-    Framebuffer* sceneFBO, PostProcessingPipeline* postProcessor,
-    bool wireFrame)
+void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera &camera, std::shared_ptr<LightManager> lightManager,
+        std::shared_ptr<Framebuffer> sceneFBO, std::shared_ptr<PostProcessingPipeline> postProcessor,
+        bool wireFrame)
 {
     std::vector<std::shared_ptr<Entity>> transparentEntities;
     std::vector<std::shared_ptr<Entity>> opaqueEntities;
@@ -66,7 +66,7 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
         });
 
 
-    // Draw skybox first (if exists)
+    // Draw skybox first
 
     // If we have scene FBO and post processing (and not wireframe), render to FBO then postprocess
     if (sceneFBO && postProcessor && !wireFrame)
@@ -80,12 +80,18 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
         {
             e->Render(*this);
         }
+       
+        // Render skybox before doing post processing
+        if (skyboxEntity) SubmitSkybox(skyboxEntity);
+
+        if (lightManager) {
+            lightManager->RenderDebugLights(viewMatrix, projMatrix);
+        }
+
         for (auto& e : transparentEntities)
         {
             e->Render(*this);
         }
-        // Render skybox before doing post processing
-        if (skyboxEntity) SubmitSkybox(skyboxEntity);
 
         sceneFBO -> ResolveToScreen();
 
@@ -106,6 +112,9 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
         }
         if (skyboxEntity) {
             SubmitSkybox(skyboxEntity);
+        }
+        if (lightManager) {
+            lightManager->RenderDebugLights(viewMatrix, projMatrix);
         }
         for (auto& e : transparentEntities)
         {

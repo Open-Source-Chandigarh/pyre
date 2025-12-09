@@ -14,12 +14,14 @@ Space::Space(Window& win)
     rotationAngle(0.0f), rotationSpeed(50.0f),
     win(win), planet(nullptr), asteroid(nullptr)
 {
+    renderer = std::make_shared<Renderer>();
+    lightManager = std::make_shared<LightManager>();
     // Create scene framebuffer once
-    sceneFBO = std::make_unique<Framebuffer>((unsigned int)win.Width(), 
+    sceneFBO = std::make_shared<Framebuffer>((unsigned int)win.Width(), 
         (unsigned int)win.Height(), true, true);
 
     // Create post processing pipeline and add effects
-    postPipeline = std::make_unique<PostProcessingPipeline>((unsigned int)win.Width(), 
+    postPipeline = std::make_shared<PostProcessingPipeline>((unsigned int)win.Width(), 
         (unsigned int)win.Height());
 
     postPipeline->AddGammaCorrection(2.2f);
@@ -115,7 +117,7 @@ void Space::init()
         e->modelRenderer.model = planet.get();
         e->modelRenderer.shader = planetShader;
         e->transform.position = glm::vec3(0.0f, -3.0f, 0.0f);
-        e->transform.scale = glm::vec3(10.0f); // Massive planet
+        e->transform.scale = glm::vec3(10.0f); 
         entities.push_back(e);
     }
 
@@ -124,17 +126,17 @@ void Space::init()
         std::shared_ptr<Entity> e = Entity::Create();
         e->type = Entity::Type::Model;
         e->modelRenderer.model = asteroid.get();
-        e->modelRenderer.shader = asteroidShader; // Use dedicated shader variable
+        e->modelRenderer.shader = asteroidShader; 
         e->modelRenderer.instanceCount = amount; 
         entities.push_back(e);
     }
 
   
-    lightManager.ClearPointLights();
+    lightManager->ClearPointLights();
 
     // Sun (Directional)
     glm::vec3 sunDir = glm::normalize(glm::vec3(-1.0f, -0.3f, -0.5f)); 
-    lightManager.SetDirectional(
+    lightManager->SetDirectional(
         sunDir,
         glm::vec3(0.02f, 0.02f, 0.02f),
         glm::vec3(1.2f, 1.1f, 1.0f),
@@ -150,7 +152,7 @@ void Space::init()
     fillLight.constant = 1.0f; 
     fillLight.linear = 0.007f; 
     fillLight.quadratic = 0.0002f;
-    lightManager.AddPointLight(fillLight);
+    lightManager->AddPointLight(fillLight);
 
     // Rim Light
     PointLight rimLight;
@@ -161,7 +163,7 @@ void Space::init()
     rimLight.constant = 1.0f; 
     rimLight.linear = 0.022f; 
     rimLight.quadratic = 0.0019f;
-    lightManager.AddPointLight(rimLight);
+    lightManager->AddPointLight(rimLight);
 
     // Flashlight
     SpotLight s;
@@ -175,7 +177,7 @@ void Space::init()
     s.linear = 0.09f;
     s.innerCutOff = cos(glm::radians(12.5f));
     s.outerCutOff = cos(glm::radians(17.5f));
-    lightManager.AddSpotLight(s);
+    lightManager->AddSpotLight(s);
 }
 
 void Space::update() { }
@@ -189,10 +191,10 @@ void Space::render()
     glm::mat4 proj = glm::perspective(glm::radians(app->camera.Zoom),
         (float)win.Width() / (float)win.Height(), 0.1f, 1000.0f);
 
-    renderer.BeginScene(view, proj, app->camera.Position);
-    lightManager.UploadToUBO(view, proj, app->camera.Position);
+    renderer->BeginScene(view, proj, app->camera.Position);
+    lightManager->UploadToUBO(view, proj, app->camera.Position);
 
-    renderer.RenderScene(entities, app->camera, sceneFBO.get(), postPipeline.get(), app->wireframeEnabled);
+    renderer->RenderScene(entities, app->camera, nullptr, sceneFBO, postPipeline, app->wireframeEnabled);
 
-    renderer.EndScene();
+    renderer->EndScene();
 }

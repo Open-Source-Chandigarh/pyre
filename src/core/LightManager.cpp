@@ -81,7 +81,6 @@ void LightManager::UploadToUBO(const glm::mat4& view, const glm::mat4& proj, con
         ubo.spot_specular[i] = glm::vec4(s.specular, 0.0f);
         ubo.spot_params[i] = glm::vec4(s.constant, s.linear, s.quadratic, 0.0f);
     }
-    RenderDebugLights(view, proj);
     // Upload
     UpdateGlobalUBO(ubo);
 }
@@ -150,5 +149,4 @@ void LightManager::RenderDebugLights(
         debugShader->setVec3("color", p.diffuse);
         debugSphere.DrawSimple();
     }
-
 }
