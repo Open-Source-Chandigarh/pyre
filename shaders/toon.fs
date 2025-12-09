@@ -6,11 +6,9 @@ in vec2 TexCoords;
 
 out vec4 FragColor;
 
-// 1. INCLUDE THE SAME SHARED DATA
 #include "includes/globalUbos.glsl"
 #include "includes/materialCommon.glsl"
 
-// --- HELPER: Toon Stepping Logic ---
 // Convert a smooth 0.0-1.0 gradient into hard steps (0.1, 0.5, 1.0)
 float Toonify(float value)
 {
@@ -20,7 +18,6 @@ float Toonify(float value)
     return 0.1; // Shadow color
 }
 
-// --- HELPER: Hard Specular ---
 // Toon specular is usually a dot, not a fade
 float ToonSpecular(vec3 normal, vec3 lightDir, vec3 viewDir)
 {
@@ -31,9 +28,7 @@ float ToonSpecular(vec3 normal, vec3 lightDir, vec3 viewDir)
     return (spec > 0.5) ? 1.0 : 0.0; 
 }
 
-// --------------------------------------------------------
-// 1. DIRECTIONAL LIGHT (Toon)
-// --------------------------------------------------------
+
 vec3 CalcToonDirectional(vec3 normal, vec3 viewDir)
 {
     vec3 lightDir = normalize(-vec3(dir_direction));
@@ -52,15 +47,12 @@ vec3 CalcToonDirectional(vec3 normal, vec3 viewDir)
     return color;
 }
 
-// --------------------------------------------------------
-// 2. POINT LIGHT (Toon)
-// --------------------------------------------------------
 vec3 CalcToonPoint(int idx, vec3 normal, vec3 fragPos, vec3 viewDir)
 {
     vec3 lightPos = vec3(point_position[idx]);
     vec3 lightDir = normalize(lightPos - fragPos);
     
-    // Attenuation (Same physics as realistic shader!)
+    // Attenuation
     float distance = length(lightPos - fragPos);
     float constant = point_params[idx].x;
     float linear   = point_params[idx].y;
@@ -81,9 +73,6 @@ vec3 CalcToonPoint(int idx, vec3 normal, vec3 fragPos, vec3 viewDir)
     return color * attenuation;
 }
 
-// --------------------------------------------------------
-// 3. SPOT LIGHT (Toon)
-// --------------------------------------------------------
 vec3 CalcToonSpot(int idx, vec3 normal, vec3 fragPos, vec3 viewDir)
 {
     vec3 lightPos = vec3(spot_position[idx]);
@@ -102,10 +91,6 @@ vec3 CalcToonSpot(int idx, vec3 normal, vec3 fragPos, vec3 viewDir)
     float outer = spot_cutoffs[idx].y;
     float epsilon = inner - outer;
     
-    // Standard Soft Edge:
-    // float spotIntensity = clamp((theta - outer) / epsilon, 0.0, 1.0);
-    
-    // TOON HARD EDGE: If inside the cone, full brightness. If outside, dark.
     float spotIntensity = (theta > outer) ? 1.0 : 0.0; 
 
     // Diffuse
@@ -128,27 +113,22 @@ void main()
 
     vec3 result = vec3(0.0);
 
-    // 1. Ambient (Base)
     result += vec3(dir_ambient) * GetDiffuseColor();
 
-    // 2. Directional
     result += CalcToonDirectional(N, V);
 
-    // 3. Point Lights (Loop limits from UBO)
     for(int i = 0; i < numPointLights; i++)
     {
         result += CalcToonPoint(i, N, FragPos, V);
     }
 
-    // 4. Spot Lights
     for(int i = 0; i < numSpotLights; i++)
     {
         result += CalcToonSpot(i, N, FragPos, V);
     }
 
-    // 5. Rim Lighting (Optional for extra style)
     float rim = 1.0 - max(dot(V, N), 0.0);
-    rim = smoothstep(0.6, 0.7, rim); // Sharp rim
+    rim = smoothstep(0.6, 0.7, rim); 
     vec3 rimColor = vec3(1.0) * rim * 0.3;
     result += rimColor;
 

@@ -21,6 +21,9 @@ PostProcessingPipeline::PostProcessingPipeline(unsigned int w, unsigned int h)
         "shaders/common/simpleTexture.vs", "shaders/postprocessing/grayscale.fs");
     ResourceManager::LoadShader("post_sharpen",
         "shaders/common/simpleTexture.vs", "shaders/postprocessing/sharpen.fs");
+
+    ResourceManager::LoadShader("post_gamma", 
+        "shaders/common/simpleTexture.vs", "shaders/postprocessing/gamma.fs");
 }
 
 void PostProcessingPipeline::EnsureQuad()
@@ -144,4 +147,11 @@ std::shared_ptr<PostEffect> PostProcessingPipeline::AddSharpen(float strength)
     return AddEffectFromShader("post_sharpen", [strength](Shader& s) {
         s.setFloat("strength", strength);
         });
+}
+
+std::shared_ptr<PostEffect> PostProcessingPipeline::AddGammaCorrection(float gammaVal)
+{
+    return AddEffectFromShader("post_gamma", [gammaVal](Shader& s) {
+        s.setFloat("gamma", gammaVal);
+    });
 }

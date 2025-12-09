@@ -11,9 +11,6 @@ static inline void pushVertex(std::vector<float>& v, glm::vec3 pos, glm::vec3 n,
     v.insert(v.end(), { pos.x, pos.y, pos.z, n.x, n.y, n.z, uv.x, uv.y });
 }
 
-// ------------------------------------------------------------
-// CUBE
-// ------------------------------------------------------------
 Mesh GeometryFactory::CreateCube(float size)
 {
     const float h = size * 0.5f;
@@ -32,7 +29,7 @@ Mesh GeometryFactory::CreateCube(float size)
 
     glm::vec2 uvs[4] = { {0,0}, {1,0}, {1,1}, {0,1} };
 
-    // Front face (0–1–2–3 style indexing)
+    // Front face (0ï¿½1ï¿½2ï¿½3 style indexing)
     auto quad = [&](int a, int b, int c, int d, glm::vec3 n)
         {
             unsigned int startIndex = data.size() / 8;
@@ -111,7 +108,7 @@ Mesh GeometryFactory::CreateSkyboxCube(float size)
     if (size != 1.0f)
     {
         for (size_t i = 0; i < sizeof(skyboxVertices) / sizeof(float); ++i)
-            ((float*)skyboxVertices)[i] *= h; // only safe for local copy; if you want dynamic, copy into vector
+            ((float*)skyboxVertices)[i] *= h;
     }
 
     // vertex count = 36
@@ -119,9 +116,6 @@ Mesh GeometryFactory::CreateSkyboxCube(float size)
 }
 
 
-// ------------------------------------------------------------
-// PLANE
-// ------------------------------------------------------------
 Mesh GeometryFactory::CreatePlane(float size)
 {
     float h = size * 0.5f;
@@ -140,9 +134,6 @@ Mesh GeometryFactory::CreatePlane(float size)
     );
 }
 
-// ------------------------------------------------------------
-// SPHERE
-// ------------------------------------------------------------
 Mesh GeometryFactory::CreateSphere(float radius, int segments, int rings)
 {
     std::vector<float> data;
@@ -185,16 +176,13 @@ Mesh GeometryFactory::CreateSphere(float radius, int segments, int rings)
     );
 }
 
-// ------------------------------------------------------------
-// CYLINDER
-// ------------------------------------------------------------
 Mesh GeometryFactory::CreateCylinder(float radius, float height, int segments)
 {
     std::vector<float> data;
     std::vector<unsigned int> indices;
     float halfH = height * 0.5f;
 
-    // --- Side vertices ---
+    // Side vertices
     for (int i = 0; i <= segments; ++i)
     {
         float theta = (i / (float)segments) * 2.0f * std::numbers::pi_v<float>;
@@ -205,14 +193,14 @@ Mesh GeometryFactory::CreateCylinder(float radius, float height, int segments)
         pushVertex(data, { radius * x,  halfH, radius * z }, normal, { (float)i / segments, 1 });
     }
 
-    // --- Side indices ---
+    // Side indices
     for (int i = 0; i < segments; ++i)
     {
         unsigned int base = i * 2;
         indices.insert(indices.end(), { base, base + 1, base + 2, base + 1, base + 3, base + 2 });
     }
 
-    // --- Bottom cap ---
+    // Bottom cap
     unsigned int bottomCenterIndex = data.size() / 8;
     pushVertex(data, { 0, -halfH, 0 }, { 0, -1, 0 }, { 0.5f, 0.5f });
 
@@ -232,7 +220,7 @@ Mesh GeometryFactory::CreateCylinder(float radius, float height, int segments)
             });
     }
 
-    // --- Top cap ---
+    // Top cap
     unsigned int topCenterIndex = data.size() / 8;
     pushVertex(data, { 0, halfH, 0 }, { 0, 1, 0 }, { 0.5f, 0.5f });
 
@@ -259,9 +247,6 @@ Mesh GeometryFactory::CreateCylinder(float radius, float height, int segments)
     );
 }
 
-// ------------------------------------------------------------
-// CONE
-// ------------------------------------------------------------
 Mesh GeometryFactory::CreateCone(float radius, float height, int segments)
 {
     std::vector<float> data;
@@ -270,7 +255,7 @@ Mesh GeometryFactory::CreateCone(float radius, float height, int segments)
 
     glm::vec3 apex{ 0, halfH, 0 };
 
-    // --- Base ring ---
+    // Base rin
     for (int i = 0; i <= segments; ++i)
     {
         float theta = (i / (float)segments) * 2.0f * std::numbers::pi_v<float>;
@@ -280,21 +265,21 @@ Mesh GeometryFactory::CreateCone(float radius, float height, int segments)
         pushVertex(data, pos, normal, { (float)i / segments, 0 });
     }
 
-    // --- Apex vertex ---
+    // Apex vertex
     pushVertex(data, apex, { 0,1,0 }, { 0.5f,1 });
     unsigned int apexIndex = data.size() / 8 - 1;
 
-    // --- Side triangles ---
+    // Side triangles
     for (int i = 0; i < segments; ++i)
     {
         indices.insert(indices.end(), { (unsigned)i, (unsigned)(i + 1), apexIndex });
     }
 
-    // --- Base center ---
+    // Base center
     unsigned int baseCenterIndex = data.size() / 8;
     pushVertex(data, { 0, -halfH, 0 }, { 0, -1, 0 }, { 0.5f, 0.5f });
 
-    // --- Base ring again (for separate normal) ---
+    // Base ring again (for separate normal)
     unsigned int baseStart = data.size() / 8;
     for (int i = 0; i <= segments; ++i)
     {
@@ -303,7 +288,7 @@ Mesh GeometryFactory::CreateCone(float radius, float height, int segments)
         pushVertex(data, { radius * x, -halfH, radius * z }, { 0, -1, 0 }, { (x + 1) * 0.5f, (z + 1) * 0.5f });
     }
 
-    // --- Base triangles ---
+    // Base triangles
     for (int i = 0; i < segments; ++i)
     {
         indices.insert(indices.end(), {
@@ -320,9 +305,6 @@ Mesh GeometryFactory::CreateCone(float radius, float height, int segments)
     );
 }
 
-// ------------------------------------------------------------
-// TORUS
-// ------------------------------------------------------------
 Mesh GeometryFactory::CreateTorus(float radius, float tubeRadius, int segments, int rings)
 {
     std::vector<float> data;

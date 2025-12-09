@@ -31,9 +31,9 @@ void Renderer::BeginScene(const glm::mat4& view, const glm::mat4& projection,
     viewPosition = viewPos;
 }
 
-void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera& camera,
-    Framebuffer* sceneFBO, PostProcessingPipeline* postProcessor,
-    bool wireFrame)
+void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera &camera, std::shared_ptr<LightManager> lightManager,
+        std::shared_ptr<Framebuffer> sceneFBO, std::shared_ptr<PostProcessingPipeline> postProcessor,
+        bool wireFrame)
 {
     std::vector<std::shared_ptr<Entity>> transparentEntities;
     std::vector<std::shared_ptr<Entity>> opaqueEntities;
@@ -66,7 +66,7 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
         });
 
 
-    // Draw skybox first (if exists)
+    // Draw skybox first
 
     // If we have scene FBO and post processing (and not wireframe), render to FBO then postprocess
     if (sceneFBO && postProcessor && !wireFrame)
@@ -80,17 +80,25 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
         {
             e->Render(*this);
         }
+       
+        // Render skybox before doing post processing
+        if (skyboxEntity) SubmitSkybox(skyboxEntity);
+
+        if (lightManager) {
+            lightManager->RenderDebugLights(viewMatrix, projMatrix);
+        }
+
         for (auto& e : transparentEntities)
         {
             e->Render(*this);
         }
-        // Render skybox before doing post processing
-        if (skyboxEntity) SubmitSkybox(skyboxEntity);
 
-        // 2) Run post-processing pipeline on scene texture
-        GLuint processed = postProcessor->Apply(sceneFBO->GetColorTexture());
+        sceneFBO -> ResolveToScreen();
 
-        // 3) Blit final result to screen
+        // Run post-processing pipeline on scene texture
+        GLuint processed = postProcessor->Apply(sceneFBO->GetIntermediateTexture());
+
+        // Blit final result to screen
         postProcessor->DrawToScreen(processed);
 
         // Restore default GL state expected by main loop if needed
@@ -104,6 +112,9 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
         }
         if (skyboxEntity) {
             SubmitSkybox(skyboxEntity);
+        }
+        if (lightManager) {
+            lightManager->RenderDebugLights(viewMatrix, projMatrix);
         }
         for (auto& e : transparentEntities)
         {
@@ -131,10 +142,7 @@ void Renderer::SubmitInstancedModel(Model& modelObj,
     }
 }
 
-// -----------------------------------------------------------------------------
-// SUBMIT MESH 
 // Handles Main Pass + Debug Passes (Normals, Outlines)
-// -----------------------------------------------------------------------------
 void Renderer::SubmitMesh(const glm::mat4& model, 
                           const Mesh& mesh, 
                           const std::shared_ptr<Shader>& shader, 
@@ -143,15 +151,12 @@ void Renderer::SubmitMesh(const glm::mat4& model,
 {
     if (!shader || !mat) return;
 
-    // --- DECISION LOGIC: Combine Material flags with Override flags ---
+    // Combine Material flags with Override flags 
     bool doShowNormals  = mat->showNormals    || overrides.showNormals;
     bool doOutline      = mat->outlineEnabled || overrides.outlineEnabled;
     glm::vec3 outlineCol = (overrides.outlineEnabled) ? overrides.outlineColor : mat->outlineColor;
 
-    // ===========================
-    // PASS 1: Main Render
-    // ===========================
-    // If outlining, write to stencil buffer. If not, don't touch stencil.
+    // If outlining, write to stencil buffer If not, don't touch stencil
     if (doOutline) {
         glStencilFunc(GL_ALWAYS, 1, 0xFF);
         glStencilMask(0xFF);
@@ -169,9 +174,7 @@ void Renderer::SubmitMesh(const glm::mat4& model,
 
     mesh.Draw(*shader, *mat);
 
-    // ===========================
-    // PASS 2: Outline (Optional)
-    // ===========================
+    // Outline (Optional)
     if (doOutline && outlineShader)
     {
         glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
@@ -194,14 +197,12 @@ void Renderer::SubmitMesh(const glm::mat4& model,
         glStencilFunc(GL_ALWAYS, 0, 0xFF);
     }
 
-    // ===========================
-    // PASS 3: Normals (Optional)
-    // ===========================
+    // Normals (Optional)
     if (doShowNormals && normalShader)
     {
         normalShader->use();
         
-        // Normals need the ORIGINAL model matrix (to stick to surface)
+        // Normals need the model matrix (to stick to surface)
         normalShader->setMat4("model", model);
         normalShader->setMat4("view", viewMatrix);
         normalShader->setMat4("projection", projMatrix);
@@ -217,10 +218,7 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     glActiveTexture(GL_TEXTURE0);
 }
 
-// -----------------------------------------------------------------------------
-// SUBMIT MODEL
 // Just delegates to SubmitMesh for every piece of the model
-// -----------------------------------------------------------------------------
 void Renderer::SubmitModel(const glm::mat4& modelMatrix, 
                            Model& modelObj, 
                            const std::shared_ptr<Shader>& shader,

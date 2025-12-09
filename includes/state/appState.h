@@ -2,9 +2,9 @@
 #include <vector>
 #include "helpers/camera.h"
 #include "scenes/scene.h"
-// -------------------------
+
 // Struct for all shared app state
-// -------------------------
+
 struct AppState {
     std::vector<Scene*> scenes;
     int currentSceneIndex = 0;

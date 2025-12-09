@@ -3,7 +3,8 @@
 #include <vector>
 #include "helpers/Shader.h"
 #include "core/rendering/Mesh.h"
-#include "core/rendering/Renderer.h"
+
+class Renderer;
 
 struct PointLight {
     glm::vec3 position;
@@ -52,9 +53,9 @@ public:
     void UploadToUBO(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& cameraPos);
 
     void ShowDebugLights(bool show) { showDebugSpheres = show; }
-
     std::vector<PointLight> points;
     std::vector<SpotLight> spots;
+    void RenderDebugLights(const glm::mat4& view, const glm::mat4& proj);
 
 private:
     glm::vec3 dir = glm::vec3(0.0f);
@@ -65,5 +66,4 @@ private:
     Mesh debugSphere;
     std::shared_ptr<Shader> debugShader;
     // Show debug spheres for lights
-    void RenderDebugLights(const glm::mat4& view, const glm::mat4& proj);
 };

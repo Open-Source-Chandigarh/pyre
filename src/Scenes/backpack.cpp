@@ -14,7 +14,20 @@ Backpack::Backpack(Window& win)
     rotationAngle(0.0f), rotationSpeed(50.0f),
     win(win), obj(nullptr)
 {
-  
+
+    renderer = std::make_shared<Renderer>();
+    lightManager = std::make_shared<LightManager>();
+    // Create scene framebuffer once
+    sceneFBO = std::make_shared<Framebuffer>((unsigned int)win.Width(), 
+        (unsigned int)win.Height(), true, true);
+
+    // Create post processing pipeline and add effects
+    postPipeline = std::make_shared<PostProcessingPipeline>((unsigned int)win.Width(), 
+        (unsigned int)win.Height());
+    // postPipeline->AddInversion();
+    // postPipeline->AddGrayscale();
+    // postPipeline->AddSharpen(5.0f);
+    postPipeline->AddGammaCorrection(2.2f);
 }
 
 Backpack::~Backpack()
@@ -45,8 +58,8 @@ void Backpack::init()
     entities.push_back(std::move(e));
 
     glm::vec3 lightColor(0.2f, 0.4f, 0.8f);
-    lightManager.ClearPointLights();
-    lightManager.SetDirectional(glm::vec3(-0.2f, -1.0f, -0.3f),
+    lightManager->ClearPointLights();
+    lightManager->SetDirectional(glm::vec3(-0.2f, -1.0f, -0.3f),
         glm::vec3(0.05f), glm::vec3(0.1f, 0.1f, 0.8f), glm::vec3(0.5f));
 
     PointLight p;
@@ -55,7 +68,7 @@ void Backpack::init()
     p.diffuse = glm::vec3(0.2f, 1.5f, 1.5f) * 0.8f;
     p.specular = glm::vec3(1.0f);
     p.constant = 1.0f; p.linear = 0.09f; p.quadratic = 0.032f;
-    lightManager.AddPointLight(p);
+    lightManager->AddPointLight(p);
 
     PointLight p2;
     p2.position = glm::vec3(2.3f, -3.3f, -4.0f);
@@ -63,7 +76,7 @@ void Backpack::init()
     p2.diffuse = glm::vec3(2.0f, 1.5f, 2.0f) * 0.9f;
     p2.specular = glm::vec3(1.0f);
     p2.constant = 1.0f; p2.linear = 0.09f; p2.quadratic = 0.032f;
-    lightManager.AddPointLight(p2);
+    lightManager->AddPointLight(p2);
 
     PointLight p3;
     p3.position = glm::vec3(-4.0f, 2.0f, -12.0f);
@@ -71,7 +84,7 @@ void Backpack::init()
     p3.diffuse = glm::vec3(1.0f, 7.0f, 0.6f) * 0.8f;
     p3.specular = glm::vec3(1.0f);
     p3.constant = 1.0f; p3.linear = 0.09f; p3.quadratic = 0.032f;
-    lightManager.AddPointLight(p3);
+    lightManager->AddPointLight(p3);
 
     PointLight p4;
     p4.position = glm::vec3(0.0f, 0.0f, -3.0f);
@@ -79,7 +92,7 @@ void Backpack::init()
     p4.diffuse = glm::vec3(3.0f, 1.5f, 5.0f) * 0.6f;
     p4.specular = glm::vec3(1.0f);
     p4.constant = 1.0f; p4.linear = 0.09f; p4.quadratic = 0.032f;
-    lightManager.AddPointLight(p4);
+    lightManager->AddPointLight(p4);
 
     // Spot light
     SpotLight s;
@@ -93,7 +106,7 @@ void Backpack::init()
     s.linear = 0.032f;
     s.innerCutOff = cos(glm::radians(12.5f));
     s.outerCutOff = cos(glm::radians(17.5f));
-    lightManager.AddSpotLight(s);
+    lightManager->AddSpotLight(s);
 
 }
 
@@ -116,15 +129,15 @@ void Backpack::render()
     glm::mat4 proj = glm::perspective(glm::radians(app->camera.Zoom),
         (float)win.Width() / (float)win.Height(), 0.1f, 100.0f);
 
-    renderer.BeginScene(view, proj, app->camera.Position);
+    renderer->BeginScene(view, proj, app->camera.Position);
 
-    if (!lightManager.spots.empty()) {
-        lightManager.spots[0].position = win.GetAppState()->camera.Position;
-        lightManager.spots[0].direction = win.GetAppState()->camera.Front;
+    if (!lightManager->spots.empty()) {
+        lightManager->spots[0].position = win.GetAppState()->camera.Position;
+        lightManager->spots[0].direction = win.GetAppState()->camera.Front;
     }
 
-    lightManager.UploadToUBO(view, proj, app->camera.Position);
+    lightManager->UploadToUBO(view, proj, app->camera.Position);
 
-    renderer.RenderScene(entities, app -> camera);
-    renderer.EndScene();
+    renderer->RenderScene(entities, app->camera, nullptr, sceneFBO, postPipeline, app->wireframeEnabled);
+    renderer->EndScene();
 }

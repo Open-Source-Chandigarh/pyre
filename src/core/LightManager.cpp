@@ -81,7 +81,6 @@ void LightManager::UploadToUBO(const glm::mat4& view, const glm::mat4& proj, con
         ubo.spot_specular[i] = glm::vec4(s.specular, 0.0f);
         ubo.spot_params[i] = glm::vec4(s.constant, s.linear, s.quadratic, 0.0f);
     }
-    RenderDebugLights(view, proj);
     // Upload
     UpdateGlobalUBO(ubo);
 }
@@ -119,7 +118,7 @@ void LightManager::ApplyToShader(Shader& shader, Renderer& renderer,
     shader.setInt("numSpotLights", spotCount);
     for (int i = 0; i < spotCount; ++i) {
         const auto& s = spots[i];
-        std::string base = "spotLights[" + std::to_string(i) + "]."; // IMPORTANT: "spotLights" not "pointLights"
+        std::string base = "spotLights[" + std::to_string(i) + "]."; 
         shader.setVec3((base + "position").c_str(), s.position);
         shader.setVec3((base + "direction").c_str(), s.direction);
         shader.setFloat((base + "innerCutOff").c_str(), s.innerCutOff);
@@ -150,5 +149,4 @@ void LightManager::RenderDebugLights(
         debugShader->setVec3("color", p.diffuse);
         debugSphere.DrawSimple();
     }
-
 }

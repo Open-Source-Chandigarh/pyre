@@ -16,8 +16,7 @@ enum class CullMode
     None
 };
 
-// ----------------------------------------------------------------------------
-// Material : describes surface appearance and references textures (shared)
+// Material : describes surface appearance and references textures
 struct Material 
 {
     std::unordered_map<std::string, std::shared_ptr<Texture>> textures;
@@ -25,6 +24,7 @@ struct Material
     std::unordered_map<std::string, glm::vec3> vec3s;
     glm::vec3 defaultDiffuseColor = glm::vec3(0.8f);
     float defaultShininess = 32.0f;
+    float defaultReflectivity = 0.0f;
     bool outlineEnabled = false;
     glm::vec3 outlineColor = glm::vec3(1.0f);
     bool isTransparent = false;
@@ -36,23 +36,23 @@ struct Material
         shader.use();
 
         int texUnit = 0;
-
-        // --------------------------------------------------------------------
-        // STEP 1: Initialize all present flags to 0 IF they actually exist.
-        // (Do NOT set them to 0 if shader doesn't declare them)
-        // --------------------------------------------------------------------
+        // Initialize all present flags to 0 if they actually exist.
+        // (Do not set them to 0 if shader doesn't declare them)
         const char* presentUniforms[] = {
             "material_diffuse_present",
-            "material_specular_present"
+            "material_specular_present",
+            "material_skybox_present"
         };
 
+        int skyboxUnit = 15; 
+        if (shader.hasUniform("material_skybox")) {
+            shader.setInt("material_skybox", skyboxUnit);
+        }
         for (auto& p : presentUniforms)
             if (shader.hasUniform(p))
                 shader.setInt(p, 0);   // default OFF
 
-        // --------------------------------------------------------------------
-        // STEP 2: Bind textures & set *_present = 1 for those actually bound.
-        // --------------------------------------------------------------------
+        // Bind textures & set *_present = 1 for those actually bound.
         for (auto& kv : textures)
         {
             const std::string& name = kv.first;
@@ -65,12 +65,22 @@ struct Material
                 ? GL_TEXTURE_CUBE_MAP
                 : GL_TEXTURE_2D;
 
-            glActiveTexture(GL_TEXTURE0 + texUnit);
-            glBindTexture(target, tex->ID);
+            if (name == "material_skybox") 
+            {
+                glActiveTexture(GL_TEXTURE0 + skyboxUnit);
+                glBindTexture(target, tex->ID);
+            }
+            else 
+            {
+                if (texUnit == skyboxUnit) texUnit++; 
 
-            shader.setInt(name, texUnit);
+                glActiveTexture(GL_TEXTURE0 + texUnit);
+                glBindTexture(target, tex->ID);
+                shader.setInt(name, texUnit);
+                texUnit++;
+            }
 
-            // Also set presence flag
+            // set presence flag
             const std::string presentName = name + "_present";
             if (shader.hasUniform(presentName))
                 shader.setInt(presentName, 1);
@@ -79,9 +89,7 @@ struct Material
         }
 
 
-        // --------------------------------------------------------------------
-        // STEP 3: Push float & vec3 uniforms
-        // --------------------------------------------------------------------
+        // Push float & vec3 uniforms
         for (auto& kv : floats)
             if (shader.hasUniform(kv.first))
                 shader.setFloat(kv.first, kv.second);
@@ -91,9 +99,7 @@ struct Material
                 shader.setVec3(kv.first, kv.second);
 
 
-        // --------------------------------------------------------------------
-        // STEP 4: Fallback values if not overridden by textures
-        // --------------------------------------------------------------------
+        // Fallback values if not overridden by textures
         if (shader.hasUniform("material_diffuseColor"))
         {
             if (vec3s.count("material_diffuseColor"))
@@ -116,6 +122,14 @@ struct Material
                 shader.setFloat("material_shininess", floats.at("material_shininess"));
             else
                 shader.setFloat("material_shininess", defaultShininess);
+        }
+
+        if(shader.hasUniform("material_reflectivity"))
+        {
+            if(floats.count("material_reflectivity"))
+                shader.setFloat("material_reflectivity", floats.at("material_reflectivity"));
+            else
+                shader.setFloat("material_reflectivity", defaultReflectivity);
         }
 
         glActiveTexture(GL_TEXTURE0);

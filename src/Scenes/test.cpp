@@ -6,6 +6,17 @@
 
 Test::Test(Window& win) : win(win), shader(nullptr)
 {
+    renderer = std::make_shared<Renderer>();
+    lightManager = std::make_shared<LightManager>();
+     // Create scene framebuffer once
+    sceneFBO = std::make_shared<Framebuffer>((unsigned int)win.Width(), 
+        (unsigned int)win.Height(), true, true);
+
+    // Create post processing pipeline and add effects
+    postPipeline = std::make_shared<PostProcessingPipeline>((unsigned int)win.Width(), 
+        (unsigned int)win.Height());
+
+    postPipeline->AddGammaCorrection(2.2f);
 }
 
 void Test::init()
@@ -181,9 +192,9 @@ void Test::init()
     // -------------------------
     // LIGHTS
     // -------------------------
-    lightManager.ClearPointLights();
+    lightManager->ClearPointLights();
 
-    lightManager.SetDirectional(
+    lightManager->SetDirectional(
         glm::vec3(-0.5f, -1.0f, -0.3f),
         glm::vec3(0.04f),
         glm::vec3(0.55f),
@@ -196,7 +207,7 @@ void Test::init()
     k.diffuse = glm::vec3(1);
     k.specular = glm::vec3(0.5f);
     k.constant = 1; k.linear = 0.09f; k.quadratic = 0.032f;
-    lightManager.AddPointLight(k);
+    lightManager->AddPointLight(k);
 
     PointLight f;
     f.position = glm::vec3(-1, 2, 1);
@@ -204,7 +215,7 @@ void Test::init()
     f.diffuse = glm::vec3(0.7, 0.4, 0.1);
     f.specular = glm::vec3(0.4f);
     f.constant = 1; f.linear = 0.14f; f.quadratic = 0.07f;
-    lightManager.AddPointLight(f);
+    lightManager->AddPointLight(f);
 
     PointLight r;
     r.position = glm::vec3(-1, 2, -2);
@@ -212,7 +223,7 @@ void Test::init()
     r.diffuse = glm::vec3(0.2, 0.5, 0.4);
     r.specular = glm::vec3(0.4);
     r.constant = 1; r.linear = 0.09f; r.quadratic = 0.032f;
-    lightManager.AddPointLight(r);
+    lightManager->AddPointLight(r);
 }
 
 void Test::update()
@@ -231,20 +242,20 @@ void Test::render()
         0.1f, 100.0f
     );
 
-    renderer.BeginScene(view, proj, app->camera.Position);
+    renderer->BeginScene(view, proj, app->camera.Position);
 
     // Camera-driven spotlight if you use one
-    if (!lightManager.spots.empty())
+    if (!lightManager->spots.empty())
     {
-        lightManager.spots[0].position = app->camera.Position;
-        lightManager.spots[0].direction = app->camera.Front;
+        lightManager->spots[0].position = app->camera.Position;
+        lightManager->spots[0].direction = app->camera.Front;
     }
 
     // Upload global UBO (lights + camera) — replaces old ApplyToShader()
-    lightManager.UploadToUBO(view, proj, app->camera.Position);
+    lightManager->UploadToUBO(view, proj, app->camera.Position);
 
     // Draw everything
-    renderer.RenderScene(entities, app->camera);
+    renderer->RenderScene(entities, app->camera, lightManager, sceneFBO, postPipeline, app->wireframeEnabled);
 
-    renderer.EndScene();
+    renderer->EndScene();
 }

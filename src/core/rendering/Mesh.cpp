@@ -64,7 +64,7 @@ void Mesh::SetupInstancing(const std::vector<glm::mat4>& models)
     glBindVertexArray(0);
 }
 
-// Mesh::DrawSimple - just bind and issue draw call (no texture binding/no shader use)
+// just bind and issue draw call (no texture binding/no shader use)
 void Mesh::DrawSimple() const
 {
     glEnable(GL_CULL_FACE);
@@ -101,9 +101,6 @@ void Mesh::Draw(Shader& shader, Material& material) const
     // apply material data (bind textures and set material uniforms if shader has them)
     material.ApplyToShader(shader);
 
-    // ---------------------------
-    // Draw
-    // ---------------------------
     glBindVertexArray(VAO);
     if (!indices.empty())
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);
@@ -113,9 +110,7 @@ void Mesh::Draw(Shader& shader, Material& material) const
         glDrawArrays(GL_TRIANGLES, 0, vertexCount);
     glBindVertexArray(0);
 
-    // ---------------------------
-    // Reset state
-    // ---------------------------
+
     glActiveTexture(GL_TEXTURE0);
 }
 

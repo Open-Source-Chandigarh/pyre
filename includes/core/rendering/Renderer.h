@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include "helpers/Shader.h"
+#include "core/LightManager.h"
 #include "core/rendering/Mesh.h"
 
 class Model;
@@ -16,11 +17,11 @@ class Renderer
 public:
     void BeginScene(const glm::mat4& view, const glm::mat4& projection, 
         const glm::vec3& viewPos);
-    void RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera& camera,
-        Framebuffer* sceneFBO = nullptr, PostProcessingPipeline* postProcessor = nullptr,
+    void RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera &camera, std::shared_ptr<LightManager> lightManager = nullptr,
+        std::shared_ptr<Framebuffer> sceneFBO = nullptr, std::shared_ptr<PostProcessingPipeline> postProcessor = nullptr,
         bool wireFrame = false);
         
-   // 1. SubmitMesh Overloads
+   // SubmitMesh Overloads
     void SubmitMesh(const glm::mat4& model, 
                     const Mesh& mesh, 
                     const std::shared_ptr<Shader>& shader, 
@@ -32,7 +33,7 @@ public:
                     const std::shared_ptr<Material>& mat,
                     const RenderSettings& overrides);
 
-    // 2. SubmitModel Overloads
+    // SubmitModel Overloads
     void SubmitModel(const glm::mat4& model, 
                      Model& modelObj, 
                      const std::shared_ptr<Shader>& shader);

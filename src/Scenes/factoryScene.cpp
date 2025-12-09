@@ -16,17 +16,20 @@ FactoryScene::FactoryScene(Window& win)
     rotationAngle(0.0f), rotationSpeed(50.0f),
     win(win)
 {
+    renderer = std::make_shared<Renderer>();
+    lightManager = std::make_shared<LightManager>();
 
     // Create scene framebuffer once
-    sceneFBO = std::make_unique<Framebuffer>((unsigned int)win.Width(), 
-        (unsigned int)win.Height(), true);
+    sceneFBO = std::make_shared<Framebuffer>((unsigned int)win.Width(), 
+        (unsigned int)win.Height(), true, true);
 
     // Create post processing pipeline and add effects
-    postPipeline = std::make_unique<PostProcessingPipeline>((unsigned int)win.Width(), 
+    postPipeline = std::make_shared<PostProcessingPipeline>((unsigned int)win.Width(), 
         (unsigned int)win.Height());
-    postPipeline->AddInversion();
-    //postPipeline->AddGrayscale();
-    // postPipeline->AddSharpen(10.0f);
+    // postPipeline->AddInversion();
+    // postPipeline->AddGrayscale();
+    // postPipeline->AddSharpen(5.0f);
+    postPipeline->AddGammaCorrection(2.2f);
 
     // cube positions
     cubePositions[0] = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -84,7 +87,6 @@ void FactoryScene::init()
     skyEntity->meshRenderer.material = skyMat;
     entities.push_back(std::move(skyEntity));
 
-    // --- create meshes first and give each its own Material ---
     for (int i = 0; i < 10; ++i)
     {
         int randomInt = Utils::RandomInt(0, 4);
@@ -95,7 +97,7 @@ void FactoryScene::init()
         else if (randomInt == 2)
             mesh[i] = GeometryFactory::CreateTorus();
         else if (randomInt == 3)
-            mesh[i] = GeometryFactory::CreateCylinder();
+            mesh[i] = GeometryFactory::CreateCube();
         else /* randomInt == 4 */
             mesh[i] = GeometryFactory::CreateCone();
     }
@@ -107,11 +109,20 @@ void FactoryScene::init()
         std::shared_ptr<Material> mat = std::make_shared<Material>();
         mat -> textures["material_diffuse"] = diffuseMap;
         mat -> textures["material_specular"] = specularMap;
-        mat -> floats["material_shininess"] = 5.0f;
+        mat -> textures["material_skybox"] = skyBox;
+       if (randomInt == 0) { 
+             mat->floats["material_shininess"] = 128.0f; 
+             mat->floats["material_reflectivity"] = 0.8f; 
+        }
+        else if (randomInt == 1) { 
+             mat->floats["material_shininess"] = 16.0f; 
+             mat->floats["material_reflectivity"] = 0.1f; 
+        }
+        else { 
+             mat->floats["material_shininess"] = 64.0f;
+             mat->floats["material_reflectivity"] = 0.3f;
+        }
 
-        // Optionally tweak material per primitive type for visual variety
-        if (randomInt == 0) { mat->floats["material_shininess"] = 3.0f; } // sphere - glossier
-        if (randomInt == 2) { mat->floats["material_shininess"] = 10.0f; } // torus - slightly rougher
         std::shared_ptr<Entity> e = Entity::Create();
         e->type = Entity::Type::Mesh;
         e->meshRenderer.mesh = &mesh[i];
@@ -122,67 +133,43 @@ void FactoryScene::init()
         entities.push_back(std::move(e));
     }
 
-    // lights
-    glm::vec3 lightColor(0.2f, 0.4f, 0.8f);
-    lightManager.ClearPointLights();
-    lightManager.SetDirectional(glm::vec3(-0.2f, -1.0f, -0.3f),
-        glm::vec3(0.05f), glm::vec3(0.1f, 0.1f, 0.8f), glm::vec3(0.5f));
+   lightManager->ClearPointLights();
 
-    PointLight p;
-    p.position = glm::vec3(0.7f, 0.2f, 2.0f);
-    p.ambient = glm::vec3(0.2f, 1.0f, 1.5f) * 0.1f;
-    p.diffuse = glm::vec3(0.2f, 1.5f, 1.5f) * 0.8f;
-    p.specular = glm::vec3(1.0f);
-    p.constant = 1.0f; p.linear = 0.09f; p.quadratic = 0.032f;
-    lightManager.AddPointLight(p);
+    lightManager->SetDirectional(glm::vec3(-0.5f, -1.0f, -0.5f),
+        glm::vec3(0.05f), glm::vec3(0.1f, 0.15f, 0.3f), glm::vec3(0.2f));
 
-    PointLight p2;
-    p2.position = glm::vec3(2.3f, -3.3f, -4.0f);
-    p2.ambient = glm::vec3(1.5f, 1.0f, 2.0f) * 0.1f;
-    p2.diffuse = glm::vec3(2.0f, 1.5f, 2.0f) * 0.9f;
-    p2.specular = glm::vec3(1.0f);
-    p2.constant = 1.0f; p2.linear = 0.09f; p2.quadratic = 0.032f;
-    lightManager.AddPointLight(p2);
+    PointLight keyLight;
+    keyLight.position = glm::vec3(0.0f, 2.0f, 2.0f);
+    keyLight.ambient = glm::vec3(0.0f); 
+    keyLight.diffuse = glm::vec3(1.0f, 0.6f, 0.3f) * 1.5f; 
+    keyLight.specular = glm::vec3(1.0f, 0.8f, 0.6f); 
+    keyLight.constant = 1.0f; keyLight.linear = 0.09f; keyLight.quadratic = 0.032f;
+    lightManager->AddPointLight(keyLight);
 
-    PointLight p3;
-    p3.position = glm::vec3(-4.0f, 2.0f, -12.0f);
-    p3.ambient = glm::vec3(1.0f, 5.0f, 0.6f) * 0.1f;
-    p3.diffuse = glm::vec3(1.0f, 7.0f, 0.6f) * 0.8f;
-    p3.specular = glm::vec3(1.0f);
-    p3.constant = 1.0f; p3.linear = 0.09f; p3.quadratic = 0.032f;
-    lightManager.AddPointLight(p3);
 
-    PointLight p4;
-    p4.position = glm::vec3(0.0f, 0.0f, -3.0f);
-    p4.ambient = glm::vec3(2.0f, 1.0f, 3.0f) * 0.1f;
-    p4.diffuse = glm::vec3(3.0f, 1.5f, 5.0f) * 0.6f;
-    p4.specular = glm::vec3(1.0f);
-    p4.constant = 1.0f; p4.linear = 0.09f; p4.quadratic = 0.032f;
-    lightManager.AddPointLight(p4);
-
-    // Spot light
-    SpotLight s;
-    s.position = win.GetAppState()->camera.Position;
-    s.direction = win.GetAppState()->camera.Front;
-    s.ambient = lightColor * 0.5f;
-    s.diffuse = lightColor * 6.0f;
-    s.specular = glm::vec3(1.0f);
-    s.constant = 1.0f;
-    s.quadratic = 0.09f;
-    s.linear = 0.032f;
-    s.innerCutOff = cos(glm::radians(12.5f));
-    s.outerCutOff = cos(glm::radians(17.5f));
-    lightManager.AddSpotLight(s);
+    PointLight rimLight;
+    rimLight.position = glm::vec3(-3.0f, 1.0f, -5.0f);
+    rimLight.ambient = glm::vec3(0.0f);
+    rimLight.diffuse = glm::vec3(0.0f, 0.5f, 1.0f) * 1.0f; 
+    rimLight.specular = glm::vec3(0.0f, 1.0f, 1.0f);
+    rimLight.constant = 1.0f; rimLight.linear = 0.09f; rimLight.quadratic = 0.032f;
+    lightManager->AddPointLight(rimLight);
 }
 
 void FactoryScene::update() 
 {
-    auto app = win.GetAppState();
-    rotationAngle -= rotationSpeed * (app ? app->deltaTime : 0.016f);
+  auto app = win.GetAppState();
+    float time = (float)glfwGetTime();
+
     for (size_t i = 0; i < entities.size(); ++i) {
-        float offset = 29.5f + 0.1f * sin(i);
-        entities[i]->transform.rotation.x = rotationAngle + offset * float(i);
-        entities[i]->transform.rotation.y = rotationAngle + offset * float(i);
+        if(entities[i]->type == Entity::Type::SkyBox) continue;
+
+        float yOffset = sin(time * 0.5f + i) * 0.5f; 
+    
+        entities[i]->transform.position = cubePositions[i]; 
+        entities[i]->transform.position.y += yOffset;
+        entities[i]->transform.rotation.x = time * 5.0f * (i % 2 == 0 ? 1 : -1);
+        entities[i]->transform.rotation.y = time * 3.0f;
     }
 }
 
@@ -195,20 +182,20 @@ void FactoryScene::render()
     glm::mat4 proj = glm::perspective(glm::radians(app->camera.Zoom),
         (float)win.Width() / (float)win.Height(), 0.1f, 100.0f);
 
-    renderer.BeginScene(view, proj, app->camera.Position);
+    renderer->BeginScene(view, proj, app->camera.Position);
 
-    if (!lightManager.spots.empty()) {
-        lightManager.spots[0].position = win.GetAppState()->camera.Position;
-        lightManager.spots[0].direction = win.GetAppState()->camera.Front;
+    if (!lightManager->spots.empty()) {
+        lightManager->spots[0].position = win.GetAppState()->camera.Position;
+        lightManager->spots[0].direction = win.GetAppState()->camera.Front;
     }
 
     //if (shader) lightManager.ApplyToShader(*shader, renderer, view, proj);
 
-    lightManager.UploadToUBO(view, proj, app->camera.Position);
+    lightManager->UploadToUBO(view, proj, app->camera.Position);
 
-    renderer.RenderScene(entities, app->camera, sceneFBO.get(), postPipeline.get(), app->wireframeEnabled);
+    renderer->RenderScene(entities, app->camera, nullptr, sceneFBO, postPipeline, app->wireframeEnabled);
 
-    renderer.EndScene();
+    renderer->EndScene();
     Framebuffer::Unbind();
 }
 

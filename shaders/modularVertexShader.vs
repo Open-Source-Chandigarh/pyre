@@ -10,7 +10,6 @@ layout (location = 2) in vec2 aTexCoords;
 // Instancing Matrix (Takes up locations 3, 4, 5, 6)
 layout (location = 3) in mat4 aInstanceMatrix;
 
-// --- CONDITIONAL INTERFACE BLOCK ---
 #ifdef HAS_GEOMETRY_SHADER
     // If GS exists, package outputs into a struct
     out VS_OUT {
@@ -36,7 +35,6 @@ void main()
     vec3 worldPos = vec3(currentModel * vec4(aPos, 1.0));
     vec3 worldNormal = mat3(transpose(inverse(currentModel))) * aNormal;
     
-    // --- CONDITIONAL ASSIGNMENT ---
     #ifdef HAS_GEOMETRY_SHADER
         vs_out.FragPos = worldPos;
         vs_out.Normal = worldNormal;
@@ -46,7 +44,6 @@ void main()
         Normal = worldNormal;
         TexCoords = aTexCoords;
     #endif
-    // -----------------------------
 
     gl_Position = proj * view * vec4(worldPos, 1.0);
 }

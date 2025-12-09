@@ -57,10 +57,8 @@ void Model::processNode(aiNode* node, const aiScene* scene)
     }
 }
 
-// ----------------------------------------------------------------------------------
-// ENGINE STANDARD: Convention over Configuration
+
 // We ignore what the .fbx/.obj says internally. We only look for specific filenames.
-// ----------------------------------------------------------------------------------
 std::shared_ptr<Texture> Model::LoadStandardMap(TextureType type)
 {
     std::vector<std::string> standardNames;
@@ -92,9 +90,8 @@ MeshEntry Model::processMesh(aiMesh* mesh, const aiScene* scene)
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
 
-    // -----------------------------------------------------------------
-    // 1. Process Geometry
-    // -----------------------------------------------------------------
+
+    // Process Geometry
     for (unsigned int i = 0; i < mesh->mNumVertices; i++)
     {
         Vertex vertex;
@@ -136,9 +133,7 @@ MeshEntry Model::processMesh(aiMesh* mesh, const aiScene* scene)
             indices.push_back(face.mIndices[j]);
     }
 
-    // -----------------------------------------------------------------
-    // 2. Process Material (Engine Standard Way)
-    // -----------------------------------------------------------------
+    // Process Material (Engine Standard Way)
     Material mat;
     
     // Default Material Settings

@@ -4,6 +4,8 @@
 #include "core/LightManager.h"
 #include "core/rendering/Renderer.h"
 #include "core/Entity.h"
+#include "core/rendering/Framebuffer.h"
+#include "core/postprocessing/PostProcessingPipeline.h"
 
 
 class Test : public Scene
@@ -23,14 +25,15 @@ public:
     // optional: scene name
     virtual std::string name() const { return "Test Scene"; };
 
-    virtual void OnResize(int w, int h) override {}
+     virtual void OnResize(int w, int h) override { 
+        if (sceneFBO) sceneFBO->Resize((unsigned int)w, (unsigned int)h);
+        if (postPipeline) postPipeline->Resize((unsigned int)w, (unsigned int)h);
+    }
 
 private:
+    std::shared_ptr<Framebuffer> sceneFBO;
+    std::shared_ptr<PostProcessingPipeline> postPipeline;
     Window& win;
-
-    // Textures (diffuse = color, specular = shininess highlights)
-    std::shared_ptr<Texture> cubeDiffuseMap, cubeSpecularMap;
-    std::shared_ptr<Texture> floorDiffuseMap, floorSpecularMap;
 
     // The shader program for this scene
     std::shared_ptr<Shader> shader;
@@ -39,8 +42,8 @@ private:
     Mesh plane;
     Mesh skyMesh;
 
-    Renderer renderer;
-    LightManager lightManager;
+    std::shared_ptr<Renderer> renderer;
+    std::shared_ptr<LightManager> lightManager;
 
     std::vector<std::shared_ptr<Entity>> entities;
 };
