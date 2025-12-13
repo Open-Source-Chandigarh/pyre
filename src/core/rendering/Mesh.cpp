@@ -2,11 +2,57 @@
 #include <cmath>
 #include <array>
 #include "core/rendering/Mesh.h"
+#include "core/rendering/Material.h"
+
+Mesh::Mesh(Mesh&& other) noexcept 
+    : vertices(std::move(other.vertices)), 
+      indices(std::move(other.indices)),
+      VAO(other.VAO), VBO(other.VBO), EBO(other.EBO), instanceVBO(other.instanceVBO),
+      vertexCount(other.vertexCount), indexCount(other.indexCount)
+{
+    // Reset other to zero so its destructor doesn't kill our resources
+    other.VAO = 0; 
+    other.VBO = 0; 
+    other.EBO = 0; 
+    other.instanceVBO = 0;
+    other.vertexCount = 0; 
+    other.indexCount = 0;
+}
+
+Mesh& Mesh::operator=(Mesh&& other) noexcept 
+{
+    if (this != &other) 
+    {
+        Destroy(); 
+
+        // Steal resources
+        VAO = other.VAO; 
+        VBO = other.VBO; 
+        EBO = other.EBO; 
+        instanceVBO = other.instanceVBO;
+        vertexCount = other.vertexCount; 
+        indexCount = other.indexCount;
+        vertices = std::move(other.vertices);
+        indices = std::move(other.indices);
+        other.VAO = 0; 
+        other.VBO = 0; 
+        other.EBO = 0; 
+        other.instanceVBO = 0;
+        other.vertexCount = 0; 
+        other.indexCount = 0;
+    }
+    return *this;
+}
 
 Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices) : 
     vertices(vertices), indices(indices)
 {
     setupMesh();
+}
+
+Mesh::~Mesh() 
+{
+    Destroy();
 }
 
 void Mesh::setupMesh()
@@ -40,7 +86,7 @@ void Mesh::setupMesh()
     glBindVertexArray(0);
 }
 
-void Mesh::SetupInstancing(const std::vector<glm::mat4>& models)
+void Mesh::SetupInstancing(const std::vector<glm::mat4> &models)
 {
     glBindVertexArray(VAO);
 
@@ -79,7 +125,7 @@ void Mesh::DrawSimple() const
     glBindVertexArray(0);
 }
 
-void Mesh::Draw(Shader& shader, Material& material) const
+void Mesh::Draw(Shader &shader, const Material &material) const
 {
     shader.use();
 
@@ -114,7 +160,7 @@ void Mesh::Draw(Shader& shader, Material& material) const
     glActiveTexture(GL_TEXTURE0);
 }
 
-void Mesh::DrawInstanced(Shader& shader, Material& material, int count) const
+void Mesh::DrawInstanced(Shader &shader, const Material &material, int count) const
 {
     shader.use();
     shader.setBool("isInstanced", true); // Trigger the shader switch
@@ -132,6 +178,16 @@ void Mesh::DrawInstanced(Shader& shader, Material& material, int count) const
 
     shader.setBool("isInstanced", false); // Reset state
     glActiveTexture(GL_TEXTURE0);
+}
+
+void Mesh::Destroy() 
+{
+    if (instanceVBO) glDeleteBuffers(1, &instanceVBO);
+    if (EBO) glDeleteBuffers(1, &EBO);
+    if (VBO) glDeleteBuffers(1, &VBO);
+    if (VAO) glDeleteVertexArrays(1, &VAO);
+    // Reset to 0
+    VAO = VBO = EBO = instanceVBO = 0;
 }
 
 Mesh Mesh::CreateFromData(const float* vertices, std::size_t bytes, int vCount) 
@@ -206,11 +262,4 @@ Mesh Mesh::CreateFromIndexedData(const float* vertices, std::size_t vBytes,
 
     m.indexCount = iCount;
     return m;
-}
-
-void Mesh::Destroy() 
-{
-    if (VBO) { glDeleteBuffers(1, &VBO); VBO = 0; }
-    if (VAO) { glDeleteVertexArrays(1, &VAO); VAO = 0; }
-    if (EBO) { glDeleteBuffers(1, &EBO); EBO = 0; }
 }

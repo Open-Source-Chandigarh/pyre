@@ -25,15 +25,7 @@ public:
     // optional: scene name
     virtual std::string name() const { return "Test Scene"; };
 
-     virtual void OnResize(int w, int h) override { 
-        if (sceneFBO) sceneFBO->Resize((unsigned int)w, (unsigned int)h);
-        if (postPipeline) postPipeline->Resize((unsigned int)w, (unsigned int)h);
-    }
-
 private:
-    std::shared_ptr<Framebuffer> sceneFBO;
-    std::shared_ptr<PostProcessingPipeline> postPipeline;
-    Window& win;
 
     // The shader program for this scene
     std::shared_ptr<Shader> shader;
@@ -41,9 +33,6 @@ private:
     Mesh cube;
     Mesh plane;
     Mesh skyMesh;
-
-    std::shared_ptr<Renderer> renderer;
-    std::shared_ptr<LightManager> lightManager;
 
     std::vector<std::shared_ptr<Entity>> entities;
 };

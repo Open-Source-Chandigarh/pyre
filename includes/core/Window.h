@@ -35,7 +35,7 @@ private:
 	AppState* appState = nullptr;
 	InputManager* inputManager = nullptr;
 
-	// Static callbacks for GLFW — forward to input manager / internal methods
+	// Static callbacks for GLFW forward to input manager / internal methods
 	static void KeyCallback(GLFWwindow* win, int key, int scancode, int action, int mods);
 	static void MouseCallback(GLFWwindow* win, double xpos, double ypos);
 	static void ScrollCallback(GLFWwindow* win, double xoffset, double yoffset);

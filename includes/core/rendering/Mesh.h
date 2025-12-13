@@ -7,7 +7,8 @@
 #include <memory>
 #include <iostream>
 #include "helpers/Shader.h"
-#include "core/rendering/Material.h"
+
+class Material;
 
 // POD vertex
 struct Vertex
@@ -23,34 +24,6 @@ public:
 
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
-    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
-    Mesh() = default;
-
-    // Creates a mesh from interleaved float data (pos(3), norm(3), uv(2))
-    static Mesh CreateFromData(const float* vertices, std::size_t bytes, 
-        int vertexCount);
-
-    static Mesh CreateFromIndexedData(const float* vertices, std::size_t vBytes,
-        const unsigned int* indices, std::size_t iBytes, int iCount);
-
-    static Mesh CreatePositionsOnly(const float* vertices, 
-        std::size_t bytes, int vertexCount);
-
-
-    void Draw(Shader& shader, Material& material) const;
-
-    // Draw raw geometry (assumes caller set shader and uniforms). Useful for outline pass.
-    void DrawSimple() const;
-
-    // Upload a list of matrices to the GPU (Call once in init)
-    void SetupInstancing(const std::vector<glm::mat4>& models);
-
-    // Draw 'count' copies of this mesh
-    void DrawInstanced(Shader& shader, Material& material, int count) const;
-
-    // Destroy GPU objects
-    void Destroy();
-
     unsigned int VAO = 0;
     unsigned int VBO = 0;
     unsigned int EBO = 0;
@@ -58,6 +31,26 @@ public:
     int vertexCount = 0;
     int indexCount = 0;
 
+    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
+    Mesh() = default;
+    ~Mesh();
+    Mesh(const Mesh&) = delete;
+    Mesh& operator=(const Mesh&) = delete;
+    Mesh(Mesh&& other) noexcept;
+    Mesh& operator=(Mesh&& other) noexcept;
+
+    // Factories
+    static Mesh CreateFromData(const float* vertices, size_t bytes, int vertexCount);
+    static Mesh CreateFromIndexedData(const float* vertices, size_t vBytes, const unsigned int* indices, size_t iBytes, int iCount);
+    static Mesh CreatePositionsOnly(const float* vertices, size_t bytes, int vertexCount);
+
+    // Drawing
+    void Draw(Shader &shader, const Material &material) const;
+    void DrawSimple() const;
+    void DrawInstanced(Shader &shader, const Material &material, int count) const;
+    void SetupInstancing(const std::vector<glm::mat4> &models);
+
 private:
     void setupMesh();
+    void Destroy(); // Internal helper
 };

@@ -9,12 +9,13 @@
 #include "core/postprocessing/GenericPostEffect.h"
 #include "core/rendering/geometry/GeometryFactory.h"
 #include "core/rendering/GlobalUBO.h"
-
+#include "core/rendering/Material.h"
+#include "core/rendering/Texture.h"
 
 FactoryScene::FactoryScene(Window& win)
     : shader(nullptr),
     rotationAngle(0.0f), rotationSpeed(50.0f),
-    win(win)
+    Scene(win)
 {
     renderer = std::make_shared<Renderer>();
     lightManager = std::make_shared<LightManager>();
@@ -50,6 +51,7 @@ FactoryScene::~FactoryScene()
 
 void FactoryScene::init()
 {
+    entities.clear();
     CreateGlobalUBO();
     // shaders
     shader = ResourceManager::LoadShader("factory",
@@ -76,15 +78,11 @@ void FactoryScene::init()
         ResourceManager::LoadCubeMap(faces);
     skyMesh = GeometryFactory::CreateSkyboxCube(); // position-only mesh (36 verts)
 
-    std::shared_ptr<Entity> skyEntity = Entity::Create();
-    skyEntity->type = Entity::Type::SkyBox;
-    skyEntity->meshRenderer.mesh = &skyMesh;
-    skyEntity->meshRenderer.shader = ResourceManager::GetShader("skybox");
-
-    // store cubemap texture in material
     std::shared_ptr<Material> skyMat = std::make_shared<Material>();
     skyMat->textures["skybox"] = skyBox;
-    skyEntity->meshRenderer.material = skyMat;
+
+    std::shared_ptr<Entity> skyEntity = Entity::Create();
+    skyEntity->AddSkybox(&skyMesh, skyMat, ResourceManager::GetShader("skybox"));
     entities.push_back(std::move(skyEntity));
 
     for (int i = 0; i < 10; ++i)
@@ -110,24 +108,11 @@ void FactoryScene::init()
         mat -> textures["material_diffuse"] = diffuseMap;
         mat -> textures["material_specular"] = specularMap;
         mat -> textures["material_skybox"] = skyBox;
-       if (randomInt == 0) { 
-             mat->floats["material_shininess"] = 128.0f; 
-             mat->floats["material_reflectivity"] = 0.8f; 
-        }
-        else if (randomInt == 1) { 
-             mat->floats["material_shininess"] = 16.0f; 
-             mat->floats["material_reflectivity"] = 0.1f; 
-        }
-        else { 
-             mat->floats["material_shininess"] = 64.0f;
-             mat->floats["material_reflectivity"] = 0.3f;
-        }
+        mat->floats["material_shininess"] = 256.0f; 
+        mat->floats["material_reflectivity"] = 0.6f; 
 
         std::shared_ptr<Entity> e = Entity::Create();
-        e->type = Entity::Type::Mesh;
-        e->meshRenderer.mesh = &mesh[i];
-        e->meshRenderer.material = mat;
-        e->meshRenderer.shader = shader;
+        e->AddMesh(&mesh[i], mat, shader);
         e->transform.position = cubePositions[i];
         e->transform.scale = glm::vec3(0.7f);
         entities.push_back(std::move(e));
@@ -158,18 +143,22 @@ void FactoryScene::init()
 
 void FactoryScene::update() 
 {
-  auto app = win.GetAppState();
+    auto app = win.GetAppState();
     float time = (float)glfwGetTime();
+    int shapeIndex = 0;
+    for (size_t i = 0; i < entities.size(); ++i) 
+    {
+        if(entities[i]->skyboxComp) continue;
 
-    for (size_t i = 0; i < entities.size(); ++i) {
-        if(entities[i]->type == Entity::Type::SkyBox) continue;
+        if (shapeIndex >= 10) break;
 
         float yOffset = sin(time * 0.5f + i) * 0.5f; 
     
-        entities[i]->transform.position = cubePositions[i]; 
+        entities[i]->transform.position = cubePositions[shapeIndex]; 
         entities[i]->transform.position.y += yOffset;
-        entities[i]->transform.rotation.x = time * 5.0f * (i % 2 == 0 ? 1 : -1);
+        entities[i]->transform.rotation.x = time * 5.0f * (shapeIndex % 2 == 0 ? 1 : -1);
         entities[i]->transform.rotation.y = time * 3.0f;
+        shapeIndex++;
     }
 }
 
@@ -189,18 +178,10 @@ void FactoryScene::render()
         lightManager->spots[0].direction = win.GetAppState()->camera.Front;
     }
 
-    //if (shader) lightManager.ApplyToShader(*shader, renderer, view, proj);
-
     lightManager->UploadToUBO(view, proj, app->camera.Position);
 
     renderer->RenderScene(entities, app->camera, nullptr, sceneFBO, postPipeline, app->wireframeEnabled);
 
     renderer->EndScene();
     Framebuffer::Unbind();
-}
-
-void FactoryScene::OnResize(int w, int h) 
-{
-    if (sceneFBO) sceneFBO->Resize((unsigned int)w, (unsigned int)h);
-    if (postPipeline) postPipeline->Resize((unsigned int)w, (unsigned int)h);
 }

@@ -8,11 +8,13 @@
 #include "helpers/Utils.h"
 #include "core/rendering/geometry/GeometryFactory.h"
 #include "core/rendering/GlobalUBO.h"
+#include "core/rendering/Texture.h"
+#include "core/rendering/Material.h"
 
 Space::Space(Window& win)
     : planetShader(nullptr), asteroidShader(nullptr),
     rotationAngle(0.0f), rotationSpeed(50.0f),
-    win(win), planet(nullptr), asteroid(nullptr)
+    Scene(win), planet(nullptr), asteroid(nullptr)
 {
     renderer = std::make_shared<Renderer>();
     lightManager = std::make_shared<LightManager>();
@@ -29,7 +31,6 @@ Space::Space(Window& win)
 
 void Space::init()
 {
-
     CreateGlobalUBO(); 
 
     planet = std::make_shared<Model>("resources/models/moon/Moon.fbx");
@@ -60,15 +61,10 @@ void Space::init()
         ResourceManager::LoadCubeMap(faces);
     skyMesh = GeometryFactory::CreateSkyboxCube(); // position-only mesh (36 verts)
 
-    std::shared_ptr<Entity> skyEntity = Entity::Create();
-    skyEntity->type = Entity::Type::SkyBox;
-    skyEntity->meshRenderer.mesh = &skyMesh;
-    skyEntity->meshRenderer.shader = ResourceManager::GetShader("skybox");
-
-    // store cubemap texture in material
     std::shared_ptr<Material> skyMat = std::make_shared<Material>();
     skyMat->textures["skybox"] = skyBox;
-    skyEntity->meshRenderer.material = skyMat;
+    std::shared_ptr<Entity> skyEntity = Entity::Create();
+    skyEntity->AddSkybox(&skyMesh, skyMat, ResourceManager::GetShader("skybox"));
     entities.push_back(std::move(skyEntity));
 
     unsigned int amount = 100000;
@@ -113,9 +109,7 @@ void Space::init()
     // Planet
     {
         std::shared_ptr<Entity> e = Entity::Create();
-        e->type = Entity::Type::Model;
-        e->modelRenderer.model = planet.get();
-        e->modelRenderer.shader = planetShader;
+        e->AddModel(planet.get(), planetShader);
         e->transform.position = glm::vec3(0.0f, -3.0f, 0.0f);
         e->transform.scale = glm::vec3(10.0f); 
         entities.push_back(e);
@@ -124,14 +118,10 @@ void Space::init()
     // Asteroid Belt
     {
         std::shared_ptr<Entity> e = Entity::Create();
-        e->type = Entity::Type::Model;
-        e->modelRenderer.model = asteroid.get();
-        e->modelRenderer.shader = asteroidShader; 
-        e->modelRenderer.instanceCount = amount; 
+        e->AddModel(asteroid.get(), planetShader, amount);
         entities.push_back(e);
     }
 
-  
     lightManager->ClearPointLights();
 
     // Sun (Directional)

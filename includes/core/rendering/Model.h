@@ -6,6 +6,8 @@
 #include <assimp/postprocess.h>
 #include "helpers/Shader.h"
 #include "core/rendering/Mesh.h"
+#include "core/rendering/Material.h"
+#include "core/rendering/Texture.h"
 
 struct MeshEntry {
 	std::shared_ptr<Mesh> mesh;

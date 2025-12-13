@@ -23,19 +23,13 @@ public:
     // optional: scene name
     virtual std::string name() const { return "Toon Scene"; };
 
-    virtual void OnResize(int w, int h) override {}
-
 private:
-    Window& win;
 
     std::shared_ptr<Shader> toonShader;
 
     Mesh cube;
     Mesh sphere;
     Mesh torus;
-
-    Renderer renderer;
-    LightManager lightManager;
 
     std::vector<std::shared_ptr<Entity>> entities;
 };

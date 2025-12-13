@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include "helpers/camera.h"
-#include "scenes/scene.h"
+class Scene;
 
 // Struct for all shared app state
 

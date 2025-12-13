@@ -7,12 +7,14 @@
 #include "core/ResourceManager.h"
 #include "helpers/Utils.h"
 #include "core/rendering/GlobalUBO.h"
+#include "core/rendering/Texture.h"
+#include "core/rendering/Material.h"
 
 
 Backpack::Backpack(Window& win)
     : shader(nullptr),
     rotationAngle(0.0f), rotationSpeed(50.0f),
-    win(win), obj(nullptr)
+    Scene(win), obj(nullptr)
 {
 
     renderer = std::make_shared<Renderer>();
@@ -49,10 +51,8 @@ void Backpack::init()
 
     entities.clear();
     std::shared_ptr<Entity> e = Entity::Create();
-    e->type = Entity::Type::Model;
-    e->modelRenderer.model = obj.get();
-    e->modelRenderer.shader = shader;
-    e->modelRenderer.settings.outlineEnabled = true;
+    e->AddModel(obj.get(), shader);
+    e->modelComp->renderSettings.outlineEnabled = true;
     e->transform.position = glm::vec3(0.0f);
     e->transform.scale = glm::vec3(1.0f);
     entities.push_back(std::move(e));

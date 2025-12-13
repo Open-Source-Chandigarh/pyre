@@ -32,22 +32,11 @@ public:
     // Scene display name (helpful when switching scenes)
     std::string name() const override { return "Space Scene"; }
 
-    virtual void OnResize(int w, int h) override { 
-        if (sceneFBO) sceneFBO->Resize((unsigned int)w, (unsigned int)h);
-        if (postPipeline) postPipeline->Resize((unsigned int)w, (unsigned int)h);
-    }
 
 private:
-    std::shared_ptr<Framebuffer> sceneFBO;
-    std::shared_ptr<PostProcessingPipeline> postPipeline;
-    Window& win;
-
     // The shader program for this scene
     std::shared_ptr<Shader> planetShader;
     std::shared_ptr<Shader> asteroidShader;
-
-    std::shared_ptr<Renderer> renderer;
-    std::shared_ptr<LightManager> lightManager;
 
     std::vector<std::shared_ptr<Entity>> entities;
 

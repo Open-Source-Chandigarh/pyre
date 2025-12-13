@@ -5,6 +5,8 @@
 #include "core/rendering/Model.h"
 #include "helpers/Shader.h"
 #include "core/ResourceManager.h"
+#include "core/rendering/Texture.h"
+#include "core/rendering/Material.h"
 
 // Helper to sanitize paths (convert \ to /)
 std::string SanitizePath(std::string path) {

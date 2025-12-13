@@ -3,8 +3,9 @@
 #include "core/rendering/geometry/GeometryFactory.h"
 #include "core/rendering/GlobalUBO.h"   
 #include "helpers/Shader.h"
+#include "core/rendering/Material.h"
 
-Test::Test(Window& win) : win(win), shader(nullptr)
+Test::Test(Window& win) : Scene(win), shader(nullptr)
 {
     renderer = std::make_shared<Renderer>();
     lightManager = std::make_shared<LightManager>();
@@ -21,6 +22,7 @@ Test::Test(Window& win) : win(win), shader(nullptr)
 
 void Test::init()
 {
+    entities.clear();
     // Make sure global UBO system is created ONCE
     CreateGlobalUBO();
 
@@ -65,83 +67,57 @@ void Test::init()
     cube = GeometryFactory::CreateCube();
     plane = GeometryFactory::CreatePlane();
     skyMesh = GeometryFactory::CreateSkyboxCube();
+    auto skyMat = std::make_shared<Material>();
+    skyMat->textures["skybox"] = skyBox; 
 
-    // -------------------------
-    // SKYBOX ENTITY
-    // -------------------------
     {
         std::shared_ptr<Entity> e = Entity::Create();
-        e->type = Entity::Type::SkyBox;
-        e->meshRenderer.mesh = &skyMesh;
-        e->meshRenderer.shader = ResourceManager::GetShader("skybox");
-
-        auto skyMat = std::make_shared<Material>();
-        skyMat->textures["skybox"] = skyBox;   // samplerCube skybox
-
-        e->meshRenderer.material = skyMat;
+        e->AddSkybox(&skyMesh, skyMat, ResourceManager::GetShader("skybox"));
         entities.push_back(e);
     }
 
-    // -------------------------
-    // GRASS ENTITY
-    // -------------------------
-    {
-        Material mat;
-        mat.cullMode = CullMode::None;
-        mat.isTransparent = true;
 
-        mat.textures["material_diffuse"] = grassDiffuseMap;
-        mat.floats["material_shininess"] = 16.0f;
+    {
+        std::shared_ptr<Material> mat = std::make_shared<Material>();;
+        mat->cullMode = CullMode::None;
+        mat->isTransparent = true;
+
+        mat->textures["material_diffuse"] = grassDiffuseMap;
+        mat->floats["material_shininess"] = 16.0f;
 
         std::shared_ptr<Entity> e = Entity::Create();
-        e->type = Entity::Type::Mesh;
-        e->meshRenderer.mesh = &plane;
-        e->meshRenderer.shader = shader;
-        e->meshRenderer.material = std::make_shared<Material>(mat);
-
+        e->AddMesh(&plane, mat, shader);
         e->transform.position = glm::vec3(1.5f, 0.5f, 4.0f);
         e->transform.rotation = glm::vec3(270, 0, 0);
         e->transform.scale = glm::vec3(1);
-
         entities.push_back(e);
     }
 
-    // -------------------------
-    // WINDOW ENTITY
-    // -------------------------
     {
-        Material mat;
-        mat.isTransparent = true;
-        mat.cullMode = CullMode::None;
+        std::shared_ptr<Material> mat = std::make_shared<Material>();;
+        mat->isTransparent = true;
+        mat->cullMode = CullMode::None;
 
-        mat.textures["material_diffuse"] = windowDiffuseMap;
-        mat.textures["material_specular"] = windowSpecMap;
-        mat.floats["material_shininess"] = 100.0f;
+        mat->textures["material_diffuse"] = windowDiffuseMap;
+        mat->textures["material_specular"] = windowSpecMap;
+        mat->floats["material_shininess"] = 100.0f;
 
         std::shared_ptr<Entity> e = Entity::Create();
-        e->type = Entity::Type::Mesh;
-        e->meshRenderer.mesh = &plane;
-        e->meshRenderer.shader = shader;
-        e->meshRenderer.material = std::make_shared<Material>(mat);
-
+        e->AddMesh(&plane, mat, shader);
         e->transform.position = glm::vec3(0.0f, 0.5f, 4.0f);
         e->transform.rotation = glm::vec3(270, 0, 0);
         e->transform.scale = glm::vec3(1);
-
         entities.push_back(e);
     }
 
-    // -------------------------
-    // CUBE STACK
-    // -------------------------
-    Material cubeMat;
-    cubeMat.textures["material_diffuse"] = cubeDiffuseMap;
-    cubeMat.textures["material_specular"] = cubeSpecularMap;
-    cubeMat.floats["material_shininess"] =32.0f;
-    cubeMat.vec3s["material_diffuseColor"] = glm::vec3(1.0f);
-    cubeMat.vec3s["material_specularColor"] = glm::vec3(1.0f);
-    cubeMat.showNormals = true;
-    cubeMat.outlineEnabled = true;
+    std::shared_ptr<Material> cubeMat = std::make_shared<Material>();;
+    cubeMat->textures["material_diffuse"] = cubeDiffuseMap;
+    cubeMat->textures["material_specular"] = cubeSpecularMap;
+    cubeMat->floats["material_shininess"] =32.0f;
+    cubeMat->vec3s["material_diffuseColor"] = glm::vec3(1.0f);
+    cubeMat->vec3s["material_specularColor"] = glm::vec3(1.0f);
+    cubeMat->showNormals = true;
+    cubeMat->outlineEnabled = true;
 
     float spacing = 1.05f;
     float height = 1.1f;
@@ -156,42 +132,26 @@ void Test::init()
             for (int j = 0; j < base - layer; j++)
             {
                 std::shared_ptr<Entity> e = Entity::Create();
-                e->type = Entity::Type::Mesh;
-                e->meshRenderer.mesh = &cube;
-                e->meshRenderer.shader = shader;
-                e->meshRenderer.material = std::make_shared<Material>(cubeMat);
-
+                e->AddMesh(&cube, cubeMat, shader);
                 e->transform.position = glm::vec3(start + i * spacing, y, start + j * spacing);
                 e->transform.scale = glm::vec3(1.1f);
-
                 entities.push_back(e);
             }
     }
 
-    // -------------------------
-    // FLOOR
-    // -------------------------
     {
-        Material mat;
-        mat.cullMode = CullMode::Front;
-
-        mat.textures["material_diffuse"] = floorDiffuseMap;
-        mat.textures["material_specular"] = floorSpecularMap;
-        mat.floats["material_shininess"] = 32.0f;
+        std::shared_ptr<Material> mat = std::make_shared<Material>();;
+        mat->cullMode = CullMode::Front;
+        mat->textures["material_diffuse"] = floorDiffuseMap;
+        mat->textures["material_specular"] = floorSpecularMap;
+        mat->floats["material_shininess"] = 32.0f;
 
         std::shared_ptr<Entity> e = Entity::Create();
-        e->type = Entity::Type::Mesh;
-        e->meshRenderer.mesh = &plane;
-        e->meshRenderer.shader = shader;
-        e->meshRenderer.material = std::make_shared<Material>(mat);
-
+        e->AddMesh(&plane, mat, shader);
         e->transform.scale = glm::vec3(10);
         entities.push_back(e);
     }
 
-    // -------------------------
-    // LIGHTS
-    // -------------------------
     lightManager->ClearPointLights();
 
     lightManager->SetDirectional(

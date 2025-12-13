@@ -12,6 +12,7 @@
 #include "core/InputManager.h"
 #include "core/rendering/Model.h"
 #include "scenes/test.h"
+#include "core/ResourceManager.h"
 
 void SetupInput(Window &win);
 
@@ -21,10 +22,8 @@ int main()
     AppState appState;
     appState.camera = Camera(glm::vec3(0.0f, 0.0f, 3.0f));
 
-    
     Window win(800, 600, "win");
     win.SetAppState(&appState);
-
 
     appState.scenes.push_back(new FactoryScene(win));
     appState.scenes.push_back(new Backpack(win));
@@ -34,8 +33,6 @@ int main()
 
     for (auto* scene : appState.scenes)
         scene->init();
-
-   
 
     SetupInput(win);
 
@@ -70,6 +67,7 @@ int main()
     for (auto* s : appState.scenes)
         delete s;
 
+    ResourceManager::Clear();
     glfwTerminate();
     return 0;
 }

@@ -10,7 +10,13 @@ class Camera;
 class Framebuffer;
 class PostProcessingPipeline;
 struct Entity;
-struct RenderSettings;
+struct RenderSettings
+{
+    bool showNormals = false;
+    bool outlineEnabled = false;
+    glm::vec3 outlineColor = glm::vec3(1.0f, 1.0f, 1.0f);
+};
+
 
 class Renderer 
 {
@@ -48,7 +54,9 @@ public:
                               const std::shared_ptr<Shader>& shader, 
                               int instanceCount);
 
-    void SubmitSkybox(std::shared_ptr<Entity> skyEntity);
+    void SubmitSkybox(const Mesh& mesh, 
+                      const std::shared_ptr<Shader>& shader, 
+                      const std::shared_ptr<Material>& mat);
     void EndScene();
 
     std::shared_ptr<Shader> outlineShader;

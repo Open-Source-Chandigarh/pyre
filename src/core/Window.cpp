@@ -1,6 +1,8 @@
 #include "core/Window.h"
 #include "core/InputManager.h"
+#include "scenes/Scene.h"
 #include <iostream>
+
 
 Window::Window(float width, float height, const std::string& name)
 	: width(width), height(height), name(name), inputManager(nullptr)

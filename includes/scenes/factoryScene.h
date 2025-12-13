@@ -12,6 +12,7 @@
 #include "core/Entity.h"
 #include "core/rendering/Framebuffer.h"
 #include "core/postprocessing/PostProcessingPipeline.h"
+#include "core/rendering/Material.h"
 
 
 // This class represents a Scene that demonstrates lighting with all the light types combined (directional, point, spot).
@@ -33,21 +34,13 @@ public:
     // Scene display name (helpful when switching scenes)
     std::string name() const override { return "Factory Demo Scene"; }
 
-    virtual void OnResize(int w, int h) override;
-
 private:
-    std::shared_ptr<Framebuffer> sceneFBO;
-    std::shared_ptr<PostProcessingPipeline> postPipeline;
-    Window& win;
 
     // Textures (diffuse = color, specular = shininess highlights)
     std::shared_ptr<Texture> diffuseMap, specularMap;
 
     // The shader program for this scene
     std::shared_ptr<Shader> shader;
-
-    std::shared_ptr<Renderer> renderer;
-    std::shared_ptr<LightManager> lightManager;
 
 
     std::vector<std::shared_ptr<Entity>> entities;

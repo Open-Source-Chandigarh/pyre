@@ -8,6 +8,7 @@
 #include "helpers/camera.h"
 #include "core/postprocessing/PostProcessingPipeline.h"
 #include "core/rendering/Framebuffer.h"
+#include "core/rendering/Material.h"
 
 void Renderer::BeginScene(const glm::mat4& view, const glm::mat4& projection,
     const glm::vec3& viewPos)
@@ -43,30 +44,63 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
     for (auto& e : entities)
     {
         if (!e) continue;
-        if (e->type == Entity::Type::SkyBox) {
+        if (e->skyboxComp) {
             // prefer the first found skybox and skip adding it to the lists
             if (!skyboxEntity) skyboxEntity = e;
             continue; // don't treat skybox as normal geometry
         }
 
         // guard: some entities (e.g. models) might not have a material; just treat them opaque
-        if (e->meshRenderer.material && e->meshRenderer.material->isTransparent)
-            transparentEntities.push_back(e);
-        else
+       if (e->meshComp) 
+       {
+            if (e->meshComp->material && e->meshComp->material->isTransparent)
+                transparentEntities.push_back(e);
+            else
+                opaqueEntities.push_back(e);
+        }
+        else if (e->modelComp) 
+        {
             opaqueEntities.push_back(e);
+        }
     }
+
+    // Helper lambda to draw a single entity
+    auto DrawEntity = [&](Entity* e) 
+    {
+        glm::mat4 modelMatrix = e->transform.GetModelMatrix();
+
+        if (e->meshComp) 
+        {
+            SubmitMesh(modelMatrix, 
+                       *e->meshComp->mesh, 
+                       e->meshComp->shader, 
+                       e->meshComp->material);
+        }
+        else if (e->modelComp) 
+        {
+            if (e->modelComp->instanceCount > 1) 
+            {
+                SubmitInstancedModel(*e->modelComp->model, 
+                                     e->modelComp->shader, 
+                                     e->modelComp->instanceCount);
+            } else 
+            {
+                SubmitModel(modelMatrix, 
+                            *e->modelComp->model, 
+                            e->modelComp->shader, e->modelComp->renderSettings); 
+            }
+        }
+    };
 
     // sort transparent back-to-front
     glm::vec3 camPosition = camera.Position;
     std::sort(transparentEntities.begin(), transparentEntities.end(),
-        [&camPosition](const std::shared_ptr<Entity> a, const std::shared_ptr<Entity> b) {
-            float da = glm::dot(camPosition - a->transform.position, camPosition - a->transform.position);
-            float db = glm::dot(camPosition - b->transform.position, camPosition - b->transform.position);
-            return da > db; // far first
-        });
-
-
-    // Draw skybox first
+    [&camPosition](const std::shared_ptr<Entity> a, const std::shared_ptr<Entity> b) 
+    {
+        float da = glm::dot(camPosition - a->transform.position, camPosition - a->transform.position);
+        float db = glm::dot(camPosition - b->transform.position, camPosition - b->transform.position);
+        return da > db; // far first
+    });
 
     // If we have scene FBO and post processing (and not wireframe), render to FBO then postprocess
     if (sceneFBO && postProcessor && !wireFrame)
@@ -78,19 +112,25 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
 
         for (auto& e : opaqueEntities)
         {
-            e->Render(*this);
+            DrawEntity(e.get());
         }
        
         // Render skybox before doing post processing
-        if (skyboxEntity) SubmitSkybox(skyboxEntity);
+        if (skyboxEntity) 
+        {
+            SubmitSkybox(*skyboxEntity->skyboxComp->mesh, 
+                         skyboxEntity->skyboxComp->shader,
+                         skyboxEntity->skyboxComp->material);
+        }
 
-        if (lightManager) {
+        if (lightManager) 
+        {
             lightManager->RenderDebugLights(viewMatrix, projMatrix);
         }
 
         for (auto& e : transparentEntities)
         {
-            e->Render(*this);
+            DrawEntity(e.get());
         }
 
         sceneFBO -> ResolveToScreen();
@@ -108,17 +148,21 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
     {
         for (auto& e : opaqueEntities)
         {
-            e->Render(*this);
+           DrawEntity(e.get());
         }
-        if (skyboxEntity) {
-            SubmitSkybox(skyboxEntity);
+        if (skyboxEntity) 
+        {
+            SubmitSkybox(*skyboxEntity->skyboxComp->mesh, 
+                         skyboxEntity->skyboxComp->shader,
+                         skyboxEntity->skyboxComp->material);
         }
-        if (lightManager) {
+        if (lightManager) 
+        {
             lightManager->RenderDebugLights(viewMatrix, projMatrix);
         }
         for (auto& e : transparentEntities)
         {
-            e->Render(*this);
+            DrawEntity(e.get());
         }
     } 
 }
@@ -241,24 +285,23 @@ void Renderer::SubmitModel(const glm::mat4& modelMatrix,
     }
 }
 
-void Renderer::SubmitMesh(const glm::mat4& model, const Mesh& mesh, 
-    const std::shared_ptr<Shader>& shader, const std::shared_ptr<Material>& mat)
+void Renderer::SubmitMesh(const glm::mat4 &model, const Mesh &mesh, 
+    const std::shared_ptr<Shader> &shader, const std::shared_ptr<Material>& mat)
 {
     SubmitMesh(model, mesh, shader, mat, RenderSettings()); // Call main logic with defaults
 }
 
-void Renderer::SubmitModel(const glm::mat4& model, Model& modelObj, 
-    const std::shared_ptr<Shader>& shader)
+void Renderer::SubmitModel(const glm::mat4 &model, Model &modelObj, 
+    const std::shared_ptr<Shader> &shader)
 {
     SubmitModel(model, modelObj, shader, RenderSettings()); // Call main logic with defaults
 }
 
-void Renderer::SubmitSkybox(std::shared_ptr<Entity> skyEntity)
+void Renderer::SubmitSkybox(const Mesh &mesh, 
+                            const std::shared_ptr<Shader> &shader, 
+                            const std::shared_ptr<Material> &mat)
 {
-    if (!skyEntity) return;
-    if (!skyEntity->meshRenderer.mesh || !skyEntity->meshRenderer.shader) return;
-    auto mat = skyEntity->meshRenderer.material;
-    if (!mat) return;
+    if (!shader || !mat) return;
 
     // Find cubemap texture in material by convention:
     // prefer "skybox" key, else first Texture with type TEX_CUBEMAP
@@ -284,20 +327,19 @@ void Renderer::SubmitSkybox(std::shared_ptr<Entity> skyEntity)
     glm::mat4 viewNoTrans = glm::mat4(glm::mat3(viewMatrix));
     glm::mat4 proj = projMatrix;
 
-    auto skyShader = skyEntity->meshRenderer.shader;
-    skyShader->use();
+    shader->use();
 
     // Set uniforms only if present (shader may read from UBO instead)
-    if (skyShader->hasUniform("view")) skyShader->setMat4("view", viewNoTrans);
-    if (skyShader->hasUniform("projection")) skyShader->setMat4("projection", proj);
-    if (skyShader->hasUniform("skybox")) skyShader->setInt("skybox", 0);
+    if (shader->hasUniform("view")) shader->setMat4("view", viewNoTrans);
+    if (shader->hasUniform("projection")) shader->setMat4("projection", proj);
+    if (shader->hasUniform("skybox")) shader->setInt("skybox", 0);
 
     // bind cubemap to unit 0 (match the sampler set above if any)
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapID);
 
     // Draw the sky mesh (DrawSimple should not depend on material)
-    skyEntity->meshRenderer.mesh->DrawSimple();
+    mesh.DrawSimple();
 
     // restore state
     glDepthFunc(GL_LESS);
