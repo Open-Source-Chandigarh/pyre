@@ -6,7 +6,7 @@
 #include "helpers/Shader.h"
 #include "helpers/camera.h"
 #include "core/Window.h"
-#include "state/appState.h"
+#include "application/appState.h"
 #include "core/rendering/Mesh.h"
 #include "core/rendering/Renderer.h"
 #include "core/LightManager.h"
@@ -15,35 +15,30 @@
 #include "core/rendering/Framebuffer.h"
 #include "core/postprocessing/PostProcessingPipeline.h"
 
-
-// This class represents a Scene that demonstrates lighting with all the light types combined (directional, point, spot).
-// It derives from the base Scene class, so it must implement init(), update(), render(), and name().
 class Backpack : public Scene {
 public:
-    Backpack(Window& win);
+    Backpack();
     ~Backpack();
 
     // Called once when the scene is created (setup VAOs, VBOs, shaders, textures, etc.)
-    void init() override;
+    void Init(AppState &appState) override;
 
     // Called every frame to update logic (e.g., rotations, animations)
-    void update() override;
+    void Update(AppState &appState) override;
+
+    // Called when this scene is activated
+    void OnActivate(AppState &appState) override;
 
     // Called every frame to draw objects
-    void render() override;
+    void Render(AppState &appState) override;
 
-    // Scene display name (helpful when switching scenes)
-    std::string name() const override { return "Model Loading Demo Scene"; }
+    std::string Name() const override { return "Model Loading Demo Scene"; }
 
 private:
-    // The shader program for this scene
     std::shared_ptr<Shader> shader;
-
     std::vector<std::shared_ptr<Entity>> entities;
-
     std::shared_ptr<Model> obj;
 
-    // Animation control for rotations
     float rotationAngle;
     float rotationSpeed;
 };

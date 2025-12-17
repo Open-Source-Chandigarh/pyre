@@ -5,12 +5,15 @@ project(Pyre VERSION 1.0.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# -----------------------------------------------------------------------------
-# 1. DEPENDENCIES (FetchContent - ZIP MODE)
-# -----------------------------------------------------------------------------
+# /FS forces synchronous writes to the PDB file
+if(MSVC)
+    add_compile_options(/FS) 
+endif()
+
+# DEPENDENCIES
 include(FetchContent)
 
-# --- GLFW ---
+# GLFW
 message(STATUS "Downloading GLFW...")
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -22,7 +25,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glfw)
 
-# --- ASSIMP ---
+# ASSIMP
 message(STATUS "Building Assimp from local source...")
 set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
@@ -32,14 +35,10 @@ set(ASSIMP_BUILD_ZLIB ON CACHE BOOL "" FORCE)
 
 FetchContent_Declare(
     assimp
-    # Point to the local file (Ensure this file exists!)
     URL ${CMAKE_CURRENT_SOURCE_DIR}/deps/assimp-5.2.5.zip
 )
 FetchContent_MakeAvailable(assimp)
-
-# -----------------------------------------------------------------------------
-# 2. SOURCE FILES
-# -----------------------------------------------------------------------------
+# SOURCE FILES
 file(GLOB_RECURSE SOURCES 
     "src/*.cpp" 
     "src/*.c"
@@ -47,14 +46,10 @@ file(GLOB_RECURSE SOURCES
     "includes/thirdparty/*.c"
 )
 
-# -----------------------------------------------------------------------------
-# 3. EXECUTABLE TARGET
-# -----------------------------------------------------------------------------
+# EXECUTABLE TARGET
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-# -----------------------------------------------------------------------------
-# 4. INCLUDE DIRECTORIES
-# -----------------------------------------------------------------------------
+# INCLUDE DIRECTORIES
 target_include_directories(${PROJECT_NAME} PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/includes
     ${CMAKE_CURRENT_SOURCE_DIR}/includes/thirdparty 
@@ -62,9 +57,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw assimp)
 
-# -----------------------------------------------------------------------------
-# 5. LINKING LIBRARIES (OS Specifics)
-# -----------------------------------------------------------------------------
+# LINKING LIBRARIES (OS Specifics)
 find_package(OpenGL REQUIRED)
 
 if (WIN32)
@@ -75,9 +68,7 @@ else()
     target_link_libraries(${PROJECT_NAME} PRIVATE OpenGL::GL dl pthread)
 endif()
 
-# -----------------------------------------------------------------------------
-# 6. ASSET COPYING
-# -----------------------------------------------------------------------------
+# ASSET COPYING
 # This creates the folders inside build/Debug/ and copies the files.
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:${PROJECT_NAME}>/shaders
@@ -93,9 +84,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMENT "Copying shaders and resources to build directory..."
 )
 
-# -----------------------------------------------------------------------------
-# 7. VS DEBUGGER CONFIGURATION
-# -----------------------------------------------------------------------------
+#  VS DEBUGGER CONFIGURATION
 if(MSVC)
     set_target_properties(${PROJECT_NAME} PROPERTIES 
         VS_DEBUGGER_WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}>"

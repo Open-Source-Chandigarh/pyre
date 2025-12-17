@@ -113,8 +113,6 @@ void Mesh::SetupInstancing(const std::vector<glm::mat4> &models)
 // just bind and issue draw call (no texture binding/no shader use)
 void Mesh::DrawSimple() const
 {
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
     glBindVertexArray(VAO);
     if (!indices.empty())
         glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(indices.size()), GL_UNSIGNED_INT, 0);

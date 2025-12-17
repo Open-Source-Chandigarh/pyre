@@ -4,6 +4,7 @@
 #include "helpers/Shader.h"
 #include "core/LightManager.h"
 #include "core/rendering/Mesh.h"
+#include "core/rendering/GlobalUBO.h"
 
 class Model;
 class Camera;
@@ -21,11 +22,17 @@ struct RenderSettings
 class Renderer 
 {
 public:
-    void BeginScene(const glm::mat4& view, const glm::mat4& projection, 
-        const glm::vec3& viewPos);
-    void RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera &camera, std::shared_ptr<LightManager> lightManager = nullptr,
-        std::shared_ptr<Framebuffer> sceneFBO = nullptr, std::shared_ptr<PostProcessingPipeline> postProcessor = nullptr,
-        bool wireFrame = false);
+    void BeginScene(const Camera &camera, 
+                    GlobalUBO &ubo, 
+                    LightManager &lightManager, 
+                    float aspectRatio);
+
+    void RenderScene(std::vector<std::shared_ptr<Entity>> entities, 
+                    Camera &camera, 
+                    LightManager &lightManager,
+                    Framebuffer &sceneFBO, 
+                    PostProcessingPipeline &postProcessor,
+                    bool wireFrame = false);
         
    // SubmitMesh Overloads
     void SubmitMesh(const glm::mat4& model, 

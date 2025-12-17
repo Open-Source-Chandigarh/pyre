@@ -1,0 +1,158 @@
+#include "application/Application.h"
+#include "application/AppState.h"
+#include "core/Window.h"
+#include "core/InputManager.h"
+#include "core/ResourceManager.h"
+#include "scenes/Scene.h"
+#include "scenes/FactoryScene.h"
+#include "scenes/Backpack.h"
+#include "scenes/Space.h"
+#include "scenes/ToonScene.h"
+#include "scenes/Test.h"
+
+Application::Application(const std::string& title, int width, int height)
+{
+    window = std::make_unique<Window>(width, height, title);
+    appState = std::make_unique<AppState>();
+}
+
+Application::~Application()
+{
+    ResourceManager::Clear(); 
+    
+    // appState and window will be destroyed automatically by unique_ptr
+    // appState first (because it was declared 2nd), then window
+    // this is needed because AppState components might need GL context to delete buffers
+}
+
+void Application::Init()
+{
+    for (auto& scene : appState->scenes)
+        scene->BindWindow(window.get());
+
+    for (auto& scene : appState->scenes) 
+        scene->Init(*appState);
+
+    if (!appState->scenes.empty()) {
+        appState->scenes[appState->currentSceneIndex]->OnActivate(*appState);
+    }
+
+    ConfigureInput();
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+void Application::ConfigureInput()
+{
+    InputManager *input = window->GetInputManager();
+    AppState *app = appState.get();
+    Window *winPtr = window.get();
+
+    // camera Movement
+    input->BindKeyContinuous(GLFW_KEY_W, [app](float dt) { 
+        app->camera.ProcessKeyboard(FORWARD, dt); 
+    });
+    input->BindKeyContinuous(GLFW_KEY_S, [app](float dt) { 
+        app->camera.ProcessKeyboard(BACKWARD, dt); 
+    });
+    input->BindKeyContinuous(GLFW_KEY_A, [app](float dt) { 
+        app->camera.ProcessKeyboard(LEFT, dt); 
+    });
+    input->BindKeyContinuous(GLFW_KEY_D, [app](float dt) { 
+        app->camera.ProcessKeyboard(RIGHT, dt); 
+    });
+
+    // mouse
+    input->BindMouseMove([app](double x, double y) {
+        app->camera.ProcessMouseMovement((float)x, (float)y);
+    });
+    input->BindScroll([app](double y) {
+        app->camera.ProcessMouseScroll((float)y);
+    });
+    input->BindKeyEvent(GLFW_KEY_ESCAPE, GLFW_PRESS, [input]() {
+        input->ToggleMouseCapture();
+    });
+
+    // scene switching
+    auto SwitchScene = [app, winPtr](int offset) {
+        int n = (int)app->scenes.size();
+        if (n == 0) return;
+        app->currentSceneIndex = (app->currentSceneIndex + offset + n) % n;
+        glfwSetWindowTitle(winPtr->GetNative(), app->scenes[app->currentSceneIndex]->Name().c_str());
+        app->camera.Reset();
+        app->scenes[app->currentSceneIndex]->OnActivate(*app);
+    };
+
+    input->BindKeyEvent(GLFW_KEY_RIGHT, GLFW_RELEASE, 
+        [SwitchScene](){ SwitchScene(1); });
+    input->BindKeyEvent(GLFW_KEY_LEFT, GLFW_RELEASE, 
+        [SwitchScene](){ SwitchScene(-1); });
+
+    // debug options
+    input->BindKeyEvent(GLFW_KEY_F, GLFW_RELEASE, [app]() {
+        app->wireframeEnabled = !app->wireframeEnabled;
+        glPolygonMode(GL_FRONT_AND_BACK, 
+            app->wireframeEnabled ? GL_LINE : GL_FILL);
+    });
+}
+
+void Application::Update(float dt)
+{
+    // Update Input
+    window->GetInputManager()->Update(dt);
+
+    // Update Current Scene
+    if (!appState->scenes.empty()) {
+        appState->scenes[appState->currentSceneIndex]->Update(*appState);
+    }
+}
+
+void Application::Render()
+{
+    // Standard Clear
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    // Render Current Scene
+    if (!appState->scenes.empty()) {
+        appState->scenes[appState->currentSceneIndex]->Render(*appState);
+    }
+}
+
+void Application::Run()
+{
+    Init();
+    // Track resizing logic
+    int lastW = window->Width();
+    int lastH = window->Height();
+
+    while (!window->ShouldClose())
+    {
+        // time step
+        float currentFrame = static_cast<float>(glfwGetTime());
+        appState->deltaTime = currentFrame - appState->lastFrame;
+        appState->lastFrame = currentFrame;
+
+        // handle Resize
+        if (window->Width() != lastW || window->Height() != lastH) {
+            lastW = window->Width();
+            lastH = window->Height();
+            glViewport(0, 0, lastW, lastH);
+            appState->width = lastW;
+            appState->height = lastH;
+            for (auto& s : appState->scenes) s->OnResize(lastW, lastH);
+        }
+
+        Update(appState->deltaTime);
+        Render();
+        window->SwapBuffers();
+        window->PollEvents();
+    }
+}
+
+void Application::AddScene(Scene *scene)
+{
+    // take ownership convert raw pointer to unique_ptr
+    appState->scenes.push_back(std::unique_ptr<Scene>(scene));
+}

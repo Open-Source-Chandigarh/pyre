@@ -1,37 +1,20 @@
 #pragma once
 #include <glm/glm.hpp>
+#include "core/LightManager.h"
 
-struct LightUBO
+class GlobalUBO
 {
-    glm::mat4 view;
-    glm::mat4 proj;
-    glm::vec4 viewPos; // w as padding
+public:
+    GlobalUBO();
+    ~GlobalUBO();
 
-    int numPointLights;
-    int numSpotLights;
-    int pad0;
-    int pad1;
+    // disable copying to prevent double deletion of GPU buffer
+    GlobalUBO(const GlobalUBO&) = delete;
+    GlobalUBO& operator=(const GlobalUBO&) = delete;
 
-    glm::vec4 dir_direction;
-    glm::vec4 dir_ambient;
-    glm::vec4 dir_diffuse;
-    glm::vec4 dir_specular;
+    void Bind(int bindingPoint = 0);
+    void Upload(const LightUBO& data);
 
-    glm::vec4 point_position[8];
-    glm::vec4 point_ambient[8];
-    glm::vec4 point_diffuse[8];
-    glm::vec4 point_specular[8];
-    glm::vec4 point_params[8];
-
-    glm::vec4 spot_position[4];
-    glm::vec4 spot_direction[4];
-    glm::vec4 spot_cutoffs[4];
-    glm::vec4 spot_ambient[4];
-    glm::vec4 spot_diffuse[4];
-    glm::vec4 spot_specular[4];
-    glm::vec4 spot_params[4];
+private:
+    GLuint uboID = 0;
 };
-
-void CreateGlobalUBO();
-void UpdateGlobalUBO(const LightUBO& data);
-void DestroyGlobalUBO();

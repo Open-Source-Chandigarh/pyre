@@ -57,7 +57,7 @@ void Framebuffer::CreateResources()
     if (depth)
     {
         glGenRenderbuffers(1, &rbo);
-         glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+        glBindRenderbuffer(GL_RENDERBUFFER, rbo);
         if(multiSampled)
         {
             glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, width, height);

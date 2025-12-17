@@ -1,16 +1,16 @@
+#include <iostream>
+#include <sstream>
 #include "core/LightManager.h"
 #include "core/Entity.h"
 #include "core/ResourceManager.h"
 #include "core/rendering/geometry/GeometryFactory.h"
 #include "core/rendering/GlobalUBO.h"
-#include <sstream>
-#include <iostream>
 
 LightManager::LightManager()
 {
     debugSphere = GeometryFactory::CreateSphere(0.2f, 4, 2);
     debugShader = ResourceManager::LoadShader("unlit",
-        "shaders/singleColor.vs", "shaders/singleColor.fs");
+        "shaders/common/singleColor.vs", "shaders/common/singleColor.fs");
 }
 
 void LightManager::SetDirectional(const glm::vec3& d,
@@ -42,47 +42,49 @@ void LightManager::ClearSpotLights()
 static constexpr int GLSL_MAX_POINT_LIGHTS = 8; // must match shader (#define MAX_POINT_LIGHTS 8)
 static constexpr int GLSL_MAX_SPOT_LIGHTS = 4; // must match shader (#define MAX_SPOT_LIGHTS 4)
 
-void LightManager::UploadToUBO(const glm::mat4& view, const glm::mat4& proj, const glm::vec3& cameraPos)
+void LightManager::UploadToUBO(GlobalUBO &ubo, const glm::mat4& view, 
+                                const glm::mat4& proj, 
+                                const glm::vec3& cameraPos)
 {
-    LightUBO ubo;
-    memset(&ubo, 0, sizeof(ubo));
-    ubo.view = view;
-    ubo.proj = proj;
-    ubo.viewPos = glm::vec4(cameraPos, 0.0f);
+    LightUBO data;
+    memset(&data, 0, sizeof(data));
+    data.view = view;
+    data.proj = proj;
+    data.viewPos = glm::vec4(cameraPos, 0.0f);
 
     // directional
-    ubo.dir_direction = glm::vec4(dir, 0.0f);
-    ubo.dir_ambient = glm::vec4(dirAmbient, 0.0f);
-    ubo.dir_diffuse = glm::vec4(dirDiffuse, 0.0f);
-    ubo.dir_specular = glm::vec4(dirSpec, 0.0f);
+    data.dir_direction = glm::vec4(dir, 0.0f);
+    data.dir_ambient = glm::vec4(dirAmbient, 0.0f);
+    data.dir_diffuse = glm::vec4(dirDiffuse, 0.0f);
+    data.dir_specular = glm::vec4(dirSpec, 0.0f);
 
     // point lights
     int pcount = std::min((int)points.size(), 8);
-    ubo.numPointLights = pcount;
+    data.numPointLights = pcount;
     for (int i = 0; i < pcount; ++i) {
         const auto& p = points[i];
-        ubo.point_position[i] = glm::vec4(p.position, 0.0f);
-        ubo.point_ambient[i] = glm::vec4(p.ambient, 0.0f);
-        ubo.point_diffuse[i] = glm::vec4(p.diffuse, 0.0f);
-        ubo.point_specular[i] = glm::vec4(p.specular, 0.0f);
-        ubo.point_params[i] = glm::vec4(p.constant, p.linear, p.quadratic, 0.0f);
+        data.point_position[i] = glm::vec4(p.position, 0.0f);
+        data.point_ambient[i] = glm::vec4(p.ambient, 0.0f);
+        data.point_diffuse[i] = glm::vec4(p.diffuse, 0.0f);
+        data.point_specular[i] = glm::vec4(p.specular, 0.0f);
+        data.point_params[i] = glm::vec4(p.constant, p.linear, p.quadratic, 0.0f);
     }
 
     // spot lights
     int scount = std::min((int)spots.size(), 4);
-    ubo.numSpotLights = scount;
-    for (int i = 0; i < scount; ++i) {
+    data.numSpotLights = scount;
+    for (int i = 0; i < scount; ++i) 
+    {
         const auto& s = spots[i];
-        ubo.spot_position[i] = glm::vec4(s.position, 0.0f);
-        ubo.spot_direction[i] = glm::vec4(s.direction, 0.0f);
-        ubo.spot_cutoffs[i] = glm::vec4(s.innerCutOff, s.outerCutOff, 0.0f, 0.0f);
-        ubo.spot_ambient[i] = glm::vec4(s.ambient, 0.0f);
-        ubo.spot_diffuse[i] = glm::vec4(s.diffuse, 0.0f);
-        ubo.spot_specular[i] = glm::vec4(s.specular, 0.0f);
-        ubo.spot_params[i] = glm::vec4(s.constant, s.linear, s.quadratic, 0.0f);
+        data.spot_position[i] = glm::vec4(s.position, 0.0f);
+        data.spot_direction[i] = glm::vec4(s.direction, 0.0f);
+        data.spot_cutoffs[i] = glm::vec4(s.innerCutOff, s.outerCutOff, 0.0f, 0.0f);
+        data.spot_ambient[i] = glm::vec4(s.ambient, 0.0f);
+        data.spot_diffuse[i] = glm::vec4(s.diffuse, 0.0f);
+        data.spot_specular[i] = glm::vec4(s.specular, 0.0f);
+        data.spot_params[i] = glm::vec4(s.constant, s.linear, s.quadratic, 0.0f);
     }
-    // Upload
-    UpdateGlobalUBO(ubo);
+    ubo.Upload(data);
 }
 
 void LightManager::ApplyToShader(Shader& shader, Renderer& renderer,

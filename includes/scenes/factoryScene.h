@@ -5,7 +5,7 @@
 #include "helpers/Shader.h"
 #include "helpers/camera.h"
 #include "core/Window.h"
-#include "state/appState.h"
+#include "application/appState.h"
 #include "core/rendering/Mesh.h"
 #include "core/rendering/Renderer.h"
 #include "core/LightManager.h"
@@ -14,43 +14,36 @@
 #include "core/postprocessing/PostProcessingPipeline.h"
 #include "core/rendering/Material.h"
 
-
-// This class represents a Scene that demonstrates lighting with all the light types combined (directional, point, spot).
-// It derives from the base Scene class, so it must implement init(), update(), render(), and name().
-class FactoryScene : public Scene {
+class FactoryScene : public Scene 
+{
 public:
-    FactoryScene(Window& win);
+    FactoryScene();
     ~FactoryScene();
 
-    // Called once when the scene is created (setup VAOs, VBOs, shaders, textures, etc.)
-    void init() override;
+    // called once when the scene is created (setup VAOs, VBOs, shaders, textures, etc.)
+    void Init(AppState &appState) override;
 
-    // Called every frame to update logic (e.g., rotations, animations)
-    void update() override;
+    // called every frame to update logic (e.g., rotations, animations)
+    void Update(AppState &appState) override;
 
-    // Called every frame to draw objects
-    void render() override;
+    // Called when this scene is activated
+    void OnActivate(AppState &appState) override;
 
-    // Scene display name (helpful when switching scenes)
-    std::string name() const override { return "Factory Demo Scene"; }
+    // called every frame to draw objects
+    void Render(AppState &appState) override;
+
+    std::string Name() const override { return "Factory Demo Scene"; }
 
 private:
-
-    // Textures (diffuse = color, specular = shininess highlights)
     std::shared_ptr<Texture> diffuseMap, specularMap;
-
-    // The shader program for this scene
     std::shared_ptr<Shader> shader;
 
-
     std::vector<std::shared_ptr<Entity>> entities;
-    // Fixed positions of cubes in the scene
     glm::vec3 cubePositions[10];
 
     Mesh mesh[10];
     Mesh skyMesh;
 
-    // Animation control for cube rotations
     float rotationAngle;
     float rotationSpeed;
 };

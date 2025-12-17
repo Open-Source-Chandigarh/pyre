@@ -75,7 +75,8 @@ void InputManager::HandleMouseButton(int button, int action, int mods) {
         return;
 }
 
-void InputManager::ToggleMouseCapture(bool forceEnable) {
+void InputManager::ToggleMouseCapture(bool forceEnable) 
+{
     if (forceEnable || !mouseCaptured) {
         glfwSetInputMode(owner->GetNative(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         mouseCaptured = true;
@@ -89,10 +90,12 @@ void InputManager::ToggleMouseCapture(bool forceEnable) {
     }
 }
 
-void InputManager::Update(float deltaTime) {
+void InputManager::Update(float deltaTime) 
+{
     if (!mouseCaptured) return;
     // For every key currently pressed, call its continuous bindings
-    for (auto& p : keysPressed) {
+    for (auto& p : keysPressed) 
+    {
         int key = p.first;
         bool pressed = p.second;
         if (!pressed) continue;

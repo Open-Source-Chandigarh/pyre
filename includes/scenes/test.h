@@ -7,32 +7,30 @@
 #include "core/rendering/Framebuffer.h"
 #include "core/postprocessing/PostProcessingPipeline.h"
 
-
 class Test : public Scene
 {
 public:
-    Test(Window& win);
+    Test();
+    ~Test();
 
-    // called once when the scene is loaded
-    virtual void init();
+    // called once when the scene is created (setup VAOs, VBOs, shaders, textures, etc.)
+    void Init(AppState &appState) override;
 
-    // called every frame
-    virtual void update();
+    // called every frame to update logic (e.g., rotations, animations)
+    void Update(AppState &appState) override;
 
-    // called every frame after update
-    virtual void render();
+    // Called when this scene is activated
+    void OnActivate(AppState &appState) override;
 
-    // optional: scene name
-    virtual std::string name() const { return "Test Scene"; };
+    // called every frame to draw objects
+    void Render(AppState &appState) override;
+
+    virtual std::string Name() const { return "Test Scene"; };
 
 private:
-
-    // The shader program for this scene
     std::shared_ptr<Shader> shader;
-
     Mesh cube;
     Mesh plane;
     Mesh skyMesh;
-
     std::vector<std::shared_ptr<Entity>> entities;
 };

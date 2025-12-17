@@ -10,36 +10,11 @@
 #include "core/rendering/Texture.h"
 #include "core/rendering/Material.h"
 
+Backpack::Backpack() : rotationSpeed(50.0f), rotationAngle(0.0f) {}
+Backpack::~Backpack() {}
 
-Backpack::Backpack(Window& win)
-    : shader(nullptr),
-    rotationAngle(0.0f), rotationSpeed(50.0f),
-    Scene(win), obj(nullptr)
+void Backpack::Init(AppState &appState)
 {
-
-    renderer = std::make_shared<Renderer>();
-    lightManager = std::make_shared<LightManager>();
-    // Create scene framebuffer once
-    sceneFBO = std::make_shared<Framebuffer>((unsigned int)win.Width(), 
-        (unsigned int)win.Height(), true, true);
-
-    // Create post processing pipeline and add effects
-    postPipeline = std::make_shared<PostProcessingPipeline>((unsigned int)win.Width(), 
-        (unsigned int)win.Height());
-    // postPipeline->AddInversion();
-    // postPipeline->AddGrayscale();
-    // postPipeline->AddSharpen(5.0f);
-    postPipeline->AddGammaCorrection(2.2f);
-}
-
-Backpack::~Backpack()
-{
-}
-
-void Backpack::init()
-{
-
-    CreateGlobalUBO();
     obj = std::make_shared<Model>("resources/models/backpack/backpack.obj");
     if(!obj) return;
     std::cerr << "Backpack model mesh count: " << obj -> GetMeshCount() << "\n";
@@ -55,12 +30,19 @@ void Backpack::init()
     e->modelComp->renderSettings.outlineEnabled = true;
     e->transform.position = glm::vec3(0.0f);
     e->transform.scale = glm::vec3(1.0f);
-    entities.push_back(std::move(e));
+    entities.push_back(std::move(e));   
+}
+
+void Backpack::OnActivate(AppState &appState)
+{
+    // Lights 
+    appState.lightManager -> ClearPointLights();
+    appState.lightManager -> ClearSpotLights();
+
+    appState.lightManager -> SetDirectional(glm::vec3(-0.5f, -1.0f, -0.5f),
+        glm::vec3(0.05f), glm::vec3(0.1f, 0.15f, 0.3f), glm::vec3(0.2f));
 
     glm::vec3 lightColor(0.2f, 0.4f, 0.8f);
-    lightManager->ClearPointLights();
-    lightManager->SetDirectional(glm::vec3(-0.2f, -1.0f, -0.3f),
-        glm::vec3(0.05f), glm::vec3(0.1f, 0.1f, 0.8f), glm::vec3(0.5f));
 
     PointLight p;
     p.position = glm::vec3(0.7f, 0.2f, 2.0f);
@@ -68,7 +50,7 @@ void Backpack::init()
     p.diffuse = glm::vec3(0.2f, 1.5f, 1.5f) * 0.8f;
     p.specular = glm::vec3(1.0f);
     p.constant = 1.0f; p.linear = 0.09f; p.quadratic = 0.032f;
-    lightManager->AddPointLight(p);
+    appState.lightManager -> AddPointLight(p);
 
     PointLight p2;
     p2.position = glm::vec3(2.3f, -3.3f, -4.0f);
@@ -76,7 +58,7 @@ void Backpack::init()
     p2.diffuse = glm::vec3(2.0f, 1.5f, 2.0f) * 0.9f;
     p2.specular = glm::vec3(1.0f);
     p2.constant = 1.0f; p2.linear = 0.09f; p2.quadratic = 0.032f;
-    lightManager->AddPointLight(p2);
+    appState.lightManager -> AddPointLight(p2);
 
     PointLight p3;
     p3.position = glm::vec3(-4.0f, 2.0f, -12.0f);
@@ -84,7 +66,7 @@ void Backpack::init()
     p3.diffuse = glm::vec3(1.0f, 7.0f, 0.6f) * 0.8f;
     p3.specular = glm::vec3(1.0f);
     p3.constant = 1.0f; p3.linear = 0.09f; p3.quadratic = 0.032f;
-    lightManager->AddPointLight(p3);
+    appState.lightManager -> AddPointLight(p3);
 
     PointLight p4;
     p4.position = glm::vec3(0.0f, 0.0f, -3.0f);
@@ -92,12 +74,12 @@ void Backpack::init()
     p4.diffuse = glm::vec3(3.0f, 1.5f, 5.0f) * 0.6f;
     p4.specular = glm::vec3(1.0f);
     p4.constant = 1.0f; p4.linear = 0.09f; p4.quadratic = 0.032f;
-    lightManager->AddPointLight(p4);
+    appState.lightManager -> AddPointLight(p4);
 
     // Spot light
     SpotLight s;
-    s.position = win.GetAppState()->camera.Position;
-    s.direction = win.GetAppState()->camera.Front;
+    s.position = appState.camera.Position;
+    s.direction = appState.camera.Front;
     s.ambient = lightColor * 0.5f;
     s.diffuse = lightColor * 6.0f;
     s.specular = glm::vec3(1.0f);
@@ -106,38 +88,37 @@ void Backpack::init()
     s.linear = 0.032f;
     s.innerCutOff = cos(glm::radians(12.5f));
     s.outerCutOff = cos(glm::radians(17.5f));
-    lightManager->AddSpotLight(s);
-
+    appState.lightManager -> AddSpotLight(s);
 }
 
-void Backpack::update() 
+
+void Backpack::Update(AppState &appState) 
 {
-    auto app = win.GetAppState();
-    rotationAngle -= rotationSpeed * (app ? app->deltaTime : 0.016f);
-    for (size_t i = 0; i < entities.size(); ++i) {
+    rotationAngle -= rotationSpeed * appState.deltaTime;
+    for (size_t i = 0; i < entities.size(); ++i) 
+    {
         float offset = 29.5f + 0.1f * sin(i);
         entities[i] -> transform.rotation.y = rotationAngle + offset * float(i);
     }
 }
 
-void Backpack::render()
+void Backpack::Render(AppState &appState)
 {
-    auto app = win.GetAppState();
-    if (!app) return;
-
-    glm::mat4 view = app->camera.GetViewMatrix();
-    glm::mat4 proj = glm::perspective(glm::radians(app->camera.Zoom),
-        (float)win.Width() / (float)win.Height(), 0.1f, 100.0f);
-
-    renderer->BeginScene(view, proj, app->camera.Position);
-
-    if (!lightManager->spots.empty()) {
-        lightManager->spots[0].position = win.GetAppState()->camera.Position;
-        lightManager->spots[0].direction = win.GetAppState()->camera.Front;
+    Renderer* renderer = appState.renderer.get();
+    
+    if (!appState.lightManager->spots.empty()) 
+    {
+        appState.lightManager->spots[0].position = appState.camera.Position;
+        appState.lightManager->spots[0].direction = appState.camera.Front;
     }
 
-    lightManager->UploadToUBO(view, proj, app->camera.Position);
+    renderer -> BeginScene(appState.camera, 
+                            *appState.globalUBO, 
+                            *appState.lightManager, 
+                            appState.GetAspectRatio());
 
-    renderer->RenderScene(entities, app->camera, nullptr, sceneFBO, postPipeline, app->wireframeEnabled);
+    renderer->RenderScene(entities, appState.camera, *appState.lightManager, 
+                          *sceneFBO, *postPipeline, appState.wireframeEnabled);
+                          
     renderer->EndScene();
 }

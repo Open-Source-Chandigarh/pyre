@@ -10,31 +10,39 @@
 #include "core/rendering/Framebuffer.h"
 #include "core/rendering/Material.h"
 
-void Renderer::BeginScene(const glm::mat4& view, const glm::mat4& projection,
-    const glm::vec3& viewPos)
+void Renderer::BeginScene(const Camera &camera, GlobalUBO &ubo, 
+        LightManager &lightManager, float aspectRatio)
 {
+    // intialize camera state
+    viewMatrix = camera.GetViewMatrix();
+    projMatrix = glm::perspective(glm::radians(camera.Zoom), 
+                                 aspectRatio, camera.Near, camera.Far);
+    viewPosition = camera.Position;
+
+    // clear buffers and setup depth and stencil test
     glEnable(GL_STENCIL_TEST);
     glEnable(GL_DEPTH_TEST);
-    // Default stencil op: replace stencil on depth pass (we'll set func per pass below)
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-    // Clear color, depth and stencil at frame start to avoid stale values.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-    outlineShader = ResourceManager::LoadShader("outline",
-        "shaders/common/singleColor.vs", "shaders/common/singleColor.fs");
+    if(!outlineShader) 
+        outlineShader = ResourceManager::LoadShader("outline", 
+        "shaders/common/singleColor.vs", 
+        "shaders/common/singleColor.fs");
+    if(!normalShader)
+        normalShader = ResourceManager::LoadShader("normal", "shaders/common/normal.vs", 
+        "shaders/common/normal.fs", 
+        "shaders/common/normal.gs");
 
-    normalShader = ResourceManager::LoadShader("normal_debug", 
-        "shaders/common/normal.vs", "shaders/common/normal.fs", "shaders/common/normal.gs");
-
-    viewMatrix = view;
-    projMatrix = projection;
-    viewPosition = viewPos;
+    lightManager.UploadToUBO(ubo, viewMatrix, projMatrix, viewPosition);
 }
 
-void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera &camera, std::shared_ptr<LightManager> lightManager,
-        std::shared_ptr<Framebuffer> sceneFBO, std::shared_ptr<PostProcessingPipeline> postProcessor,
-        bool wireFrame)
+void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, 
+                            Camera &camera, 
+                            LightManager &lightManager,
+                            Framebuffer &sceneFBO, 
+                            PostProcessingPipeline &postProcessor,
+                            bool wireFrame)
 {
     std::vector<std::shared_ptr<Entity>> transparentEntities;
     std::vector<std::shared_ptr<Entity>> opaqueEntities;
@@ -102,10 +110,9 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
         return da > db; // far first
     });
 
-    // If we have scene FBO and post processing (and not wireframe), render to FBO then postprocess
-    if (sceneFBO && postProcessor && !wireFrame)
+    if (!wireFrame)
     {
-        sceneFBO->Bind();
+        sceneFBO.Bind();
         glEnable(GL_DEPTH_TEST);
         glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -123,23 +130,20 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
                          skyboxEntity->skyboxComp->material);
         }
 
-        if (lightManager) 
-        {
-            lightManager->RenderDebugLights(viewMatrix, projMatrix);
-        }
+        lightManager.RenderDebugLights(viewMatrix, projMatrix);
 
         for (auto& e : transparentEntities)
         {
             DrawEntity(e.get());
         }
 
-        sceneFBO -> ResolveToScreen();
+        sceneFBO.ResolveToScreen();
 
         // Run post-processing pipeline on scene texture
-        GLuint processed = postProcessor->Apply(sceneFBO->GetIntermediateTexture());
+        GLuint processed = postProcessor.Apply(sceneFBO.GetIntermediateTexture());
 
         // Blit final result to screen
-        postProcessor->DrawToScreen(processed);
+        postProcessor.DrawToScreen(processed);
 
         // Restore default GL state expected by main loop if needed
         glEnable(GL_DEPTH_TEST);
@@ -156,10 +160,7 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
                          skyboxEntity->skyboxComp->shader,
                          skyboxEntity->skyboxComp->material);
         }
-        if (lightManager) 
-        {
-            lightManager->RenderDebugLights(viewMatrix, projMatrix);
-        }
+        lightManager.RenderDebugLights(viewMatrix, projMatrix);
         for (auto& e : transparentEntities)
         {
             DrawEntity(e.get());
@@ -216,6 +217,9 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     if (shader->hasUniform("projection")) shader->setMat4("projection", projMatrix);
     if (shader->hasUniform("viewPos"))    shader->setVec3("viewPos", viewPosition);
 
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+
     mesh.Draw(*shader, *mat);
 
     // Outline (Optional)
@@ -234,6 +238,7 @@ void Renderer::SubmitMesh(const glm::mat4& model,
         outlineShader->setMat4("projection", projMatrix);
         outlineShader->setVec3("color", outlineCol);
 
+        glCullFace(GL_FRONT);
         mesh.DrawSimple();
 
         // Restore State

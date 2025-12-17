@@ -6,7 +6,7 @@
 #include "helpers/Shader.h"
 #include "helpers/camera.h"
 #include "core/Window.h"
-#include "state/appState.h"
+#include "application/appState.h"
 #include "core/rendering/Mesh.h"
 #include "core/rendering/Renderer.h"
 #include "core/LightManager.h"
@@ -17,20 +17,23 @@
 
 class Space : public Scene {
 public:
-    Space(Window& win);
-    ~Space() = default;
+    Space();
+    ~Space();
 
     // Called once when the scene is created (setup VAOs, VBOs, shaders, textures, etc.)
-    void init() override;
+    void Init(AppState &appState) override;
 
     // Called every frame to update logic (e.g., rotations, animations)
-    void update() override;
+    void Update(AppState &appState) override;
+
+    // Called when this scene is activated
+    void OnActivate(AppState &appState) override;
 
     // Called every frame to draw objects
-    void render() override;
+    void Render(AppState &appState) override;
 
     // Scene display name (helpful when switching scenes)
-    std::string name() const override { return "Space Scene"; }
+    std::string Name() const override { return "Space Scene"; }
 
 
 private:
