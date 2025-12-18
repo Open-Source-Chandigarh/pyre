@@ -100,25 +100,9 @@ void Backpack::Update(AppState &appState)
         float offset = 29.5f + 0.1f * sin(i);
         entities[i] -> transform.rotation.y = rotationAngle + offset * float(i);
     }
-}
-
-void Backpack::Render(AppState &appState)
-{
-    Renderer* renderer = appState.renderer.get();
-    
     if (!appState.lightManager->spots.empty()) 
     {
         appState.lightManager->spots[0].position = appState.camera.Position;
         appState.lightManager->spots[0].direction = appState.camera.Front;
     }
-
-    renderer -> BeginScene(appState.camera, 
-                            *appState.globalUBO, 
-                            *appState.lightManager, 
-                            appState.GetAspectRatio());
-
-    renderer->RenderScene(entities, appState.camera, *appState.lightManager, 
-                          *sceneFBO, *postPipeline, appState.wireframeEnabled);
-                          
-    renderer->EndScene();
 }

@@ -18,6 +18,7 @@ ToonScene::~ToonScene()
 
 void ToonScene::Init(AppState &appState)
 {
+    this -> clearColor = glm::vec3(0.5f, 0.8f, 0.9f);
     entities.clear();
 
     toonShader = ResourceManager::LoadShader("toon", "shaders/modularVertexShader.vs", "shaders/toon.fs");
@@ -122,26 +123,9 @@ void ToonScene::OnActivate(AppState &appState)
 
 void ToonScene::Update(AppState &appState)
 {
-    glClearColor(0.5, 0.8, 0.9, 1.0);
-}
-
-void ToonScene::Render(AppState &appState)
-{
-    Renderer *renderer = appState.renderer.get();
-
     if (!appState.lightManager -> spots.empty())
     {
         appState.lightManager -> spots[0].position = appState.camera.Position;
         appState.lightManager -> spots[0].direction = appState.camera.Front;
     }
-
-     renderer -> BeginScene(appState.camera, 
-                            *appState.globalUBO, 
-                            *appState.lightManager, 
-                            appState.GetAspectRatio());
-
-    renderer -> RenderScene(entities, appState.camera, *appState.lightManager, 
-                            *sceneFBO, *postPipeline, appState.wireframeEnabled);
-
-    renderer -> EndScene();
 }

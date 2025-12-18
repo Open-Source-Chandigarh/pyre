@@ -159,24 +159,11 @@ void Test::OnActivate(AppState &appState)
     appState.lightManager -> AddPointLight(r);
 }
 
-
-void Test::Update(AppState &appState) {}
-
-void Test::Render(AppState &appState)
+void Test::Update(AppState &appState) 
 {
-    Renderer *renderer = appState.renderer.get();
-
     if (!appState.lightManager -> spots.empty())
     {
         appState.lightManager -> spots[0].position = appState.camera.Position;
         appState.lightManager -> spots[0].direction = appState.camera.Front;
     }
-
-    renderer -> BeginScene(appState.camera, 
-                            *appState.globalUBO, 
-                            *appState.lightManager, 
-                            appState.GetAspectRatio());
-    renderer -> RenderScene(entities, appState.camera, *appState.lightManager, 
-                            *sceneFBO, *postPipeline, appState.wireframeEnabled);
-    renderer -> EndScene();
 }

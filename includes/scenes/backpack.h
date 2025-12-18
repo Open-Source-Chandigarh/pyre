@@ -29,14 +29,10 @@ public:
     // Called when this scene is activated
     void OnActivate(AppState &appState) override;
 
-    // Called every frame to draw objects
-    void Render(AppState &appState) override;
-
     std::string Name() const override { return "Model Loading Demo Scene"; }
 
 private:
     std::shared_ptr<Shader> shader;
-    std::vector<std::shared_ptr<Entity>> entities;
     std::shared_ptr<Model> obj;
 
     float rotationAngle;

@@ -32,7 +32,8 @@ public:
                     LightManager &lightManager,
                     Framebuffer &sceneFBO, 
                     PostProcessingPipeline &postProcessor,
-                    bool wireFrame = false);
+                    bool wireFrame = false, 
+                    glm::vec3 clearColor = glm::vec3(0.1f));
         
    // SubmitMesh Overloads
     void SubmitMesh(const glm::mat4& model, 

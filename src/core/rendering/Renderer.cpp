@@ -23,6 +23,7 @@ void Renderer::BeginScene(const Camera &camera, GlobalUBO &ubo,
     glEnable(GL_STENCIL_TEST);
     glEnable(GL_DEPTH_TEST);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    glStencilMask(0xFF);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     if(!outlineShader) 
@@ -42,7 +43,8 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
                             LightManager &lightManager,
                             Framebuffer &sceneFBO, 
                             PostProcessingPipeline &postProcessor,
-                            bool wireFrame)
+                            bool wireFrame,
+                            glm::vec3 clearColor)
 {
     std::vector<std::shared_ptr<Entity>> transparentEntities;
     std::vector<std::shared_ptr<Entity>> opaqueEntities;
@@ -114,7 +116,7 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
     {
         sceneFBO.Bind();
         glEnable(GL_DEPTH_TEST);
-        glClearColor(0.05f, 0.05f, 0.1f, 1.0f);
+        glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         for (auto& e : opaqueEntities)
@@ -238,7 +240,6 @@ void Renderer::SubmitMesh(const glm::mat4& model,
         outlineShader->setMat4("projection", projMatrix);
         outlineShader->setVec3("color", outlineCol);
 
-        glCullFace(GL_FRONT);
         mesh.DrawSimple();
 
         // Restore State
@@ -327,6 +328,7 @@ void Renderer::SubmitSkybox(const Mesh &mesh,
 
     // Depth func so skybox passes at far plane
     glDepthFunc(GL_LEQUAL);
+    glDisable(GL_CULL_FACE);
 
     // Use view without translation so skybox is camera-centered
     glm::mat4 viewNoTrans = glm::mat4(glm::mat3(viewMatrix));
@@ -347,6 +349,8 @@ void Renderer::SubmitSkybox(const Mesh &mesh,
     mesh.DrawSimple();
 
     // restore state
+    glEnable(GL_CULL_FACE); 
+    glCullFace(GL_BACK);
     glDepthFunc(GL_LESS);
     glActiveTexture(GL_TEXTURE0);
 }

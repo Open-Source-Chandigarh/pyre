@@ -125,17 +125,4 @@ void Space::OnActivate(AppState &appState)
     appState.lightManager -> AddPointLight(rimLight);
 }
 
-
 void Space::Update(AppState &appState) {}
-
-void Space::Render(AppState &appState)
-{
-    Renderer *renderer = appState.renderer.get();
-    renderer -> BeginScene(appState.camera, 
-                            *appState.globalUBO, 
-                            *appState.lightManager, 
-                            appState.GetAspectRatio());
-    renderer -> RenderScene(entities, appState.camera, *appState.lightManager, *sceneFBO, 
-                        *postPipeline, appState.wireframeEnabled);
-    renderer -> EndScene();
-}

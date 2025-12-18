@@ -29,9 +29,6 @@ public:
     // Called when this scene is activated
     void OnActivate(AppState &appState) override;
 
-    // Called every frame to draw objects
-    void Render(AppState &appState) override;
-
     // Scene display name (helpful when switching scenes)
     std::string Name() const override { return "Space Scene"; }
 
@@ -40,8 +37,6 @@ private:
     // The shader program for this scene
     std::shared_ptr<Shader> planetShader;
     std::shared_ptr<Shader> asteroidShader;
-
-    std::vector<std::shared_ptr<Entity>> entities;
 
     std::shared_ptr<Model> planet;
     std::shared_ptr<Model> asteroid;
