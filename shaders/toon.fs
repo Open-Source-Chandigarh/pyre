@@ -18,7 +18,7 @@ float Toonify(float value)
     return 0.1; // Shadow color
 }
 
-// Toon specular is usually a dot, not a fade
+// Toon specular is a dot, not a fade
 float ToonSpecular(vec3 normal, vec3 lightDir, vec3 viewDir)
 {
     vec3 reflectDir = reflect(-lightDir, normal);

@@ -77,6 +77,7 @@ public:
     void AddSpotLight(const SpotLight& sl);
     void ClearPointLights();
     void ClearSpotLights();
+    glm::vec3 GetDirectionalLightDir() { return dir; }
 
     // Apply stored lights to the currently used shader
     void ApplyToShader(Shader& shader, Renderer& renderer,

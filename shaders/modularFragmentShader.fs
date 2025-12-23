@@ -3,6 +3,7 @@
 in vec3 FragPos;
 in vec3 Normal;
 in vec2 TexCoords;
+in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
 
@@ -13,7 +14,7 @@ out vec4 FragColor;
 void main()
 {
     if (material_diffuse_present != 1) {
-        FragColor = vec4(1, 0, 1, 1); // Magic pink: texture is NOT bound
+        FragColor = vec4(1, 0, 1, 1); // Magic pink: texture is not bound
     return;
     }
     vec3 N = normalize(Normal);
@@ -22,7 +23,7 @@ void main()
     vec3 result = vec3(0.0);
 
     // Directional light (single)
-    result += CalcDirLight(N, FragPos, V);
+    result += CalcDirLight(N, FragPos, V, FragPosLightSpace);
 
     // Point lights
     for (int i = 0; i < numPointLights; ++i)

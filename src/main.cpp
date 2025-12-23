@@ -5,6 +5,7 @@
 #include "scenes/Space.h"
 #include "scenes/ToonScene.h"
 #include "scenes/test.h"
+#include "core/ResourceManager.h"
 
 int main()
 {
@@ -23,7 +24,10 @@ int main()
     catch (const std::exception& e)
     {
         std::cerr << "ERROR: " << e.what() << std::endl;
+        ResourceManager::Clear();
         return -1;
     }
+
+    ResourceManager::Clear();
     return 0;
 }

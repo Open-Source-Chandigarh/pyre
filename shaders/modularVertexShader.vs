@@ -16,16 +16,19 @@ layout (location = 3) in mat4 aInstanceMatrix;
         vec3 FragPos;
         vec3 Normal;
         vec2 TexCoords;
+        vec4 FragPosLightSpace;
     } vs_out;
 #else
-    // If NO GS, output standard globals for the FS
+    // If no GS, output standard globals for the FS
     out vec3 FragPos;
     out vec3 Normal;
     out vec2 TexCoords;
+    out vec4 FragPosLightSpace;
 #endif
 
 uniform mat4 model;        // Used when isInstanced = false
 uniform bool isInstanced;  // Model matrix Switch
+uniform mat4 lightSpaceMatrix;
 
 void main()
 {
@@ -39,10 +42,12 @@ void main()
         vs_out.FragPos = worldPos;
         vs_out.Normal = worldNormal;
         vs_out.TexCoords = aTexCoords;
+        vs_out.FragPosLightSpace = lightSpaceMatrix * vec4(worldPos, 1.0);
     #else
         FragPos = worldPos;
         Normal = worldNormal;
         TexCoords = aTexCoords;
+        FragPosLightSpace = lightSpaceMatrix * vec4(worldPos, 1.0);
     #endif
 
     gl_Position = proj * view * vec4(worldPos, 1.0);

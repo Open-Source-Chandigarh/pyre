@@ -5,10 +5,10 @@
 #include "core/LightManager.h"
 #include "core/rendering/Mesh.h"
 #include "core/rendering/GlobalUBO.h"
+#include "core/rendering/Framebuffer.h"
 
 class Model;
 class Camera;
-class Framebuffer;
 class PostProcessingPipeline;
 struct Entity;
 struct RenderSettings
@@ -71,7 +71,16 @@ public:
     std::shared_ptr<Shader> normalShader;
 
 private:
+    // generic helper to draw a list of entities
+    void RenderPass(const std::vector<std::shared_ptr<Entity>>& entities, 
+                    const glm::mat4& view, 
+                    const glm::mat4& proj,
+                    std::shared_ptr<Shader> shaderOverride = nullptr);
     glm::mat4 viewMatrix;
     glm::mat4 projMatrix;
     glm::vec3 viewPosition;
+    // shadow mappping resources
+    std::unique_ptr<Framebuffer> shadowFBO;
+    std::shared_ptr<Shader> depthShader;
+    glm::mat4 lightSpaceMatrix;
 };

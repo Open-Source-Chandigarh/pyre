@@ -84,9 +84,9 @@ void Test::Init(AppState &appState)
     cubeMat -> vec3s["material_diffuseColor"] = glm::vec3(1.0f);
     cubeMat -> vec3s["material_specularColor"] = glm::vec3(1.0f);
     // cubeMat -> showNormals = true;
-    cubeMat -> outlineEnabled = true;
+    // cubeMat -> outlineEnabled = true;
 
-    float spacing = 1.05f;
+    float spacing = 1.02f;
     float height = 1.1f;
     int base = 2;
 
@@ -113,11 +113,11 @@ void Test::Init(AppState &appState)
         mat -> cullMode = CullMode::Front;
         mat -> textures["material_diffuse"] = floorDiffuseMap;
         mat -> textures["material_specular"] = floorSpecularMap;
-        mat -> floats["material_shininess"] = 32.0f;
+        mat -> floats["material_shininess"] = 164.0f;
 
         std::shared_ptr<Entity> e = Entity::Create();
         e -> AddMesh(&plane, mat, shader);
-        e -> transform.scale = glm::vec3(10);
+        e -> transform.scale = glm::vec3(20);
         entities.push_back(e);
     }
 
@@ -131,36 +131,30 @@ void Test::OnActivate(AppState &appState)
     appState.lightManager -> ClearSpotLights();
     
     appState.lightManager -> SetDirectional(
-        glm::vec3(-0.5f, -1.0f, -0.3f), glm::vec3(0.04f), glm::vec3(0.55f), glm::vec3(0.7f)
+        glm::vec3(-0.5f, -1.0f, -0.3f), glm::vec3(0.05f), glm::vec3(0.6f), glm::vec3(0.2f)
     );
 
-    PointLight k;
-    k.position = glm::vec3(1.5f, 2, 1.5f);
-    k.ambient = glm::vec3(0.03f);
-    k.diffuse = glm::vec3(1);
-    k.specular = glm::vec3(0.5f);
-    k.constant = 1; k.linear = 0.09f; k.quadratic = 0.032f;
-    appState.lightManager -> AddPointLight(k);
-
-    PointLight f;
-    f.position = glm::vec3(-1, 2, 1);
-    f.ambient = glm::vec3(0.04f);
-    f.diffuse = glm::vec3(0.7, 0.4, 0.1);
-    f.specular = glm::vec3(0.4f);
-    f.constant = 1; f.linear = 0.14f; f.quadratic = 0.07f;
-    appState.lightManager -> AddPointLight(f);
-
-    PointLight r;
-    r.position = glm::vec3(-1, 2, -2);
-    r.ambient = glm::vec3(0.01f);
-    r.diffuse = glm::vec3(0.2, 0.5, 0.4);
-    r.specular = glm::vec3(0.4);
-    r.constant = 1; r.linear = 0.09f; r.quadratic = 0.032f;
-    appState.lightManager -> AddPointLight(r);
 }
 
 void Test::Update(AppState &appState) 
 {
+    float time = (float)glfwGetTime() * 0.8f;
+
+    // varying X and Z creates a circle around the scene
+    float lightX = sin(time); 
+    float lightZ = cos(time) * 1.2f;
+    
+    // Y is set to -1.0f so it always points somewhat downwards at the floor
+    glm::vec3 newDirection = glm::normalize(glm::vec3(lightX, -1.0f, lightZ));
+
+    // We keep the color/intensity values consistent with what you set in OnActivate
+    appState.lightManager->SetDirectional(
+        newDirection,
+        glm::vec3(0.05f),        // Ambient
+        glm::vec3(0.4f),        // Diffuse
+        glm::vec3(0.1f)         // Specular
+    );
+
     if (!appState.lightManager -> spots.empty())
     {
         appState.lightManager -> spots[0].position = appState.camera.Position;

@@ -10,121 +10,235 @@
 #include "core/rendering/Framebuffer.h"
 #include "core/rendering/Material.h"
 
+// prepares the renderer for a new frame.
+// calculates view/proj matrices and uploads light data to the gpu.
 void Renderer::BeginScene(const Camera &camera, GlobalUBO &ubo, 
         LightManager &lightManager, float aspectRatio)
 {
-    // intialize camera state
+    // camera math
+    // calculate standard view/projection matrices based on camera state.
     viewMatrix = camera.GetViewMatrix();
     projMatrix = glm::perspective(glm::radians(camera.Zoom), 
-                                 aspectRatio, camera.Near, camera.Far);
+                                  aspectRatio, camera.Near, camera.Far);
     viewPosition = camera.Position;
 
-    // clear buffers and setup depth and stencil test
+    // reset gl state
+    // enable depth/stencil testing so geometry overlaps correctly.
     glEnable(GL_STENCIL_TEST);
     glEnable(GL_DEPTH_TEST);
     glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-    glStencilMask(0xFF);
+    glStencilMask(0xFF); // enable writing to stencil buffer
+
+    // clear the canvas (color, depth, and stencil bits)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+    // load resources
     if(!outlineShader) 
         outlineShader = ResourceManager::LoadShader("outline", 
         "shaders/common/singleColor.vs", 
         "shaders/common/singleColor.fs");
+    
+    if (!depthShader)
+        depthShader = ResourceManager::LoadShader("depth", 
+            "shaders/shadows/depth.vs", 
+            "shaders/shadows/depth.fs");
+    
     if(!normalShader)
-        normalShader = ResourceManager::LoadShader("normal", "shaders/common/normal.vs", 
+        normalShader = ResourceManager::LoadShader("normal", 
+        "shaders/common/normal.vs", 
         "shaders/common/normal.fs", 
         "shaders/common/normal.gs");
+    
+    if (!shadowFBO) 
+        shadowFBO = std::make_unique<Framebuffer>(2048, 2048, true, false, false);
 
+    // lighting
+    // upload all point/spot/dir lights to the uniform buffer object (ubo).
     lightManager.UploadToUBO(ubo, viewMatrix, projMatrix, viewPosition);
 }
 
-void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, 
-                            Camera &camera, 
-                            LightManager &lightManager,
-                            Framebuffer &sceneFBO, 
-                            PostProcessingPipeline &postProcessor,
-                            bool wireFrame,
-                            glm::vec3 clearColor)
+// generic helper to draw a list of entities.
+// reused for both main pass and shadow pass.
+void Renderer::RenderPass(const std::vector<std::shared_ptr<Entity>> &entities, 
+                    const glm::mat4 &view, 
+                    const glm::mat4 &proj,
+                    std::shared_ptr<Shader> shaderOverride)
 {
-    std::vector<std::shared_ptr<Entity>> transparentEntities;
-    std::vector<std::shared_ptr<Entity>> opaqueEntities;
-    std::shared_ptr<Entity> skyboxEntity = nullptr;
-
-    // split lists and detect skybox (only use first skybox entity)
-    for (auto& e : entities)
-    {
-        if (!e) continue;
-        if (e->skyboxComp) {
-            // prefer the first found skybox and skip adding it to the lists
-            if (!skyboxEntity) skyboxEntity = e;
-            continue; // don't treat skybox as normal geometry
-        }
-
-        // guard: some entities (e.g. models) might not have a material; just treat them opaque
-       if (e->meshComp) 
-       {
-            if (e->meshComp->material && e->meshComp->material->isTransparent)
-                transparentEntities.push_back(e);
-            else
-                opaqueEntities.push_back(e);
-        }
-        else if (e->modelComp) 
-        {
-            opaqueEntities.push_back(e);
-        }
-    }
-
-    // Helper lambda to draw a single entity
+    glm::mat4 oldView = viewMatrix;
+    glm::mat4 oldProj = projMatrix;
+    viewMatrix = view;
+    projMatrix = proj;
     auto DrawEntity = [&](Entity* e) 
     {
         glm::mat4 modelMatrix = e->transform.GetModelMatrix();
+        std::shared_ptr<Shader> currentShader;
 
-        if (e->meshComp) 
+        // if we are overriding the shader (Shadow Pass), we force outlines off.
+        RenderSettings currentSettings; 
+        
+        // copy existing settings if they exist (for Models)
+        if (e->modelComp) currentSettings = e->modelComp->renderSettings;
+        
+        if (shaderOverride) 
         {
-            SubmitMesh(modelMatrix, 
-                       *e->meshComp->mesh, 
-                       e->meshComp->shader, 
-                       e->meshComp->material);
+            // force disable extra features that ruin shadow maps
+            currentSettings.outlineEnabled = false;
+            currentSettings.showNormals = false;
+        }
+
+        if (e->meshComp)
+        {
+            currentShader = (shaderOverride) ? shaderOverride : e->meshComp->shader;
+
+            if (currentShader)
+            {
+                // pass currentSettings to enforce the override (disable outlines)
+                SubmitMesh(modelMatrix, 
+                           *e->meshComp->mesh, 
+                           currentShader, 
+                           e->meshComp->material,
+                           currentSettings); 
+            }
         }
         else if (e->modelComp) 
         {
-            if (e->modelComp->instanceCount > 1) 
+            currentShader = (shaderOverride) ? shaderOverride : e->modelComp->shader;
+            
+            if (currentShader)
             {
-                SubmitInstancedModel(*e->modelComp->model, 
-                                     e->modelComp->shader, 
-                                     e->modelComp->instanceCount);
-            } else 
-            {
-                SubmitModel(modelMatrix, 
-                            *e->modelComp->model, 
-                            e->modelComp->shader, e->modelComp->renderSettings); 
+                if (e->modelComp->instanceCount > 1) 
+                {
+                    SubmitInstancedModel(*e->modelComp->model, 
+                                         currentShader, 
+                                         e->modelComp->instanceCount);
+                } 
+                else 
+                {
+                    // pass currentSettings to enforce the override
+                    SubmitModel(modelMatrix, 
+                                *e->modelComp->model, 
+                                currentShader, 
+                                currentSettings); 
+                }
             }
         }
     };
 
-    // sort transparent back-to-front
+    for (auto& e : entities)
+    {
+        // skip transparent objects for shadow pass
+        if (shaderOverride && e->meshComp && e->meshComp->material && e->meshComp->material->isTransparent) 
+            continue;
+
+        DrawEntity(e.get());
+    }
+
+    viewMatrix = oldView;
+    projMatrix = oldProj;
+}
+
+// the main orchestration function.
+// handles sorting, fbos, multiple passes, and post-processing.
+void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, 
+                           Camera &camera, 
+                           LightManager &lightManager,
+                           Framebuffer &sceneFBO, 
+                           PostProcessingPipeline &postProcessor,
+                           bool wireFrame,
+                           glm::vec3 clearColor)
+{
+    // lists to separate renderable types
+    std::vector<std::shared_ptr<Entity>> transparentEntities;
+    std::vector<std::shared_ptr<Entity>> opaqueEntities;
+    std::shared_ptr<Entity> skyboxEntity = nullptr;
+
+    // 1. filtering
+    // separate skybox, transparent, and opaque objects.
+    for (auto& e : entities)
+    {
+        if (!e) continue;
+        
+        // grab the first skybox we find and skip adding it to normal lists
+        if (e->skyboxComp) {
+            if (!skyboxEntity) skyboxEntity = e;
+            continue;
+        }
+
+        bool isTransparent = false;
+        if (e->meshComp && e->meshComp->material && e->meshComp->material->isTransparent) 
+            isTransparent = true;
+        
+        if (isTransparent) transparentEntities.push_back(e);
+        else opaqueEntities.push_back(e);
+    }
+
+    // 2. sorting
+    // sort transparent objects back-to-front. 
+    // standard painter's algorithm to fix blending artifacts.
     glm::vec3 camPosition = camera.Position;
     std::sort(transparentEntities.begin(), transparentEntities.end(),
     [&camPosition](const std::shared_ptr<Entity> a, const std::shared_ptr<Entity> b) 
     {
         float da = glm::dot(camPosition - a->transform.position, camPosition - a->transform.position);
         float db = glm::dot(camPosition - b->transform.position, camPosition - b->transform.position);
-        return da > db; // far first
+        return da > db; // farther objects first
     });
+
+    // render pass 1: shadow mapping
+    
+    // we calculate where the position of the area which is 10 units in front of the player/camera
+    glm::vec3 flatFront = glm::normalize(glm::vec3(camera.Front.x, 0.0f, camera.Front.z));
+    glm::vec3 targetPos = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 lightDir = glm::normalize(lightManager.GetDirectionalLightDir());
+
+    // backup 80 units from the player along the direction of the light to 
+    // get the position of the directional light or where should the virtual camera sit
+    glm::vec3 lightPos = targetPos - (lightDir * 80.0f);
+
+    // construct matrices from lights pov
+    glm::mat4 lightView = glm::lookAt(lightPos, targetPos, glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::mat4 lightProj = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 100.0f);
+    // convert our scene space matrices to light space
+    lightSpaceMatrix = lightProj * lightView;
+
+    // prep shadow rendering
+    depthShader->use();
+    depthShader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+
+    shadowFBO->Bind();
+    glViewport(0, 0, shadowFBO->Width(), shadowFBO->Height());
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+
+    // execute the draw call for opaque objects only
+    RenderPass(opaqueEntities, lightView, lightProj, depthShader);
+
+    Framebuffer::Unbind();
+    // reset viewport to screen size for next pass
+    glViewport(0, 0, sceneFBO.Width(), sceneFBO.Height());
+    glCullFace(GL_BACK);
+
+    // render pass 2: main lighting pass
 
     if (!wireFrame)
     {
+        // bind the scene framebuffer to capture colors for post-processing
         sceneFBO.Bind();
         glEnable(GL_DEPTH_TEST);
         glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-        for (auto& e : opaqueEntities)
-        {
-            DrawEntity(e.get());
-        }
-       
-        // Render skybox before doing post processing
+        // bind depth texture for shadow mapping
+        glActiveTexture(GL_TEXTURE10);
+        glBindTexture(GL_TEXTURE_2D, shadowFBO->GetDepthTexture());
+
+        // a. draw opaque geometry
+        // this writes to the depth buffer so subsequent draws clip correctly.
+        RenderPass(opaqueEntities, viewMatrix, projMatrix, nullptr);
+        
+        // b. draw skybox
+        // drawn after opaque so we don't process pixels covered by geometry.
         if (skyboxEntity) 
         {
             SubmitSkybox(*skyboxEntity->skyboxComp->mesh, 
@@ -132,44 +246,41 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
                          skyboxEntity->skyboxComp->material);
         }
 
+        // c. debug lights
+        // draw little lightbulbs/spheres where the point lights are.
         lightManager.RenderDebugLights(viewMatrix, projMatrix);
 
-        for (auto& e : transparentEntities)
-        {
-            DrawEntity(e.get());
-        }
+        // d. draw transparent geometry
+        // drawn last so they blend over opaque objects and skybox.
+        RenderPass(transparentEntities, viewMatrix, projMatrix, nullptr);
 
+        // resolve msaa (if enabled)
         sceneFBO.ResolveToScreen();
 
-        // Run post-processing pipeline on scene texture
+        // e. post-processing
+        // take the texture from the FBO and run it through the effects pipeline.
         GLuint processed = postProcessor.Apply(sceneFBO.GetIntermediateTexture());
-
-        // Blit final result to screen
         postProcessor.DrawToScreen(processed);
 
-        // Restore default GL state expected by main loop if needed
-        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_DEPTH_TEST); // restore state just in case
     }
     else
     {
-        for (auto& e : opaqueEntities)
-        {
-           DrawEntity(e.get());
-        }
+        // wireframe mode logic (skip fbo/post-process for clarity)
+        RenderPass(opaqueEntities, viewMatrix, projMatrix, nullptr);
+        
         if (skyboxEntity) 
-        {
             SubmitSkybox(*skyboxEntity->skyboxComp->mesh, 
-                         skyboxEntity->skyboxComp->shader,
+                         skyboxEntity->skyboxComp->shader, 
                          skyboxEntity->skyboxComp->material);
-        }
+                         
         lightManager.RenderDebugLights(viewMatrix, projMatrix);
-        for (auto& e : transparentEntities)
-        {
-            DrawEntity(e.get());
-        }
-    } 
+        RenderPass(transparentEntities, viewMatrix, projMatrix, nullptr);
+    }
 }
 
+// handles hardware instancing.
+// draws the model 'instanceCount' times in a single draw call.
 void Renderer::SubmitInstancedModel(Model& modelObj, 
                                     const std::shared_ptr<Shader>& shader, 
                                     int instanceCount)
@@ -177,19 +288,32 @@ void Renderer::SubmitInstancedModel(Model& modelObj,
     if (!shader) return;
     shader->use();
     
-    // Set Globals (We don't set 'model' matrix because VBO handles it)
+    // set camera globals.
+    // note: we do NOT set the 'model' matrix here because that data comes
+    // from the instance VBO (vertex buffer) setup in the Mesh class.
     if (shader->hasUniform("view"))       shader->setMat4("view", viewMatrix);
     if (shader->hasUniform("projection")) shader->setMat4("projection", projMatrix);
     if (shader->hasUniform("viewPos"))    shader->setVec3("viewPos", viewPosition);
+    if (shader->hasUniform("shadowMap")) 
+    {
+        shader->setInt("shadowMap", 10);
+        glActiveTexture(GL_TEXTURE10);
+        glBindTexture(GL_TEXTURE_2D, shadowFBO->GetDepthTexture());
+    }
+    if (shader->hasUniform("lightSpaceMatrix")) 
+    {
+        shader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
+    }
 
-    // Iterate meshes in the model
+    // iterate meshes in the model
     for (const auto& entry : modelObj.GetMeshes())
     {
         entry.mesh->DrawInstanced(*shader, *entry.material, instanceCount);
     }
 }
 
-// Handles Main Pass + Debug Passes (Normals, Outlines)
+// the core draw function.
+// handles material binding, stencil outlines, and normal debug visualization.
 void Renderer::SubmitMesh(const glm::mat4& model, 
                           const Mesh& mesh, 
                           const std::shared_ptr<Shader>& shader, 
@@ -198,41 +322,54 @@ void Renderer::SubmitMesh(const glm::mat4& model,
 {
     if (!shader || !mat) return;
 
-    // Combine Material flags with Override flags 
+    // merge material flags with any overrides provided by the model component
     bool doShowNormals  = mat->showNormals    || overrides.showNormals;
     bool doOutline      = mat->outlineEnabled || overrides.outlineEnabled;
     glm::vec3 outlineCol = (overrides.outlineEnabled) ? overrides.outlineColor : mat->outlineColor;
 
-    // If outlining, write to stencil buffer If not, don't touch stencil
-    if (doOutline) {
+    // stencil logic
+    // always enable writing to stencil buffer (mask 0xff).
+    // if outline enabled write 1.
+    // if outline disabled write 0. 
+    // this ensures non-outlined objects clean the stencil buffer for their pixels.
+    glStencilMask(0xFF); 
+    if (doOutline)
         glStencilFunc(GL_ALWAYS, 1, 0xFF);
-        glStencilMask(0xFF);
-    } else {
-        glStencilMask(0x00); 
-    }
+    else 
+        glStencilFunc(GL_ALWAYS, 0, 0xFF);
 
     shader->use();
-    
-    // Set Standard Uniforms
-    if (shader->hasUniform("model"))      shader->setMat4("model", model);
-    if (shader->hasUniform("view"))       shader->setMat4("view", viewMatrix);
-    if (shader->hasUniform("projection")) shader->setMat4("projection", projMatrix);
-    if (shader->hasUniform("viewPos"))    shader->setVec3("viewPos", viewPosition);
+    if(shader->hasUniform("shadowMap")) 
+    {
+        shader->setInt("shadowMap", 10); // Tell shader to look at unit 10
+        glActiveTexture(GL_TEXTURE10);
+        glBindTexture(GL_TEXTURE_2D, shadowFBO->GetDepthTexture()); 
+    }
+    // upload standard transformation matrices
+    if (shader->hasUniform("model"))           shader->setMat4("model", model);
+    if (shader->hasUniform("view"))            shader->setMat4("view", viewMatrix);
+    if (shader->hasUniform("projection"))      shader->setMat4("projection", projMatrix);
+    if (shader->hasUniform("viewPos"))         shader->setVec3("viewPos", viewPosition);
+    if (shader->hasUniform("lightSpaceMatrix")) shader->setMat4("lightSpaceMatrix", lightSpaceMatrix);
 
+    // standard culling (don't draw back faces)
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
 
+    // main draw call
     mesh.Draw(*shader, *mat);
 
-    // Outline (Optional)
+    // outline pass (optional)
     if (doOutline && outlineShader)
     {
+        // logic: only draw where stencil value is not 1.
+        // since we just drew the object at 1, this prevents drawing over the object itself.
         glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilMask(0x00);
+        glStencilMask(0x00); // don't write to stencil
 
         outlineShader->use();
         
-        // Scale up slightly
+        // scale the object up slightly (e.g. 1.03x) to create the border
         glm::mat4 outlineModel = glm::scale(model, glm::vec3(1.03f)); 
 
         outlineShader->setMat4("model", outlineModel);
@@ -240,35 +377,34 @@ void Renderer::SubmitMesh(const glm::mat4& model,
         outlineShader->setMat4("projection", projMatrix);
         outlineShader->setVec3("color", outlineCol);
 
-        mesh.DrawSimple();
+        mesh.DrawSimple(); // draw without materials/textures
 
-        // Restore State
+        // cleanup stencil state
         glStencilMask(0xFF);
         glStencilFunc(GL_ALWAYS, 0, 0xFF);
     }
 
-    // Normals (Optional)
+    // normals debug pass (optional)
     if (doShowNormals && normalShader)
     {
         normalShader->use();
         
-        // Normals need the model matrix (to stick to surface)
+        // geometry shader needs model matrix to place normals correctly
         normalShader->setMat4("model", model);
         normalShader->setMat4("view", viewMatrix);
         normalShader->setMat4("projection", projMatrix);
         
-        // Yellow color
         if(normalShader->hasUniform("color")) 
-            normalShader->setVec3("color", glm::vec3(1.0f, 1.0f, 0.0f));
+            normalShader->setVec3("color", glm::vec3(1.0f, 1.0f, 0.0f)); // yellow
 
         mesh.DrawSimple();
     }
 
-    // Reset active texture to be safe for next draw call
+    // cleanup
     glActiveTexture(GL_TEXTURE0);
 }
 
-// Just delegates to SubmitMesh for every piece of the model
+// wrapper to draw a full model (which may contain multiple meshes).
 void Renderer::SubmitModel(const glm::mat4& modelMatrix, 
                            Model& modelObj, 
                            const std::shared_ptr<Shader>& shader,
@@ -276,10 +412,7 @@ void Renderer::SubmitModel(const glm::mat4& modelMatrix,
 {
     if (!shader) return;
 
-    // We don't need to bind the shader here because SubmitMesh handles it.
-    // However, for optimization, we *could* bind global uniforms once here.
-    // For simplicity/correctness with overrides, let SubmitMesh handle state changes.
-
+    // iterate through all sub-meshes (e.g. wheels, body, windows)
     const auto& meshes = modelObj.GetMeshes();
     for (const auto& entry : meshes)
     {
@@ -287,34 +420,38 @@ void Renderer::SubmitModel(const glm::mat4& modelMatrix,
                    *entry.mesh, 
                    shader, 
                    entry.material, 
-                   settings); // Pass the model-wide settings down!
+                   settings);
     }
 }
 
+// helper overload with default settings
 void Renderer::SubmitMesh(const glm::mat4 &model, const Mesh &mesh, 
     const std::shared_ptr<Shader> &shader, const std::shared_ptr<Material>& mat)
 {
-    SubmitMesh(model, mesh, shader, mat, RenderSettings()); // Call main logic with defaults
+    SubmitMesh(model, mesh, shader, mat, RenderSettings());
 }
 
+// helper overload with default settings
 void Renderer::SubmitModel(const glm::mat4 &model, Model &modelObj, 
     const std::shared_ptr<Shader> &shader)
 {
-    SubmitModel(model, modelObj, shader, RenderSettings()); // Call main logic with defaults
+    SubmitModel(model, modelObj, shader, RenderSettings()); 
 }
 
+// specialized skybox rendering.
+// requires depth buffer tricks to render "behind" everything else.
 void Renderer::SubmitSkybox(const Mesh &mesh, 
                             const std::shared_ptr<Shader> &shader, 
                             const std::shared_ptr<Material> &mat)
 {
     if (!shader || !mat) return;
 
-    // Find cubemap texture in material by convention:
-    // prefer "skybox" key, else first Texture with type TEX_CUBEMAP
+    // locate the cubemap texture in the material
     std::shared_ptr<Texture> cubeTex = nullptr;
     auto it = mat->textures.find("skybox");
     if (it != mat->textures.end()) cubeTex = it->second;
     else {
+        // fallback search for any cubemap
         for (const auto& kv : mat->textures) {
             if (kv.second && kv.second->type == TextureType::TEX_CUBEMAP) {
                 cubeTex = kv.second;
@@ -324,31 +461,26 @@ void Renderer::SubmitSkybox(const Mesh &mesh,
     }
     if (!cubeTex) return;
 
-    GLuint cubemapID = cubeTex->ID;
-
-    // Depth func so skybox passes at far plane
+    // magic trick: set depth function to LEQUAL.
+    // the skybox shader sets Z to 1.0 (max depth).
+    // LEQUAL ensures it passes only if nothing else is in front of it.
     glDepthFunc(GL_LEQUAL);
-    glDisable(GL_CULL_FACE);
+    glDisable(GL_CULL_FACE); // render inside of cube
 
-    // Use view without translation so skybox is camera-centered
+    // strip translation from view matrix so skybox doesn't move when we walk
     glm::mat4 viewNoTrans = glm::mat4(glm::mat3(viewMatrix));
-    glm::mat4 proj = projMatrix;
-
+    
     shader->use();
-
-    // Set uniforms only if present (shader may read from UBO instead)
     if (shader->hasUniform("view")) shader->setMat4("view", viewNoTrans);
-    if (shader->hasUniform("projection")) shader->setMat4("projection", proj);
+    if (shader->hasUniform("projection")) shader->setMat4("projection", projMatrix);
     if (shader->hasUniform("skybox")) shader->setInt("skybox", 0);
 
-    // bind cubemap to unit 0 (match the sampler set above if any)
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubeTex->ID);
 
-    // Draw the sky mesh (DrawSimple should not depend on material)
     mesh.DrawSimple();
 
-    // restore state
+    // restore standard state
     glEnable(GL_CULL_FACE); 
     glCullFace(GL_BACK);
     glDepthFunc(GL_LESS);
@@ -357,5 +489,6 @@ void Renderer::SubmitSkybox(const Mesh &mesh,
 
 void Renderer::EndScene()
 {
-    // Future batching or post effects
+    // currently empty. 
+    // will be used for batch flushing or ui rendering later.
 }
