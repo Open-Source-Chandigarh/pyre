@@ -1,16 +1,18 @@
 #pragma once
 #include <glm/glm.hpp>
 #include <memory>
+#include <vector>
 #include "helpers/Shader.h"
 #include "core/LightManager.h"
 #include "core/rendering/Mesh.h"
-#include "core/rendering/GlobalUBO.h"
 #include "core/rendering/Framebuffer.h"
+#include "core/UniformBuffer.h"
 
 class Model;
 class Camera;
 class PostProcessingPipeline;
 struct Entity;
+
 struct RenderSettings
 {
     bool showNormals = false;
@@ -18,12 +20,10 @@ struct RenderSettings
     glm::vec3 outlineColor = glm::vec3(1.0f, 1.0f, 1.0f);
 };
 
-
 class Renderer 
 {
 public:
     void BeginScene(const Camera &camera, 
-                    GlobalUBO &ubo, 
                     LightManager &lightManager, 
                     float aspectRatio);
 
@@ -35,52 +35,149 @@ public:
                     bool wireFrame = false, 
                     glm::vec3 clearColor = glm::vec3(0.1f));
         
-   // SubmitMesh Overloads
-    void SubmitMesh(const glm::mat4& model, 
-                    const Mesh& mesh, 
-                    const std::shared_ptr<Shader>& shader, 
-                    const std::shared_ptr<Material>& mat);
+    // submit mesh overloads
+    void SubmitMesh(const glm::mat4 &model, 
+                    const Mesh &mesh, 
+                    const std::shared_ptr<Shader> &shader, 
+                    const std::shared_ptr<Material> &mat);
 
-    void SubmitMesh(const glm::mat4& model, 
-                    const Mesh& mesh, 
-                    const std::shared_ptr<Shader>& shader, 
-                    const std::shared_ptr<Material>& mat,
-                    const RenderSettings& overrides);
+    void SubmitMesh(const glm::mat4 &model, 
+                    const Mesh &mesh, 
+                    const std::shared_ptr<Shader> &shader, 
+                    const std::shared_ptr<Material> &mat,
+                    const RenderSettings &overrides);
 
-    // SubmitModel Overloads
-    void SubmitModel(const glm::mat4& model, 
-                     Model& modelObj, 
-                     const std::shared_ptr<Shader>& shader);
+    // submit model overloads
+    void SubmitModel(const glm::mat4 &model, 
+                     Model &modelObj, 
+                     const std::shared_ptr<Shader> &shader);
 
-    void SubmitModel(const glm::mat4& model, 
-                     Model& modelObj, 
-                     const std::shared_ptr<Shader>& shader,
-                     const RenderSettings& settings);
+    void SubmitModel(const glm::mat4 &model, 
+                     Model &modelObj, 
+                     const std::shared_ptr<Shader> &shader,
+                     const RenderSettings &settings);
 
-    // Draw a Model N times
-    void SubmitInstancedModel(Model& modelObj, 
-                              const std::shared_ptr<Shader>& shader, 
+    // draw a model n times using hardware instancing
+    void SubmitInstancedModel(Model &modelObj, 
+                              const std::shared_ptr<Shader> &shader, 
                               int instanceCount);
 
-    void SubmitSkybox(const Mesh& mesh, 
-                      const std::shared_ptr<Shader>& shader, 
-                      const std::shared_ptr<Material>& mat);
+    void SubmitSkybox(const Mesh &mesh, 
+                      const std::shared_ptr<Shader> &shader, 
+                      const std::shared_ptr<Material> &mat);
+
     void EndScene();
 
     std::shared_ptr<Shader> outlineShader;
     std::shared_ptr<Shader> normalShader;
 
 private:
-    // generic helper to draw a list of entities
-    void RenderPass(const std::vector<std::shared_ptr<Entity>>& entities, 
-                    const glm::mat4& view, 
-                    const glm::mat4& proj,
+    // internal initialization helpers
+    
+    // calculates view and projection matrices based on camera state
+    void SetupCameraGlobals(const Camera &camera, float aspectRatio);
+    
+    // resets openGL state for a fresh frame (depth, stencil, clearing)
+    void ResetGlState();
+    
+    // ensures internal shaders (outline, depth, normal) are loaded
+    void LoadRequiredShaders();
+    
+    // creates the shadow framebuffer if it doesn't exist yet
+    void EnsureShadowBuffer();
+
+    // creates the uniform buffer for shadow matrices
+    void CreateShadowUBO();
+
+    // render pass logic
+
+    // helper to draw a single entity based on its components (mesh vs model)
+    void DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverride);
+
+    // generic helper to draw a list of entities with a specific view/proj matrix
+    void RenderPass(const std::vector<std::shared_ptr<Entity>> &entities, 
+                    const glm::mat4 &view, 
+                    const glm::mat4 &proj,
                     std::shared_ptr<Shader> shaderOverride = nullptr);
+
+    // scene organization helpers
+
+    // sorts entities into opaque, transparent, and skybox buckets
+    void CategorizeEntities(const std::vector<std::shared_ptr<Entity>> &source,
+                            std::vector<std::shared_ptr<Entity>> &opaque,
+                            std::vector<std::shared_ptr<Entity>> &transparent,
+                            std::shared_ptr<Entity> &skybox);
+
+    // sorts transparent objects back-to-front for correct alpha blending
+    void SortTransparentEntities(std::vector<std::shared_ptr<Entity>> &transparent, const glm::vec3 &camPos);
+
+    // shadow calculation math
+
+    // finds the geometric center of the view frustum
+    glm::vec3 CalculateFrustumCenter(const std::vector<glm::vec4> &corners);
+
+    // calculates the view-projection matrix for the directional light shadow camera
+    glm::mat4 GetLightSpaceMatrix(const float nearPlane, 
+                                            const float farPlane, 
+                                            const glm::vec3 &lightDir, 
+                                            const Camera &camera);
+    
+    std::vector<glm::mat4> GetLightSpaceMatrices(const glm::vec3 &lightDir, const Camera &camera);
+
+    // renders the depth map for shadows
+    void RenderShadowMap(const std::vector<std::shared_ptr<Entity>> &opaqueEntities, 
+                                   const glm::vec3 &lightDir, 
+                                   const Camera &camera);
+
+    // main lighting passes
+
+    // main pass that renders color, lighting, skybox, and transparent objects
+    void RenderLightingPass(const std::vector<std::shared_ptr<Entity>> &opaque,
+                            const std::vector<std::shared_ptr<Entity>> &transparent,
+                            std::shared_ptr<Entity> skybox,
+                            LightManager &lightManager,
+                            Framebuffer &sceneFBO,
+                            PostProcessingPipeline &postProcessor,
+                            glm::vec3 clearColor);
+
+    // simplified debug pass for wireframe mode
+    void RenderWireframePass(const std::vector<std::shared_ptr<Entity>> &opaque,
+                             const std::vector<std::shared_ptr<Entity>> &transparent,
+                             std::shared_ptr<Entity> skybox,
+                             LightManager &lightManager,
+                             Framebuffer &sceneFBO);
+
+    // low level submission helpers
+
+    // gets the camera's view frustum corners in world space coordinates
+    std::vector<glm::vec4> GetFrustumCornersWorldSpace(const glm::mat4 &proj, const glm::mat4 &view);
+
+    // sets up stencil mask for outline effects
+    void ConfigureStencilForOutline(bool doOutline);
+
+    // sends standard matrices (model, view, proj, shadow) to the shader
+    void UploadMeshUniforms(const std::shared_ptr<Shader> &shader, const glm::mat4 &model);
+
+    // draws the slightly scaled outline mesh if enabled
+    void RenderMeshOutline(const Mesh &mesh, const glm::mat4 &model, const glm::vec3 &color);
+
+    // draws debug lines for vertex normals if enabled
+    void RenderMeshNormals(const Mesh &mesh, const glm::mat4 &model);
+
+    // member variables
     glm::mat4 viewMatrix;
     glm::mat4 projMatrix;
     glm::vec3 viewPosition;
-    // shadow mappping resources
+    float currentAspectRatio;
+    float cameraFarPlane;
+    float cameraNearPlane;
+    std::unique_ptr<UniformBuffer> cameraUBO; // binding 0
+
+    // shadow mapping resources
+    std::unique_ptr<UniformBuffer> shadowUBO; // binding 2
     std::unique_ptr<Framebuffer> shadowFBO;
     std::shared_ptr<Shader> depthShader;
     glm::mat4 lightSpaceMatrix;
+    // 3 splits = 4 generic shadow maps (near, mid, far, veryFar)
+    std::vector<float> shadowCascadeLevels = { 10.0f, 50.0f, 200.0f };
 };

@@ -3,7 +3,6 @@
 in vec3 FragPos;
 in vec3 Normal;
 in vec2 TexCoords;
-in vec4 FragPosLightSpace;
 
 out vec4 FragColor;
 
@@ -23,7 +22,7 @@ void main()
     vec3 result = vec3(0.0);
 
     // Directional light (single)
-    result += CalcDirLight(N, FragPos, V, FragPosLightSpace);
+    result += CalcDirLight(N, FragPos, V);
 
     // Point lights
     for (int i = 0; i < numPointLights; ++i)

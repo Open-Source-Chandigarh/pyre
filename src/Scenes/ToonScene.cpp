@@ -1,6 +1,5 @@
 #include "scenes/ToonScene.h"
 #include "application/AppState.h"
-#include "core/rendering/GlobalUBO.h"
 #include "core/ResourceManager.h"
 #include "core/rendering/geometry/GeometryFactory.h"
 #include "core/rendering/Texture.h"

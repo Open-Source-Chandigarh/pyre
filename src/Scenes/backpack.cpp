@@ -6,7 +6,6 @@
 #include "scenes/backpack.h"
 #include "core/ResourceManager.h"
 #include "helpers/Utils.h"
-#include "core/rendering/GlobalUBO.h"
 #include "core/rendering/Texture.h"
 #include "core/rendering/Material.h"
 

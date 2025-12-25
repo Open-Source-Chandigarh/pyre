@@ -6,7 +6,7 @@ class Framebuffer
 public:
 	Framebuffer(unsigned int width, unsigned int height, bool withDepth = true, 
 				bool multiSampled = false, 
-				bool withColor = true);
+				bool withColor = true, unsigned int textureLayers = 1);
 	~Framebuffer();
 
 	void Bind() const;
@@ -33,6 +33,7 @@ private:
 	GLuint depthTexture = 0;
 	GLuint rbo = 0;
 	unsigned int width = 0, height = 0;
+	unsigned int textureLayers;
 	bool depth = true;
 	bool color = true;
 };

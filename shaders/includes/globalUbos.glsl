@@ -1,36 +1,48 @@
-// globalUbos.glsl  (NO #version here - entry shader must provide it)
-
-// std140 UBO bound at binding = 0
-layout(std140, binding = 0) uniform GlobalLights
+// binding 0: camera data (updates every frame)
+layout(std140, binding = 0) uniform CameraData
 {
     mat4 view;
     mat4 proj;
-    vec4 viewPos; // vec3 + padding
+    vec3 viewPos;
+    float padding;
+};
 
-    int numPointLights;
-    int numSpotLights;
-    int pad0;
-    int pad1;
-
-    // Directional light
+// binding 1: lighting data (updates when lights change)
+layout(std140, binding = 1) uniform LightsData
+{
+    // directional light
     vec4 dir_direction;
     vec4 dir_ambient;
     vec4 dir_diffuse;
     vec4 dir_specular;
 
-    // PointLights (MAX = 8)
+    // counts
+    int numPointLights;
+    int numSpotLights;
+    int _pad0;
+    int _pad1;
+
+    // point lights (max = 8)
     vec4 point_position[8];
     vec4 point_ambient[8];
     vec4 point_diffuse[8];
     vec4 point_specular[8];
-    vec4 point_params[8]; // x=constant, y=linear, z=quadratic
+    vec4 point_params[8]; 
 
-    // SpotLights (MAX = 4)
+    // spot lights (max = 4)
     vec4 spot_position[4];
     vec4 spot_direction[4];
-    vec4 spot_cutoffs[4]; // x=inner, y=outer
+    vec4 spot_cutoffs[4]; 
     vec4 spot_ambient[4];
     vec4 spot_diffuse[4];
     vec4 spot_specular[4];
     vec4 spot_params[4];
+};
+
+// binding 2: shadow matrices (csm)
+// this lets the lighting shader access the matrices to find where
+// a pixel lands in the shadow map
+layout (std140, binding = 2) uniform ShadowData
+{
+    mat4 lightSpaceMatrices[16];
 };

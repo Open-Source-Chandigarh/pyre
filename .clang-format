@@ -1,0 +1,16 @@
+---
+Language: Cpp
+BreakBeforeBraces: Allman
+
+# visual Settings
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never       
+ColumnLimit: 120         
+AccessModifierOffset: -4      
+
+# spacing tweaks
+PointerAlignment: Right       
+SpaceBeforeParens: ControlStatements 
+KeepEmptyLinesAtTheStartOfBlocks: false
+...

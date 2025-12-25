@@ -1,8 +1,9 @@
 #include "core/rendering/Framebuffer.h"
 #include <iostream>
 
-Framebuffer::Framebuffer(unsigned int w, unsigned int h, bool withDepth, bool multiSampled, bool withColor)
-    : width(w), height(h), depth(withDepth), multiSampled(multiSampled), color(withColor)
+Framebuffer::Framebuffer(unsigned int w, unsigned int h, bool withDepth, bool multiSampled, bool withColor, 
+    unsigned int textureLayers)
+    : width(w), height(h), depth(withDepth), multiSampled(multiSampled), color(withColor), textureLayers(textureLayers)
 {
     CreateResources();
 }
@@ -62,19 +63,44 @@ void Framebuffer::CreateResources()
         // shadow maps need a depth texture, not a renderbuffer (rbo)
         if(!color)
         {   
+            // shadow map case (depth only)
             glGenTextures(1, &depthTexture);
-            glBindTexture(GL_TEXTURE_2D, depthTexture);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+            
+            // check if we need a texture array (CSM) or standard texture
+            if (textureLayers > 1) 
+            {
+                glBindTexture(GL_TEXTURE_2D_ARRAY, depthTexture);
+                glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT32F, width, 
+                    height, textureLayers, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); 
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER); 
-            
-            float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-            glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-            
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
+                glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); 
+                glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER); 
+                
+                constexpr float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, borderColor);
+                
+                // use glFramebufferTexture (not 2D) to attach the entire array volume
+                // this allows the geometry shader to select the layer via gl_Layer
+                glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthTexture, 0);
+            }
+            else
+            {
+                // standard 2D shadow map
+                glBindTexture(GL_TEXTURE_2D, depthTexture);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+                
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+                
+                constexpr float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+                
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
+            }
         }
         else
         {

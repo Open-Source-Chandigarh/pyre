@@ -10,7 +10,6 @@ void Scene::Render(AppState &appState)
     Renderer *renderer = appState.renderer.get();
     
     renderer->BeginScene(appState.camera, 
-                         *appState.globalUBO, 
                          *appState.lightManager, 
                          appState.GetAspectRatio());
 
