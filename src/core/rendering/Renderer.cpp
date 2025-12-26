@@ -395,9 +395,27 @@ void Renderer::RenderShadowMap(const std::vector<std::shared_ptr<Entity>> &opaqu
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
 
-    // perform the actual draw calls for all opaque objects
+    // filter out entities that shouldn't cast shadows
+    std::vector<std::shared_ptr<Entity>> shadowCasters;
+    shadowCasters.reserve(opaqueEntities.size());
+
+    for (const auto& e : opaqueEntities)
+    {
+        // check model component settings
+        if (e->modelComp && e->modelComp->renderSettings.castsShadows)
+        {
+            shadowCasters.push_back(e);
+        }
+        else if (e->meshComp) 
+        {
+            // meshComp defaults to true
+            shadowCasters.push_back(e);
+        }
+    }
+
+    // perform the actual draw calls for all opaque objects that should cast
     // pass identity matrices (geometry shader uses the ubo data)
-    RenderPass(opaqueEntities, glm::mat4(1.0f), glm::mat4(1.0f), depthShader);
+    RenderPass(shadowCasters, glm::mat4(1.0f), glm::mat4(1.0f), depthShader);
 
     Framebuffer::Unbind();
     glCullFace(GL_BACK);

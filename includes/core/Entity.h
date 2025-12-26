@@ -79,7 +79,7 @@ struct Entity
 
     void AddModel(Model* model, std::shared_ptr<Shader> shader, int instanceCount = 1,
                 bool showNormals = false, bool showOutline = false, 
-                glm::vec3 outlineColor = glm::vec3(1.0, 1.0, 1.0))
+                glm::vec3 outlineColor = glm::vec3(1.0, 1.0, 1.0), bool castsShadows = true)
      {
         modelComp = std::make_shared<ModelComponent>();
         modelComp->model = model;
@@ -88,6 +88,7 @@ struct Entity
         modelComp->renderSettings.showNormals = showNormals;
         modelComp->renderSettings.outlineColor = outlineColor;
         modelComp->renderSettings.outlineEnabled = showOutline;
+        modelComp->renderSettings.castsShadows = castsShadows;
     }
     
     void AddSkybox(Mesh* mesh, std::shared_ptr<Material> mat, std::shared_ptr<Shader> shader) 

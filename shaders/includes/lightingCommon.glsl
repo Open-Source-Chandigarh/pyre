@@ -62,7 +62,7 @@ float ShadowCalculation(vec3 fragPosWorldSpace, vec3 normal, vec3 lightDir)
     {
         // far plane logic
         bias *= 1.0 / (farPlane * biasModifier);
-        bias *= 80.0; // massive bias for the furthest hills to kill acne
+        bias *= 10.0; // massive bias for the furthest hills to kill acne
     }
     else
     {
@@ -70,10 +70,7 @@ float ShadowCalculation(vec3 fragPosWorldSpace, vec3 normal, vec3 lightDir)
         
         // progressively increase bias for further layers
         // layer 0 gets 1.0 (no change), layer 1 gets 4.0, layer 2 gets 8.0, etc.
-        if (layer > 0) 
-        {
-            bias *= (1.0 + (layer * 4.0));
-        }
+        bias *= (1.0 + (layer * 4.0));
     }
 
     // step 5: pcf (soft shadows)

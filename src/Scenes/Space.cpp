@@ -86,7 +86,7 @@ void Space::Init(AppState &appState)
 
     {
         std::shared_ptr<Entity> e = Entity::Create();
-        e -> AddModel(asteroid.get(), planetShader, amount);
+        e -> AddModel(asteroid.get(), planetShader, amount, false, false, glm::vec3(1.0f), false);
         entities.push_back(e);
     }
 
@@ -97,7 +97,7 @@ void Space::OnActivate(AppState &appState)
 {
     appState.camera.Position = glm::vec3(0.0f, 10.0f, 30.0f);
     appState.camera.Near = 0.1f;
-    appState.camera.Far = 2000.0f;
+    appState.camera.Far = 350.0f;
     // Lights 
     appState.lightManager -> ClearPointLights();
     appState.lightManager -> ClearSpotLights();

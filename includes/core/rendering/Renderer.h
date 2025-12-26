@@ -18,6 +18,7 @@ struct RenderSettings
     bool showNormals = false;
     bool outlineEnabled = false;
     glm::vec3 outlineColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    bool castsShadows = true;
 };
 
 class Renderer 
