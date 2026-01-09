@@ -20,9 +20,6 @@ public:
     // Called when this scene is activated
     void OnActivate(AppState &appState) override;
 
-    // called every frame to draw objects
-    void Render(AppState &appState) override;
-
     virtual std::string Name() const { return "Toon Scene"; };
 
 private:
@@ -30,5 +27,4 @@ private:
     Mesh cube;
     Mesh sphere;
     Mesh torus;
-    std::vector<std::shared_ptr<Entity>> entities;
 };

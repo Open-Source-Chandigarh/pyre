@@ -29,16 +29,11 @@ public:
     // Called when this scene is activated
     void OnActivate(AppState &appState) override;
 
-    // called every frame to draw objects
-    void Render(AppState &appState) override;
-
     std::string Name() const override { return "Factory Demo Scene"; }
 
 private:
     std::shared_ptr<Texture> diffuseMap, specularMap;
     std::shared_ptr<Shader> shader;
-
-    std::vector<std::shared_ptr<Entity>> entities;
     glm::vec3 cubePositions[10];
 
     Mesh mesh[10];

@@ -8,6 +8,7 @@
 #include <iostream>
 #include "helpers/Shader.h"
 #include "core/rendering/Texture.h"
+#include "core/Constants.h" 
 
 enum class CullMode
 {
@@ -35,7 +36,6 @@ struct Material
     {
         shader.use();
 
-        int texUnit = 0;
         // Initialize all present flags to 0 if they actually exist.
         // (Do not set them to 0 if shader doesn't declare them)
         const char* presentUniforms[] = {
@@ -44,10 +44,11 @@ struct Material
             "material_skybox_present"
         };
 
-        int skyboxUnit = 15; 
+        // Explicitly set skybox slot using constant
         if (shader.hasUniform("material_skybox")) {
-            shader.setInt("material_skybox", skyboxUnit);
+            shader.setInt("material_skybox", Bindings::TEX_SLOT_SKYBOX);
         }
+        
         for (auto& p : presentUniforms)
             if (shader.hasUniform(p))
                 shader.setInt(p, 0);   // default OFF
@@ -59,35 +60,39 @@ struct Material
             const auto& tex = kv.second;
 
             if (!tex) continue;
-            if (!shader.hasUniform(name)) continue;  // shader doesn't want this texture
+            // shader doesn't want this texture, skip
+            if (!shader.hasUniform(name)) continue;  
 
-            GLenum target = (tex->type == TextureType::TEX_CUBEMAP)
-                ? GL_TEXTURE_CUBE_MAP
-                : GL_TEXTURE_2D;
+            GLenum target = (tex->type == TextureType::TEX_CUBEMAP) ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
+            int slot = -1;
 
-            if (name == "material_skybox") 
+            // Map texture types to fixed binding slots
+            if (tex->type == TextureType::TEX_DIFFUSE) 
             {
-                glActiveTexture(GL_TEXTURE0 + skyboxUnit);
-                glBindTexture(target, tex->ID);
+                slot = Bindings::TEX_SLOT_DIFFUSE;
             }
-            else 
+            else if (tex->type == TextureType::TEX_SPECULAR) 
             {
-                if (texUnit == skyboxUnit) texUnit++; 
-
-                glActiveTexture(GL_TEXTURE0 + texUnit);
-                glBindTexture(target, tex->ID);
-                shader.setInt(name, texUnit);
-                texUnit++;
+                slot = Bindings::TEX_SLOT_SPECULAR;
+            }
+            else if (name == "material_skybox") 
+            {
+                slot = Bindings::TEX_SLOT_SKYBOX;
             }
 
-            // set presence flag
-            const std::string presentName = name + "_present";
-            if (shader.hasUniform(presentName))
-                shader.setInt(presentName, 1);
+            // Only bind if we have a valid slot
+            if (slot != -1)
+            {
+                glActiveTexture(GL_TEXTURE0 + slot);
+                glBindTexture(target, tex->ID);
+                shader.setInt(name, slot);
 
-            texUnit++;
+                // set presence flag
+                const std::string presentName = name + "_present";
+                if (shader.hasUniform(presentName))
+                    shader.setInt(presentName, 1);
+            }
         }
-
 
         // Push float & vec3 uniforms
         for (auto& kv : floats)
@@ -97,7 +102,6 @@ struct Material
         for (auto& kv : vec3s)
             if (shader.hasUniform(kv.first))
                 shader.setVec3(kv.first, kv.second);
-
 
         // Fallback values if not overridden by textures
         if (shader.hasUniform("material_diffuseColor"))
@@ -134,5 +138,4 @@ struct Material
 
         glActiveTexture(GL_TEXTURE0);
     }
-
 };

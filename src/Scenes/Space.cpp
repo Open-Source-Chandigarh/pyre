@@ -3,7 +3,6 @@
 #include "core/ResourceManager.h"
 #include "helpers/Utils.h"
 #include "core/rendering/geometry/GeometryFactory.h"
-#include "core/rendering/GlobalUBO.h"
 #include "core/rendering/Texture.h"
 #include "core/rendering/Material.h"
 #include "core/rendering/Renderer.h"
@@ -87,7 +86,7 @@ void Space::Init(AppState &appState)
 
     {
         std::shared_ptr<Entity> e = Entity::Create();
-        e -> AddModel(asteroid.get(), planetShader, amount);
+        e -> AddModel(asteroid.get(), planetShader, amount, false, false, glm::vec3(1.0f), false);
         entities.push_back(e);
     }
 
@@ -98,7 +97,7 @@ void Space::OnActivate(AppState &appState)
 {
     appState.camera.Position = glm::vec3(0.0f, 10.0f, 30.0f);
     appState.camera.Near = 0.1f;
-    appState.camera.Far = 2000.0f;
+    appState.camera.Far = 350.0f;
     // Lights 
     appState.lightManager -> ClearPointLights();
     appState.lightManager -> ClearSpotLights();
@@ -125,17 +124,4 @@ void Space::OnActivate(AppState &appState)
     appState.lightManager -> AddPointLight(rimLight);
 }
 
-
 void Space::Update(AppState &appState) {}
-
-void Space::Render(AppState &appState)
-{
-    Renderer *renderer = appState.renderer.get();
-    renderer -> BeginScene(appState.camera, 
-                            *appState.globalUBO, 
-                            *appState.lightManager, 
-                            appState.GetAspectRatio());
-    renderer -> RenderScene(entities, appState.camera, *appState.lightManager, *sceneFBO, 
-                        *postPipeline, appState.wireframeEnabled);
-    renderer -> EndScene();
-}

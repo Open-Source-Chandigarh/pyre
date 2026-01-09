@@ -5,6 +5,25 @@
 Scene::Scene() {}
 Scene::~Scene() {}
 
+void Scene::Render(AppState &appState)
+{
+    Renderer *renderer = appState.renderer.get();
+    
+    renderer->BeginScene(appState.camera, 
+                         *appState.lightManager, 
+                         appState.GetAspectRatio());
+
+    renderer->RenderScene(entities, 
+                          appState.camera, 
+                          *appState.lightManager, 
+                          *sceneFBO, 
+                          *postPipeline, 
+                          appState.wireframeEnabled, 
+                          this->clearColor);
+
+    renderer->EndScene();
+}
+
 void Scene::BindWindow(Window *window)
 {
     this->win = window;

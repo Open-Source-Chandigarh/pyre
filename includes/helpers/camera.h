@@ -37,7 +37,7 @@ public:
     float MouseSensitivity;
     float Zoom;
     float Near = 0.1f;
-    float Far = 100.0f;
+    float Far = 500.0f;
 
     // constructor with vectors
     Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 3.0f), 

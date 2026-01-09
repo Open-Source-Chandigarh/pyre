@@ -4,7 +4,9 @@
 class Framebuffer
 {
 public:
-	Framebuffer(unsigned int width, unsigned int height, bool withDepth = true, bool multiSampled = false);
+	Framebuffer(unsigned int width, unsigned int height, bool withDepth = true, 
+				bool multiSampled = false, 
+				bool withColor = true, unsigned int textureLayers = 1, bool isCubeMap = false);
 	~Framebuffer();
 
 	void Bind() const;
@@ -12,6 +14,7 @@ public:
 	void Resize(unsigned int w, unsigned int h);
 
 	GLuint GetColorTexture() const { return colorTexture; }
+	GLuint GetDepthTexture() const { return depthTexture; }
 	unsigned int Width() const { return width; }
 	unsigned int Height() const { return height; }
 
@@ -27,7 +30,11 @@ private:
 	GLuint screenTexture = 0;
 	GLuint fbo = 0;
 	GLuint colorTexture = 0; // could be MSAA or standard
+	GLuint depthTexture = 0;
 	GLuint rbo = 0;
 	unsigned int width = 0, height = 0;
+	unsigned int textureLayers;
 	bool depth = true;
+	bool color = true;
+	bool isCubeMap = false;
 };

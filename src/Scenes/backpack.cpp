@@ -6,7 +6,6 @@
 #include "scenes/backpack.h"
 #include "core/ResourceManager.h"
 #include "helpers/Utils.h"
-#include "core/rendering/GlobalUBO.h"
 #include "core/rendering/Texture.h"
 #include "core/rendering/Material.h"
 
@@ -39,56 +38,57 @@ void Backpack::OnActivate(AppState &appState)
     appState.lightManager -> ClearPointLights();
     appState.lightManager -> ClearSpotLights();
 
-    appState.lightManager -> SetDirectional(glm::vec3(-0.5f, -1.0f, -0.5f),
-        glm::vec3(0.05f), glm::vec3(0.1f, 0.15f, 0.3f), glm::vec3(0.2f));
+     appState.lightManager -> SetDirectional(
+        glm::vec3(-0.5f, -1.0f, -0.3f), glm::vec3(0.05f), glm::vec3(0.6f), glm::vec3(0.2f)
+    );
 
-    glm::vec3 lightColor(0.2f, 0.4f, 0.8f);
+    // glm::vec3 lightColor(0.2f, 0.4f, 0.8f);
 
-    PointLight p;
-    p.position = glm::vec3(0.7f, 0.2f, 2.0f);
-    p.ambient = glm::vec3(0.2f, 1.0f, 1.5f) * 0.1f;
-    p.diffuse = glm::vec3(0.2f, 1.5f, 1.5f) * 0.8f;
-    p.specular = glm::vec3(1.0f);
-    p.constant = 1.0f; p.linear = 0.09f; p.quadratic = 0.032f;
-    appState.lightManager -> AddPointLight(p);
+    // PointLight p;
+    // p.position = glm::vec3(0.7f, 0.2f, 2.0f);
+    // p.ambient = glm::vec3(0.2f, 1.0f, 1.5f) * 0.1f;
+    // p.diffuse = glm::vec3(0.2f, 1.5f, 1.5f) * 0.8f;
+    // p.specular = glm::vec3(1.0f);
+    // p.constant = 1.0f; p.linear = 0.09f; p.quadratic = 0.032f;
+    // appState.lightManager -> AddPointLight(p);
 
-    PointLight p2;
-    p2.position = glm::vec3(2.3f, -3.3f, -4.0f);
-    p2.ambient = glm::vec3(1.5f, 1.0f, 2.0f) * 0.1f;
-    p2.diffuse = glm::vec3(2.0f, 1.5f, 2.0f) * 0.9f;
-    p2.specular = glm::vec3(1.0f);
-    p2.constant = 1.0f; p2.linear = 0.09f; p2.quadratic = 0.032f;
-    appState.lightManager -> AddPointLight(p2);
+    // PointLight p2;
+    // p2.position = glm::vec3(2.3f, -3.3f, -4.0f);
+    // p2.ambient = glm::vec3(1.5f, 1.0f, 2.0f) * 0.1f;
+    // p2.diffuse = glm::vec3(2.0f, 1.5f, 2.0f) * 0.9f;
+    // p2.specular = glm::vec3(1.0f);
+    // p2.constant = 1.0f; p2.linear = 0.09f; p2.quadratic = 0.032f;
+    // appState.lightManager -> AddPointLight(p2);
 
-    PointLight p3;
-    p3.position = glm::vec3(-4.0f, 2.0f, -12.0f);
-    p3.ambient = glm::vec3(1.0f, 5.0f, 0.6f) * 0.1f;
-    p3.diffuse = glm::vec3(1.0f, 7.0f, 0.6f) * 0.8f;
-    p3.specular = glm::vec3(1.0f);
-    p3.constant = 1.0f; p3.linear = 0.09f; p3.quadratic = 0.032f;
-    appState.lightManager -> AddPointLight(p3);
+    // PointLight p3;
+    // p3.position = glm::vec3(-4.0f, 2.0f, -12.0f);
+    // p3.ambient = glm::vec3(1.0f, 5.0f, 0.6f) * 0.1f;
+    // p3.diffuse = glm::vec3(1.0f, 7.0f, 0.6f) * 0.8f;
+    // p3.specular = glm::vec3(1.0f);
+    // p3.constant = 1.0f; p3.linear = 0.09f; p3.quadratic = 0.032f;
+    // appState.lightManager -> AddPointLight(p3);
 
-    PointLight p4;
-    p4.position = glm::vec3(0.0f, 0.0f, -3.0f);
-    p4.ambient = glm::vec3(2.0f, 1.0f, 3.0f) * 0.1f;
-    p4.diffuse = glm::vec3(3.0f, 1.5f, 5.0f) * 0.6f;
-    p4.specular = glm::vec3(1.0f);
-    p4.constant = 1.0f; p4.linear = 0.09f; p4.quadratic = 0.032f;
-    appState.lightManager -> AddPointLight(p4);
+    // PointLight p4;
+    // p4.position = glm::vec3(0.0f, 0.0f, -3.0f);
+    // p4.ambient = glm::vec3(2.0f, 1.0f, 3.0f) * 0.1f;
+    // p4.diffuse = glm::vec3(3.0f, 1.5f, 5.0f) * 0.6f;
+    // p4.specular = glm::vec3(1.0f);
+    // p4.constant = 1.0f; p4.linear = 0.09f; p4.quadratic = 0.032f;
+    // appState.lightManager -> AddPointLight(p4);
 
-    // Spot light
-    SpotLight s;
-    s.position = appState.camera.Position;
-    s.direction = appState.camera.Front;
-    s.ambient = lightColor * 0.5f;
-    s.diffuse = lightColor * 6.0f;
-    s.specular = glm::vec3(1.0f);
-    s.constant = 1.0f;
-    s.quadratic = 0.09f;
-    s.linear = 0.032f;
-    s.innerCutOff = cos(glm::radians(12.5f));
-    s.outerCutOff = cos(glm::radians(17.5f));
-    appState.lightManager -> AddSpotLight(s);
+    // // Spot light
+    // SpotLight s;
+    // s.position = appState.camera.Position;
+    // s.direction = appState.camera.Front;
+    // s.ambient = lightColor * 0.5f;
+    // s.diffuse = lightColor * 6.0f;
+    // s.specular = glm::vec3(1.0f);
+    // s.constant = 1.0f;
+    // s.quadratic = 0.09f;
+    // s.linear = 0.032f;
+    // s.innerCutOff = cos(glm::radians(12.5f));
+    // s.outerCutOff = cos(glm::radians(17.5f));
+    // appState.lightManager -> AddSpotLight(s);
 }
 
 
@@ -100,25 +100,9 @@ void Backpack::Update(AppState &appState)
         float offset = 29.5f + 0.1f * sin(i);
         entities[i] -> transform.rotation.y = rotationAngle + offset * float(i);
     }
-}
-
-void Backpack::Render(AppState &appState)
-{
-    Renderer* renderer = appState.renderer.get();
-    
     if (!appState.lightManager->spots.empty()) 
     {
         appState.lightManager->spots[0].position = appState.camera.Position;
         appState.lightManager->spots[0].direction = appState.camera.Front;
     }
-
-    renderer -> BeginScene(appState.camera, 
-                            *appState.globalUBO, 
-                            *appState.lightManager, 
-                            appState.GetAspectRatio());
-
-    renderer->RenderScene(entities, appState.camera, *appState.lightManager, 
-                          *sceneFBO, *postPipeline, appState.wireframeEnabled);
-                          
-    renderer->EndScene();
 }

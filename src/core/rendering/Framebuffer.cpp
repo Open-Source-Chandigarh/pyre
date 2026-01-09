@@ -1,8 +1,9 @@
 #include "core/rendering/Framebuffer.h"
 #include <iostream>
 
-Framebuffer::Framebuffer(unsigned int w, unsigned int h, bool withDepth, bool multiSampled)
-    : width(w), height(h), depth(withDepth), multiSampled(multiSampled)
+Framebuffer::Framebuffer(unsigned int w, unsigned int h, bool withDepth, bool multiSampled, bool withColor, 
+    unsigned int textureLayers, bool isCubeMap)
+    : width(w), height(h), depth(withDepth), multiSampled(multiSampled), color(withColor), textureLayers(textureLayers), isCubeMap(isCubeMap)
 {
     CreateResources();
 }
@@ -11,6 +12,7 @@ Framebuffer::~Framebuffer()
 {
     if (rbo) glDeleteRenderbuffers(1, &rbo);
     if (colorTexture) glDeleteTextures(1, &colorTexture);
+    if (depthTexture) glDeleteTextures(1, &depthTexture);
     if (fbo) glDeleteFramebuffers(1, &fbo);
 }
 
@@ -27,46 +29,115 @@ void Framebuffer::CreateResources()
     // color texture
     glGenTextures(1, &colorTexture);
 
-    if(multiSampled)
+    if(color)
     {
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, colorTexture);
-        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGB16F, width, height, GL_TRUE);
+        if(multiSampled)
+        {
+            glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, colorTexture);
+            glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGB16F, width, height, GL_TRUE);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, colorTexture, 0);
+        }
+        else
+        {
+            glBindTexture(GL_TEXTURE_2D, colorTexture);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, nullptr);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            // clamp to edge to avoid seams in post processing
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        // clamp to edge to avoid seams in post processing
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, colorTexture, 0);
-
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
+        }
     }
     else
     {
-        glBindTexture(GL_TEXTURE_2D, colorTexture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, nullptr);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        // clamp to edge to avoid seams in post processing
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexture, 0);
+        // explicitly tell opengl we are not rendering color data
+        glDrawBuffer(GL_NONE);
+        glReadBuffer(GL_NONE);
     }
 
     if (depth)
     {
-        glGenRenderbuffers(1, &rbo);
-        glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-        if(multiSampled)
-        {
-            glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, width, height);
+        // if we have no color, we assume this is a shadow map
+        // shadow maps need a depth texture, not a renderbuffer (rbo)
+        if(!color)
+        {   
+            // shadow map case (depth only)
+            glGenTextures(1, &depthTexture);
+
+
+            // check if we need a cubemap (for omnidirectional shadows)
+            if(isCubeMap && textureLayers > 0)
+            {
+                glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, depthTexture);
+                glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 0, GL_DEPTH_COMPONENT32F, width, 
+                    height, textureLayers * 6, 0, 
+                    GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                // Enable Hardware Shadow Comparison
+                // This turns "0.5 depth" into a "50% lit" probability automatically
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+                
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+                glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthTexture, 0);
+            }
+            
+            // check if we need a texture array (CSM) or standard texture
+            else if (textureLayers > 1) 
+            {
+                glBindTexture(GL_TEXTURE_2D_ARRAY, depthTexture);
+                glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT32F, width, 
+                    height, textureLayers, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+
+                glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER); 
+                glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER); 
+                
+                constexpr float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                glTexParameterfv(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_BORDER_COLOR, borderColor);
+                
+                // use glFramebufferTexture (not 2D) to attach the entire array volume
+                // this allows the geometry shader to select the layer via gl_Layer
+                glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthTexture, 0);
+            }
+            else
+            {
+                // standard 2D shadow map
+                glBindTexture(GL_TEXTURE_2D, depthTexture);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+                
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+                
+                constexpr float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+                
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
+            }
         }
         else
         {
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+            glGenRenderbuffers(1, &rbo);
+            glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+            if(multiSampled)
+            {
+                glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, width, height);
+            }
+            else
+            {
+                glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+            }
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
         }
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
     }
 
     if(multiSampled)

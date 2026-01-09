@@ -3,7 +3,6 @@
 #include "core/ResourceManager.h"
 #include "helpers/Utils.h"
 #include "core/rendering/geometry/GeometryFactory.h"
-#include "core/rendering/GlobalUBO.h"
 #include "core/rendering/Material.h"
 #include "core/rendering/Texture.h"
 #include "core/rendering/Renderer.h"
@@ -138,25 +137,4 @@ void FactoryScene::Update(AppState &appState)
         
         shapeIndex++;
     }
-}
-
-void FactoryScene::Render(AppState &appState)
-{
-    Renderer *renderer = appState.renderer.get();
-
-    if (!appState.lightManager -> spots.empty()) 
-    {
-        appState.lightManager -> spots[0].position = appState.camera.Position;
-        appState.lightManager -> spots[0].direction = appState.camera.Front;
-    }
-
-     renderer -> BeginScene(appState.camera, 
-                            *appState.globalUBO, 
-                            *appState.lightManager, 
-                            appState.GetAspectRatio());
-
-    renderer -> RenderScene(entities, appState.camera, *appState.lightManager, 
-                            *sceneFBO, *postPipeline, appState.wireframeEnabled);
-
-    renderer -> EndScene();
 }

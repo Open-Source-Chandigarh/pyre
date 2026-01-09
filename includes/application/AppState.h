@@ -6,7 +6,6 @@
 class Scene;
 class Renderer;
 class LightManager;
-class GlobalUBO;
 class Window; 
 
 struct AppState 
@@ -16,7 +15,6 @@ struct AppState
 
     std::unique_ptr<Renderer> renderer;
     std::unique_ptr<LightManager> lightManager;
-    std::unique_ptr<GlobalUBO> globalUBO;
 
     std::vector<std::unique_ptr<Scene>> scenes;
     int currentSceneIndex = 0;

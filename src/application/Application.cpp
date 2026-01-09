@@ -110,14 +110,15 @@ void Application::Update(float dt)
 
 void Application::Render()
 {
-    // Standard Clear
-    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    if (appState->scenes.empty()) return;
+
+    Scene *activeScene = appState->scenes[appState->currentSceneIndex].get();
+    glm::vec3 col = activeScene->clearColor;
+
+    glClearColor(col.r, col.g, col.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-    // Render Current Scene
-    if (!appState->scenes.empty()) {
-        appState->scenes[appState->currentSceneIndex]->Render(*appState);
-    }
+    activeScene->Render(*appState);
 }
 
 void Application::Run()

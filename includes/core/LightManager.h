@@ -3,42 +3,13 @@
 #include <vector>
 #include "helpers/Shader.h"
 #include "core/rendering/Mesh.h"
+#include "core/GlobalUniforms.h"
+#include "core/UniformBuffer.h"
 
 class Renderer;
-class GlobalUBO;
 
-struct LightUBO
+struct PointLight 
 {
-    glm::mat4 view;
-    glm::mat4 proj;
-    glm::vec4 viewPos; // w as padding
-
-    int numPointLights;
-    int numSpotLights;
-    int pad0;
-    int pad1;
-
-    glm::vec4 dir_direction;
-    glm::vec4 dir_ambient;
-    glm::vec4 dir_diffuse;
-    glm::vec4 dir_specular;
-
-    glm::vec4 point_position[8];
-    glm::vec4 point_ambient[8];
-    glm::vec4 point_diffuse[8];
-    glm::vec4 point_specular[8];
-    glm::vec4 point_params[8];
-
-    glm::vec4 spot_position[4];
-    glm::vec4 spot_direction[4];
-    glm::vec4 spot_cutoffs[4];
-    glm::vec4 spot_ambient[4];
-    glm::vec4 spot_diffuse[4];
-    glm::vec4 spot_specular[4];
-    glm::vec4 spot_params[4];
-};
-
-struct PointLight {
     glm::vec3 position;
     glm::vec3 ambient;
     glm::vec3 diffuse;
@@ -46,9 +17,11 @@ struct PointLight {
     float constant = 1.0f;
     float linear = 0.09f;
     float quadratic = 0.032f;
+    unsigned int depthMap = 0;
 };
 
-struct SpotLight {
+struct SpotLight 
+{
     glm::vec3 position;
     glm::vec3 direction;
 
@@ -77,15 +50,14 @@ public:
     void AddSpotLight(const SpotLight& sl);
     void ClearPointLights();
     void ClearSpotLights();
+    glm::vec3 GetDirectionalLightDir() { return dir; }
 
     // Apply stored lights to the currently used shader
     void ApplyToShader(Shader& shader, Renderer& renderer,
         const glm::mat4& view, const glm::mat4& proj);
 
-    void UploadToUBO(GlobalUBO &ubo,
-                    const glm::mat4& view, 
-                    const glm::mat4& proj, 
-                    const glm::vec3& cameraPos);
+    void InitUBO();
+    void UploadLightsToGPU();
 
     void ShowDebugLights(bool show) { showDebugSpheres = show; }
     std::vector<PointLight> points;
@@ -93,12 +65,13 @@ public:
     void RenderDebugLights(const glm::mat4& view, const glm::mat4& proj);
 
 private:
+    std::unique_ptr<UniformBuffer> lightUBO;
     glm::vec3 dir = glm::vec3(0.0f);
     glm::vec3 dirAmbient = glm::vec3(0.0f);
     glm::vec3 dirDiffuse = glm::vec3(0.0f);
     glm::vec3 dirSpec = glm::vec3(0.0f);
+    // show debug spheres for lights
     bool showDebugSpheres = true;
     Mesh debugSphere;
     std::shared_ptr<Shader> debugShader;
-    // Show debug spheres for lights
 };

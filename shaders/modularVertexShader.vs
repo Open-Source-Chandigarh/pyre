@@ -18,7 +18,7 @@ layout (location = 3) in mat4 aInstanceMatrix;
         vec2 TexCoords;
     } vs_out;
 #else
-    // If NO GS, output standard globals for the FS
+    // If no GS, output standard globals for the FS
     out vec3 FragPos;
     out vec3 Normal;
     out vec2 TexCoords;
@@ -26,6 +26,7 @@ layout (location = 3) in mat4 aInstanceMatrix;
 
 uniform mat4 model;        // Used when isInstanced = false
 uniform bool isInstanced;  // Model matrix Switch
+uniform mat4 lightSpaceMatrix;
 
 void main()
 {

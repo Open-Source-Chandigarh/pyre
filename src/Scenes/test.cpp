@@ -1,8 +1,7 @@
 ﻿#include "scenes/Test.h"
 #include "application/AppState.h"
 #include "core/ResourceManager.h"
-#include "core/rendering/geometry/GeometryFactory.h"
-#include "core/rendering/GlobalUBO.h"   
+#include "core/rendering/geometry/GeometryFactory.h" 
 #include "helpers/Shader.h"
 #include "core/rendering/Material.h"
 #include "core/rendering/Renderer.h"
@@ -84,9 +83,9 @@ void Test::Init(AppState &appState)
     cubeMat -> vec3s["material_diffuseColor"] = glm::vec3(1.0f);
     cubeMat -> vec3s["material_specularColor"] = glm::vec3(1.0f);
     // cubeMat -> showNormals = true;
-    cubeMat -> outlineEnabled = true;
+    // cubeMat -> outlineEnabled = true;
 
-    float spacing = 1.05f;
+    float spacing = 1.02f;
     float height = 1.1f;
     int base = 2;
 
@@ -113,11 +112,11 @@ void Test::Init(AppState &appState)
         mat -> cullMode = CullMode::Front;
         mat -> textures["material_diffuse"] = floorDiffuseMap;
         mat -> textures["material_specular"] = floorSpecularMap;
-        mat -> floats["material_shininess"] = 32.0f;
+        mat -> floats["material_shininess"] = 164.0f;
 
         std::shared_ptr<Entity> e = Entity::Create();
         e -> AddMesh(&plane, mat, shader);
-        e -> transform.scale = glm::vec3(10);
+        e -> transform.scale = glm::vec3(20);
         entities.push_back(e);
     }
 
@@ -126,12 +125,17 @@ void Test::Init(AppState &appState)
 
 void Test::OnActivate(AppState &appState)
 {
-    // Lights 
-    appState.lightManager -> ClearPointLights();
-    appState.lightManager -> ClearSpotLights();
-    
-    appState.lightManager -> SetDirectional(
-        glm::vec3(-0.5f, -1.0f, -0.3f), glm::vec3(0.04f), glm::vec3(0.55f), glm::vec3(0.7f)
+    // Reset Camera
+    appState.camera.Position = glm::vec3(0.0f, 8.0f, 15.0f);
+
+    appState.lightManager->ClearPointLights();
+    appState.lightManager->ClearSpotLights();
+  
+    appState.lightManager->SetDirectional(
+        glm::vec3(0.0f),
+        glm::vec3(0.0f),
+        glm::vec3(0.0f),
+        glm::vec3(0.0f)
     );
 
     PointLight k;
@@ -141,6 +145,14 @@ void Test::OnActivate(AppState &appState)
     k.specular = glm::vec3(0.5f);
     k.constant = 1; k.linear = 0.09f; k.quadratic = 0.032f;
     appState.lightManager -> AddPointLight(k);
+
+    PointLight s;
+    s.position = glm::vec3(-3.0f, 1.5f, 0.0f);
+    s.ambient = glm::vec3(0.03f);
+    s.diffuse = glm::vec3(0.8f, 0.9f, 0.2f);
+    s.specular = glm::vec3(0.2f);
+    s.constant = 1; s.linear = 0.09f; s.quadratic = 0.032f;
+    appState.lightManager -> AddPointLight(s);
 
     PointLight f;
     f.position = glm::vec3(-1, 2, 1);
@@ -154,29 +166,32 @@ void Test::OnActivate(AppState &appState)
     r.position = glm::vec3(-1, 2, -2);
     r.ambient = glm::vec3(0.01f);
     r.diffuse = glm::vec3(0.2, 0.5, 0.4);
-    r.specular = glm::vec3(0.4);
+    r.specular = glm::vec3(0.2f);
     r.constant = 1; r.linear = 0.09f; r.quadratic = 0.032f;
-    appState.lightManager -> AddPointLight(r);
+    appState.lightManager->AddPointLight(r);
+
+    appState.lightManager->ShowDebugLights(true);
 }
 
-
-void Test::Update(AppState &appState) {}
-
-void Test::Render(AppState &appState)
+void Test::Update(AppState &appState) 
 {
-    Renderer *renderer = appState.renderer.get();
+    float time = (float)glfwGetTime();
 
-    if (!appState.lightManager -> spots.empty())
+    if (!appState.lightManager->points.empty())
     {
-        appState.lightManager -> spots[0].position = appState.camera.Position;
-        appState.lightManager -> spots[0].direction = appState.camera.Front;
-    }
+        for(unsigned int i = 0; i < appState.lightManager->points.size(); i++)
+        {
+            // Orbit radius 10 around the crate stack
+            float radius = 2.0f;
+            
+            // Move in a circle
+            float x = sin(time * 0.5f * (i + 1)) * radius * (i + 1);
+            float z = cos(time * 0.5f * (i + 1)) * radius * (i + 1);
+            
+            // Bob up and down slightly (height 4 to 8) to change shadow length
+            float y = 1.5f + (i + 1);
 
-    renderer -> BeginScene(appState.camera, 
-                            *appState.globalUBO, 
-                            *appState.lightManager, 
-                            appState.GetAspectRatio());
-    renderer -> RenderScene(entities, appState.camera, *appState.lightManager, 
-                            *sceneFBO, *postPipeline, appState.wireframeEnabled);
-    renderer -> EndScene();
+            appState.lightManager->points[i].position = glm::vec3(x, y, z);
+        }
+    }
 }

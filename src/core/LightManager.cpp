@@ -4,7 +4,9 @@
 #include "core/Entity.h"
 #include "core/ResourceManager.h"
 #include "core/rendering/geometry/GeometryFactory.h"
-#include "core/rendering/GlobalUBO.h"
+
+static constexpr int GLSL_MAX_POINT_LIGHTS = 8; // must match shader (#define MAX_POINT_LIGHTS 8)
+static constexpr int GLSL_MAX_SPOT_LIGHTS = 4; // must match shader (#define MAX_SPOT_LIGHTS 4)
 
 LightManager::LightManager()
 {
@@ -21,11 +23,13 @@ void LightManager::SetDirectional(const glm::vec3& d,
     dir = d; dirAmbient = ambient; dirDiffuse = diffuse; dirSpec = specular;
 }
 
-void LightManager::AddPointLight(const PointLight& pl) {
+void LightManager::AddPointLight(const PointLight& pl)
+{
     points.push_back(pl);
 }
 
-void LightManager::ClearPointLights() {
+void LightManager::ClearPointLights() 
+{
     points.clear();
 }
 
@@ -38,19 +42,21 @@ void LightManager::ClearSpotLights()
 {
     spots.clear();
 }
-
-static constexpr int GLSL_MAX_POINT_LIGHTS = 8; // must match shader (#define MAX_POINT_LIGHTS 8)
-static constexpr int GLSL_MAX_SPOT_LIGHTS = 4; // must match shader (#define MAX_SPOT_LIGHTS 4)
-
-void LightManager::UploadToUBO(GlobalUBO &ubo, const glm::mat4& view, 
-                                const glm::mat4& proj, 
-                                const glm::vec3& cameraPos)
+void LightManager::InitUBO()
 {
-    LightUBO data;
-    memset(&data, 0, sizeof(data));
-    data.view = view;
-    data.proj = proj;
-    data.viewPos = glm::vec4(cameraPos, 0.0f);
+    // create the buffer for 'LightsData' struct at binding point 1
+    lightUBO = std::make_unique<UniformBuffer>(sizeof(LightsData), 1);
+}
+
+void LightManager::UploadLightsToGPU()
+{
+    if (!lightUBO) 
+    {
+        InitUBO();
+    }
+
+    // fill the struct on cpu
+    LightsData data{};
 
     // directional
     data.dir_direction = glm::vec4(dir, 0.0f);
@@ -59,7 +65,7 @@ void LightManager::UploadToUBO(GlobalUBO &ubo, const glm::mat4& view,
     data.dir_specular = glm::vec4(dirSpec, 0.0f);
 
     // point lights
-    int pcount = std::min((int)points.size(), 8);
+    int pcount = std::min((int)points.size(), GLSL_MAX_POINT_LIGHTS);
     data.numPointLights = pcount;
     for (int i = 0; i < pcount; ++i) {
         const auto& p = points[i];
@@ -71,7 +77,7 @@ void LightManager::UploadToUBO(GlobalUBO &ubo, const glm::mat4& view,
     }
 
     // spot lights
-    int scount = std::min((int)spots.size(), 4);
+    int scount = std::min((int)spots.size(), GLSL_MAX_SPOT_LIGHTS);
     data.numSpotLights = scount;
     for (int i = 0; i < scount; ++i) 
     {
@@ -84,7 +90,9 @@ void LightManager::UploadToUBO(GlobalUBO &ubo, const glm::mat4& view,
         data.spot_specular[i] = glm::vec4(s.specular, 0.0f);
         data.spot_params[i] = glm::vec4(s.constant, s.linear, s.quadratic, 0.0f);
     }
-    ubo.Upload(data);
+
+    // upload to gpu using wrapper
+    lightUBO -> UploadData(&data, sizeof(LightsData));
 }
 
 void LightManager::ApplyToShader(Shader& shader, Renderer& renderer,
