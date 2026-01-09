@@ -1,118 +1,106 @@
-# Pyre – Graphics Engine
-
-**Pyre** is a modular, educational **3D graphics engine** built from scratch using **Modern OpenGL** and **C++20**. Inspired by the brilliant work behind **LearnOpenGL**, Pyre explores advanced real-time rendering concepts, including **Instancing**, **Geometry Shaders**, **Post‑Processing**, and **Toon Shading**.
-
-It features a **custom CMake build system** that automatically fetches and configures dependencies like **GLFW** and **Assimp**, making the engine cross‑platform and effortless to build.
-
 <div align="center">
-  <img src="resources/textures/icon.png" alt="Pyre Logo" width="200"/>
+  <img src="resources/textures/icon.png" alt="Pyre Logo" width="220"/>
+  <h1>Pyre Graphics Engine</h1>
+
+  <p>
+    <strong>A high-performance, modular 3D rendering engine architecture built with Modern OpenGL 4.6 and C++20.</strong>
+  </p>
+
+  <p>
+    <a href="#visual-showcase">Showcase</a> •
+    <a href="#technical-features">Features</a> •
+    <a href="#build--installation">Build</a> •
+    <a href="#controls">Controls</a> •
+    <a href="LICENSE">License</a>
+  </p>
+
+  ![Badge](https://img.shields.io/badge/Language-C%2B%2B20-00599C?style=for-the-badge&logo=c%2B%2B)
+  ![Badge](https://img.shields.io/badge/API-OpenGL%204.6-5586A4?style=for-the-badge&logo=opengl)
+  ![Badge](https://img.shields.io/badge/Build-CMake-064F8C?style=for-the-badge&logo=cmake)
+  ![Badge](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 </div>
 
+<br />
+
+Pyre is a research-oriented graphics engine designed to explore advanced real-time rendering techniques. It implements a modern deferred-style architecture within a forward renderer, utilizing Uniform Buffer Objects (UBOs) for efficient data transport and Geometry Shaders for complex shadow generation.
+
+The project features a self-contained CMake build system that automatically manages dependencies including GLFW, Assimp, and GLAD, ensuring a streamlined cross-platform compilation process.
+
 ---
 
-## 📸 Visual Showcase
+## Visual Showcase
 
-See Pyre's rendering features in action.
-
-| **Standard Blinn-Phong Lighting** | **Cel-Shading (Toon)** |
+| **Omni-Directional Point Shadows** | **Cascaded Shadow Maps (CSM)** |
 | :---: | :---: |
-| <img src="resources/screenshots/test scene.png" alt="Standard Lighting Scene" width="100%"> | <img src="resources/screenshots/toon scene.png" alt="Toon Shading Effect" width="100%"> |
-| *Classic lighting model with multiple light sources.* | *Stylized rendering with rim lighting and distinct bands.* |
+| <img src="resources/gifs/point shadows.gif" alt="Point Shadows Demo" width="100%"> | <img src="resources/gifs/csm.gif" alt="CSM Demo" width="100%"> |
+| *Dynamic omni-directional shadows using Geometry Shaders.* | *High-resolution directional shadows with cascade splits.* |
 
-| **Instanced Rendering (1M+ Meshes) at 144+ fps** | **Post-Processing (Inversion)** |
+| **Environment Mapping Reflections** | **Non-Photorealistic Rendering (Toon)** |
 | :---: | :---: |
-| <img src="resources/screenshots/moon.png" alt="Moon" width="100%"> | <img src="resources/screenshots/post_inversion.png" alt="Post-Processing" width="100%"> |
-| *Instanced Rendering using vertex atrrib model matrices.* | *Framebuffer-based inversion effect with ping pong post processing.* |
+| <img src="resources/screenshots/Environment mapping reflections.jpg" alt="Reflections Demo" width="100%"> | <img src="resources/screenshots/toon scene.png" alt="Toon Shading Demo" width="100%"> |
+| *Real-time reflections using skybox environment mapping.* | *Stylized rendering with discretized lighting bands and rim highlights.* |
+
+| **Hardware Instancing (1M+ Entities)** | **Post-Processing Pipeline** |
+| :---: | :---: |
+| <img src="resources/screenshots/moon.png" alt="Instancing Demo" width="100%"> | <img src="resources/screenshots/post_inversion.png" alt="Post Processing Demo" width="100%"> |
+| *High-throughput rendering using vertex attribute divisors.* | *Framebuffer-based effects chain (Inversion).* |
 
 ---
 
-## ✨ Features
+## Technical Features
 
-### 🎨 Rendering Pipeline
+### Rendering Pipeline
+* **Advanced Shadow Mapping:**
+    * **Cascaded Shadow Maps (CSM):** Implemented for directional lights to maintain high-resolution shadows across large view distances using texture arrays.
+    * **Omnidirectional Shadow Mapping:** Utilizes Geometry Shaders to clone geometry onto Cubemap Arrays in a single pass, significantly reducing CPU draw call overhead.
+    * **Percentage-Closer Filtering (PCF):** Applied to both shadow techniques for soft-edge filtering.
+* **Modern Data Architecture:** Extensive use of **Uniform Buffer Objects (UBOs)** with strict `std140` memory layout for efficient global state management (Camera, Lights, Shadow Matrices).
+* **Hardware Instancing:** Optimized rendering path for high-density scenes (e.g., asteroid belts) capable of pushing millions of polygons at interactive framerates.
+* **Geometry Shaders:** Utilized for point light layer selection and debug visualizations (vertex normals).
 
-* **Modular Shaders**: Custom preprocessor enabling `#include` directives inside GLSL.
-* **Lighting**: **Blinn‑Phong** lighting supporting **Directional**, **Point**, and **Spotlights**, powered by **Uniform Buffer Objects (UBOs)**.
-* **Instanced Rendering**: Efficient rendering for thousands of identical meshes (e.g., asteroid fields, particle clouds).
-* **Geometry Shaders**: Used for **normal visualization** and dramatic **mesh explosion** effects.
-* **Post‑Processing Stack**: Framebuffer‑based pipeline supporting **Inversion**, **Grayscale**, **Sharpening**, and **Outline detection**.
-* **Toon Shading**: Cel‑shaded rendering with stylized **rim‑lighting**.
-
-### 🛠 Core Architecture
-
-* **Entity‑Component Layout**: `Entity`, `MeshRenderer`, `ModelRenderer` for clean object representation.
-* **Centralized Asset Manager**: Texture caching, model loading, and safe path handling.
-* **Scene System**: Hot‑swappable environments (`Factory`, `Backpack`, `Toon`, `Test`) controlled via a global application state.
-* **Debug Utilities**: Wireframe mode, shader hot‑reload, and visual debugging tools.
+### Engine Architecture
+* **Entity-Component System:** Flexible object composition using `Entity`, `MeshComponent`, `ModelComponent`, and `SkyboxComponent`.
+* **Modular GLSL Preprocessor:** Custom shader compilation pipeline supporting `#include` directives to modularize lighting and UBO definitions.
+* **Asset Management:** Centralized `ResourceManager` providing thread-safe loading, caching, and reference counting for textures, models, and shaders.
+* **Scene Management:** Abstract scene system allowing for hot-swapping between different rendering environments and logic states.
+* **Post-Processing Stack:** Extensible `PostProcessingPipeline` class managing ping-pong framebuffers for screen-space effects.
 
 ---
 
-## 💻 Prerequisites
+## Prerequisites
 
-Before building Pyre, ensure these tools are installed:
+Ensure the following tools are available in your environment:
 
-* **C++20 Compiler**
-  * Windows → Visual Studio 2022 (MSVC)
-  * Linux → GCC 10+ or Clang 10+
-  * macOS → Xcode Command Line Tools
-* **CMake ≥ 3.16**
+* **C++20 Compliant Compiler** (MSVC 19.28+, GCC 10+, or Clang 10+)
+* **CMake 3.16** or higher
 * **Git**
 
-> You do **not** need to install GLFW, Assimp, GLM, or GLAD manually — the CMake script does everything.
+*Note: Dependencies such as GLFW, Assimp, GLM, and GLAD are fetched automatically via CMake.*
 
 ---
 
-## 🔨 Build & Installation
+## Build & Installation
 
+### Option A – Visual Studio 2022 (Recommended)
+1.  Clone the repository.
+2.  Open Visual Studio.
+3.  Select **Open a Local Folder** and target the `pyre` directory.
+4.  Allow CMake to configure the project cache.
+5.  Select **Pyre.exe** as the startup target and run.
 
-
-### **Option A – Visual Studio 2022 (Recommended)**
-
-
-
-1. Clone the repository.
-
-2. Open **Visual Studio**.
-
-3. Select **Open a Local Folder** and choose `pyre`.
-
-4. Let VS detect and configure `CMakeLists.txt`.
-
-5. Select **Pyre.exe** as the startup target and press **F5** to run.
-
-
-
-### **Option B – Command Line (Windows / Linux / macOS)**
-
-
+### Option B – Command Line
 
 ```bash
-
-# Clone the repository
-
-git clone https://github.com/Open-Source-Chandigarh/pyre.git
-
+# 1. Clone the repository
+git clone [https://github.com/Open-Source-Chandigarh/pyre.git](https://github.com/Open-Source-Chandigarh/pyre.git)
 cd pyre
 
-
-
-# Create a build directory
-
+# 2. Generate build files
 mkdir build && cd build
-
-
-
-# Configure (downloads third‑party dependencies)
-
 cmake ..
 
-
-
-# Build
-
+# 3. Compile
 cmake --build . --config Debug
-
-```
-
 
 
 ### **Run the Engine**
@@ -139,7 +127,7 @@ cmake --build . --config Debug
 
 
 
-## 🎮 Controls
+## Controls
 
 
 
@@ -231,7 +219,7 @@ Pyre/
 
 
 
-## 🤝 Contributing
+## Contributing
 
 
 
@@ -265,7 +253,7 @@ If you’d like to contribute, please read the [CONTRIBUTING.md](https://github.
 
 
 
-## 🙌 Credits
+## Credits
 
 
 
