@@ -39,10 +39,24 @@ layout(std140, binding = 1) uniform LightsData
     vec4 spot_params[4];
 };
 
-// binding 2: shadow matrices (csm)
-// this lets the lighting shader access the matrices to find where
-// a pixel lands in the shadow map
+// binding 2: CSM Shadow Data
 layout (std140, binding = 2) uniform ShadowData
 {
-    mat4 lightSpaceMatrices[16];
+    mat4 lightSpaceMatrices[16];    // 1024 bytes
+    vec4 cascadePlaneDistances[4];  // 64 bytes (Stores 16 split distances packed)
+    int cascadeCount;               // 4 bytes
+    float shadowFarPlane;           // 4 bytes 
+    float _padCSM1;                 // 4 bytes
+    float _padCSM2;                 // 4 bytes (Align to 16)
+};
+
+// binding 3: Point Shadow Data
+layout (std140, binding = 3) uniform PointShadowData
+{
+    mat4 shadowMatrices[6]; // 384 bytes
+    vec4 lightPos;          // 16 bytes
+    float farPlane;         // 4 bytes
+    float _padPoint1;
+    float _padPoint2;
+    float _padPoint3;       // 12 bytes padding total
 };

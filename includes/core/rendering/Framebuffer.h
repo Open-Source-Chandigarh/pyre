@@ -6,7 +6,7 @@ class Framebuffer
 public:
 	Framebuffer(unsigned int width, unsigned int height, bool withDepth = true, 
 				bool multiSampled = false, 
-				bool withColor = true, unsigned int textureLayers = 1);
+				bool withColor = true, unsigned int textureLayers = 1, bool isCubeMap = false);
 	~Framebuffer();
 
 	void Bind() const;
@@ -36,4 +36,5 @@ private:
 	unsigned int textureLayers;
 	bool depth = true;
 	bool color = true;
+	bool isCubeMap = false;
 };

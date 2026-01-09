@@ -84,11 +84,17 @@ private:
     // ensures internal shaders (outline, depth, normal) are loaded
     void LoadRequiredShaders();
     
-    // creates the shadow framebuffer if it doesn't exist yet
+    // creates the shadow framebuffer for dir lights if it doesn't exist yet
     void EnsureShadowBuffer();
 
-    // creates the uniform buffer for shadow matrices
+    // creates the shadow framebuffer for point lights if it doesn't exist yet
+    void EnsurePointShadowBuffer();
+
+    // creates the uniform buffer for csm shadow matrices
     void CreateShadowUBO();
+
+    // creates the uniform buffer for point shadow matrices
+    void CreatePointShadowUBO();
 
     // render pass logic
 
@@ -125,10 +131,14 @@ private:
     
     std::vector<glm::mat4> GetLightSpaceMatrices(const glm::vec3 &lightDir, const Camera &camera);
 
-    // renders the depth map for shadows
+    // renders the depth map for shadows (dir, point, spot etc..)
     void RenderShadowMap(const std::vector<std::shared_ptr<Entity>> &opaqueEntities, 
                                    const glm::vec3 &lightDir, 
                                    const Camera &camera);
+    
+    // renders the depth map for point shadows (used inside RenderShadowMap func)
+    void RenderPointShadows(const std::vector<std::shared_ptr<Entity>> &opaqueEntities,
+                            const LightManager &lightManager);                            
 
     // main lighting passes
 
@@ -175,10 +185,19 @@ private:
     std::unique_ptr<UniformBuffer> cameraUBO; // binding 0
 
     // shadow mapping resources
+
+    // dir light shadows (CSM)
     std::unique_ptr<UniformBuffer> shadowUBO; // binding 2
     std::unique_ptr<Framebuffer> shadowFBO;
     std::shared_ptr<Shader> depthShader;
     glm::mat4 lightSpaceMatrix;
     // 3 splits = 4 generic shadow maps (near, mid, far, veryFar)
     std::vector<float> shadowCascadeLevels = { 10.0f, 50.0f, 200.0f };
+    
+    // spot light shadows (omni)
+    std::unique_ptr<Framebuffer> pointShadowFBO;
+    std::unique_ptr<UniformBuffer> pointShadowUBO; // binding 3
+    std::shared_ptr<Shader> pointShadowShader;
+    float pointShadowNear = 0.1f;
+    float pointShadowFar = 25.0f;
 };

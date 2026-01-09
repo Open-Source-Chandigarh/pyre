@@ -1,17 +1,67 @@
 // lightingCommon.glsl
 // assumes GetDiffuseColor(), GetSpecularColor(), GetShininess() are available.
-
+#include "globalUbos.glsl"
 // we use a texture array because we have multiple shadow maps (one for each cascade)
 uniform sampler2DArray shadowMap;
 
-// these values come from the renderer updates every frame
-// they tell us where one shadow cascade ends and the next begins
-uniform float cascadePlaneDistances[16];
-uniform int cascadeCount;
-uniform float farPlane;
+uniform samplerCubeArrayShadow pointShadowMap;
+uniform float pointShadowFarPlane;
+
+// Poisson Disk Sample Pattern (Standard 20 samples)
+vec3 sampleOffsetDirections[20] = vec3[]
+(
+   vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1), 
+   vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
+   vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
+   vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
+   vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
+);
+
+float CalcPointShadow(int lightIndex, vec3 fragPos, vec3 lightPos)
+{
+    vec3 fragToLight = fragPos - lightPos;
+    float currentDepth = length(fragToLight);
+    
+    // We must manually bias the depth before comparison to prevent "Shadow Acne"
+    // 0.05 is a safe starting value for large scenes
+    float bias = 0.1; 
+    
+    // Map the depth to [0, 1] range just like we did when rendering the shadow map
+    float normalizedDepth = (currentDepth - bias) / pointShadowFarPlane;
+    
+    // If we are beyond the light's range, there is no shadow
+    if(normalizedDepth > 1.0) return 0.0;
+
+    float shadow = 0.0;
+    int samples = 20;
+    
+    // For "Real" looking shadows, the blur radius should be small and tight.
+    // If this is too large, we get "Peter Panning"
+    float diskRadius = 0.01; 
+
+    for(int i = 0; i < samples; ++i)
+    {
+        // samplerCubeArrayShadow takes 3 parameters:
+        // 1. The Sampler
+        // 2. A vec4(Direction.x, Direction.y, Direction.z, LayerIndex)
+        // 3. The Depth Value to compare against (normalizedDepth)
+        
+        vec3 sampleDir = fragToLight + sampleOffsetDirections[i] * diskRadius;
+        
+        // The hardware does the heavy lifting here. It checks neighbors and smooths the result.
+        // Returns 1.0 if LIT, 0.0 if SHADOWED (or value in between)
+        shadow += texture(pointShadowMap, vec4(sampleDir, lightIndex), normalizedDepth);
+    }
+    
+    shadow /= float(samples);
+    
+    // Invert result: 1.0 = Shadow, 0.0 = Light
+    // texture() returns "Visibility" (1.0 = Visible/Lit)
+    return 1.0 - shadow;
+}
 
 // this function calculates how much a pixel is in shadow
-// 0.0 means fully in shadow, 1.0 means fully lit
+// 1.0 means fully in shadow, 0.0 means fully lit
 float ShadowCalculation(vec3 fragPosWorldSpace, vec3 normal, vec3 lightDir)
 {
     // step 1: pick the right cascade layer
@@ -20,10 +70,16 @@ float ShadowCalculation(vec3 fragPosWorldSpace, vec3 normal, vec3 lightDir)
     float depthValue = abs(fragPosViewSpace.z);
 
     int layer = -1;
+    // since we packed the distances, accessing them dynamically 
+    // with a variable index like [i] is hard for the compiler.
     for (int i = 0; i < cascadeCount; ++i)
     {
-        // check if the pixel is closer than this cascade's split distance
-        if (depthValue < cascadePlaneDistances[i])
+        // unpack the value manually from the vec4 array
+        int vecIdx = i / 4;
+        int compIdx = i % 4;
+        float splitDist = cascadePlaneDistances[vecIdx][compIdx];
+
+        if (depthValue < splitDist)
         {
             layer = i;
             break;
@@ -61,12 +117,15 @@ float ShadowCalculation(vec3 fragPosWorldSpace, vec3 normal, vec3 lightDir)
     if (layer == cascadeCount)
     {
         // far plane logic
-        bias *= 1.0 / (farPlane * biasModifier);
+        bias *= 1.0 / (shadowFarPlane * biasModifier);
         bias *= 10.0; // massive bias for the furthest hills to kill acne
     }
     else
     {
-        bias *= 1.0 / (cascadePlaneDistances[layer] * biasModifier);
+        int vecIdx = layer / 4;
+        int compIdx = layer % 4;
+        float splitDist = cascadePlaneDistances[vecIdx][compIdx];
+        bias *= 1.0 / (splitDist * biasModifier);
         
         // progressively increase bias for further layers
         // layer 0 gets 1.0 (no change), layer 1 gets 4.0, layer 2 gets 8.0, etc.
@@ -168,7 +227,9 @@ vec3 CalcPointLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir)
     diffuse  *= attenuation;
     specular *= attenuation;
 
-    return ambient + diffuse + specular;
+    float shadow = CalcPointShadow(idx, fragPos, vec3(point_position[idx]));
+
+    return ambient + (1.0 - shadow) * (diffuse + specular);
 }
 
 vec3 CalcSpotLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir)

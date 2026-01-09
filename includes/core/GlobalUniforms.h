@@ -44,9 +44,26 @@ struct LightsData
     glm::vec4 spot_params[4];
 };
 
-// binding point 2
+// binding point 2: CSM
 // updates every frame
-struct ShadowData
+struct ShadowData 
 {
     glm::mat4 lightSpaceMatrices[16];
+    glm::vec4 cascadePlaneDistances[4]; // Packed: .x=0, .y=1, .z=2, .w=3...
+    int cascadeCount = 0;
+    float shadowFarPlane = 0.0f;
+    float _padCSM1;                 // 4 bytes
+    float _padCSM2;                 // 4 bytes (Align to 16)
+};
+
+// binding point 3: point shadows
+// updates every frame once per light
+struct PointShadowData 
+{
+    glm::mat4 shadowMatrices[6]; // 384 bytes
+    glm::vec4 lightPos;          // 16 bytes
+    float farPlane;              // 4 bytes
+    float _padPoint1;
+    float _padPoint2;
+    float _padPoint3;            // 12 bytes padding total
 };

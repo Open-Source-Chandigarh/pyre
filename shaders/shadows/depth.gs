@@ -3,18 +3,22 @@
 // input:
 // we work on triangles.
 // 'invocations = 4' tells the gpu to run this code 4 times at once for every triangle.
-// we need 4 times because you made 4 shadow cascades in c++ (near, mid, far, very far).
+// we need 4 times because we made 4 shadow cascades in c++ (near, mid, far, very far).
 layout(triangles, invocations = 4) in;
 
 // output:
 // we output a triangle strip. max vertices is 3 because we just clone the input triangle.
 layout(triangle_strip, max_vertices = 3) out;
 
-// ubo binding 2:
-// this array holds the view matrix for each of the 4 shadow cascades.
+// binding 2: CSM Shadow Data
 layout (std140, binding = 2) uniform ShadowData
 {
-    mat4 lightSpaceMatrices[16];
+    mat4 lightSpaceMatrices[16];    // 1024 bytes
+    vec4 cascadePlaneDistances[4];  // 64 bytes (Stores 16 split distances packed)
+    int cascadeCount;               // 4 bytes
+    float shadowFarPlane;           // 4 bytes 
+    float _padCSM1;                 // 4 bytes
+    float _padCSM2;                 // 4 bytes (Align to 16)
 };
 
 void main()

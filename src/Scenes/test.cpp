@@ -125,38 +125,73 @@ void Test::Init(AppState &appState)
 
 void Test::OnActivate(AppState &appState)
 {
-    // Lights 
-    appState.lightManager -> ClearPointLights();
-    appState.lightManager -> ClearSpotLights();
-    
-    appState.lightManager -> SetDirectional(
-        glm::vec3(-0.5f, -1.0f, -0.3f), glm::vec3(0.05f), glm::vec3(0.6f), glm::vec3(0.2f)
+    // Reset Camera
+    appState.camera.Position = glm::vec3(0.0f, 8.0f, 15.0f);
+
+    appState.lightManager->ClearPointLights();
+    appState.lightManager->ClearSpotLights();
+  
+    appState.lightManager->SetDirectional(
+        glm::vec3(0.0f),
+        glm::vec3(0.0f),
+        glm::vec3(0.0f),
+        glm::vec3(0.0f)
     );
 
+    PointLight k;
+    k.position = glm::vec3(1.5f, 2, 1.5f);
+    k.ambient = glm::vec3(0.03f);
+    k.diffuse = glm::vec3(1);
+    k.specular = glm::vec3(0.5f);
+    k.constant = 1; k.linear = 0.09f; k.quadratic = 0.032f;
+    appState.lightManager -> AddPointLight(k);
+
+    PointLight s;
+    s.position = glm::vec3(-3.0f, 1.5f, 0.0f);
+    s.ambient = glm::vec3(0.03f);
+    s.diffuse = glm::vec3(0.8f, 0.9f, 0.2f);
+    s.specular = glm::vec3(0.2f);
+    s.constant = 1; s.linear = 0.09f; s.quadratic = 0.032f;
+    appState.lightManager -> AddPointLight(s);
+
+    PointLight f;
+    f.position = glm::vec3(-1, 2, 1);
+    f.ambient = glm::vec3(0.04f);
+    f.diffuse = glm::vec3(0.7, 0.4, 0.1);
+    f.specular = glm::vec3(0.4f);
+    f.constant = 1; f.linear = 0.14f; f.quadratic = 0.07f;
+    appState.lightManager -> AddPointLight(f);
+
+    PointLight r;
+    r.position = glm::vec3(-1, 2, -2);
+    r.ambient = glm::vec3(0.01f);
+    r.diffuse = glm::vec3(0.2, 0.5, 0.4);
+    r.specular = glm::vec3(0.2f);
+    r.constant = 1; r.linear = 0.09f; r.quadratic = 0.032f;
+    appState.lightManager->AddPointLight(r);
+
+    appState.lightManager->ShowDebugLights(true);
 }
 
 void Test::Update(AppState &appState) 
 {
-    float time = (float)glfwGetTime() * 0.8f;
+    float time = (float)glfwGetTime();
 
-    // varying X and Z creates a circle around the scene
-    float lightX = sin(time); 
-    float lightZ = cos(time) * 1.2f;
-    
-    // Y is set to -1.0f so it always points somewhat downwards at the floor
-    glm::vec3 newDirection = glm::normalize(glm::vec3(lightX, -1.0f, lightZ));
-
-    // We keep the color/intensity values consistent with what you set in OnActivate
-    appState.lightManager->SetDirectional(
-        newDirection,
-        glm::vec3(0.05f),        // Ambient
-        glm::vec3(0.4f),        // Diffuse
-        glm::vec3(0.1f)         // Specular
-    );
-
-    if (!appState.lightManager -> spots.empty())
+    if (!appState.lightManager->points.empty())
     {
-        appState.lightManager -> spots[0].position = appState.camera.Position;
-        appState.lightManager -> spots[0].direction = appState.camera.Front;
+        for(unsigned int i = 0; i < appState.lightManager->points.size(); i++)
+        {
+            // Orbit radius 10 around the crate stack
+            float radius = 2.0f;
+            
+            // Move in a circle
+            float x = sin(time * 0.5f * (i + 1)) * radius * (i + 1);
+            float z = cos(time * 0.5f * (i + 1)) * radius * (i + 1);
+            
+            // Bob up and down slightly (height 4 to 8) to change shadow length
+            float y = 1.5f + (i + 1);
+
+            appState.lightManager->points[i].position = glm::vec3(x, y, z);
+        }
     }
 }

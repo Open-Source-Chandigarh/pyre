@@ -9,6 +9,7 @@
 #include "core/postprocessing/PostProcessingPipeline.h"
 #include "core/rendering/Framebuffer.h"
 #include "core/rendering/Material.h"
+#include "core/Constants.h"
 
 void Renderer::SetupCameraGlobals(const Camera &camera, float aspectRatio)
 {
@@ -24,7 +25,7 @@ void Renderer::SetupCameraGlobals(const Camera &camera, float aspectRatio)
 
     if (!cameraUBO)
     {
-        cameraUBO = std::make_unique<UniformBuffer>(sizeof(CameraData), 0);
+        cameraUBO = std::make_unique<UniformBuffer>(sizeof(CameraData), Bindings::UBO_CAMERA);
     }
 
     CameraData camData{};
@@ -87,17 +88,39 @@ void Renderer::EnsureShadowBuffer()
     {
         // 3 splits = 4 layers (0-10, 10-200, 200-500, 500-infinity)
         unsigned int layers = shadowCascadeLevels.size() + 1;
-        shadowFBO = std::make_unique<Framebuffer>(4096, 4096, true, false, false, layers);
+        shadowFBO = std::make_unique<Framebuffer>(2048, 2048, true, false, false, layers);
     }
 
     CreateShadowUBO();
+}
+
+void Renderer::EnsurePointShadowBuffer()
+{
+    if (!pointShadowFBO)
+    {
+        pointShadowFBO = std::make_unique<Framebuffer>(2048, 2048, true, false, false, 8, true);
+        
+        pointShadowShader = ResourceManager::LoadShader("pointShadow", 
+            "shaders/shadows/pointDepth.vs", 
+            "shaders/shadows/pointDepth.fs", 
+            "shaders/shadows/pointDepth.gs");
+    }
+
+    CreatePointShadowUBO();
 }
 
 void Renderer::CreateShadowUBO()
 {
     if (shadowUBO) return;
     // binding point 2, size of ShadowData struct
-    shadowUBO = std::make_unique<UniformBuffer>(sizeof(ShadowData), 2);
+    shadowUBO = std::make_unique<UniformBuffer>(sizeof(ShadowData), Bindings::UBO_CSM_SHADOWS);
+}
+
+void Renderer::CreatePointShadowUBO()
+{
+    if (pointShadowUBO) return;
+    // size of struct, binding point 3
+    pointShadowUBO = std::make_unique<UniformBuffer>(sizeof(PointShadowData), Bindings::UBO_POINT_SHADOWS);
 }
 
 void Renderer::BeginScene(const Camera &camera, LightManager &lightManager, float aspectRatio)
@@ -107,6 +130,7 @@ void Renderer::BeginScene(const Camera &camera, LightManager &lightManager, floa
     ResetGlState();
     LoadRequiredShaders();
     EnsureShadowBuffer();
+    EnsurePointShadowBuffer();
 
     // uploading lighting data to the uniform buffer object ensures all shaders have access to light sources
     lightManager.UploadLightsToGPU();
@@ -373,11 +397,25 @@ void Renderer::RenderShadowMap(const std::vector<std::shared_ptr<Entity>> &opaqu
     std::vector<glm::mat4> matrices = GetLightSpaceMatrices(lightDir, camera);
     
     // pack into struct
-    ShadowData shadowData;
+    ShadowData shadowData{};
+    // fill Matrices
     for (size_t i = 0; i < matrices.size() && i < 16; ++i)
     {
         shadowData.lightSpaceMatrices[i] = matrices[i];
     }
+
+    // fill Cascade Splits (packing floats into vec4)
+    // we rely on the fact that glm::vec4 is just 4 floats in memory.
+    for (size_t i = 0; i < shadowCascadeLevels.size() && i < 16; ++i)
+    {
+        // calculate index: 0->[0].x, 1->[0].y, 4->[1].x
+        int vecIdx = i / 4;
+        int compIdx = i % 4;
+        shadowData.cascadePlaneDistances[vecIdx][compIdx] = shadowCascadeLevels[i];
+    }
+
+    shadowData.cascadeCount = (int)shadowCascadeLevels.size();
+    shadowData.shadowFarPlane = cameraFarPlane;
 
     // upload to binding 2 using wrapper
     if (shadowUBO)
@@ -421,6 +459,63 @@ void Renderer::RenderShadowMap(const std::vector<std::shared_ptr<Entity>> &opaqu
     glCullFace(GL_BACK);
 }
 
+void Renderer::RenderPointShadows(const std::vector<std::shared_ptr<Entity>> &opaqueEntities,
+                            const LightManager &lightManager)
+{
+    if(lightManager.points.empty()) return;
+    // disable culling to prevent 2D planes/open meshes from disappearing
+    glDisable(GL_CULL_FACE);
+    pointShadowShader->use();
+    pointShadowFBO->Bind();
+    glViewport(0, 0, pointShadowFBO->Width(), pointShadowFBO->Height());
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    float aspect = (float)pointShadowFBO->Width() / (float)pointShadowFBO->Height();
+    glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, pointShadowNear, pointShadowFar);
+
+    int activeLights = std::min((int)lightManager.points.size(), 8);
+
+    for(int i = 0; i < activeLights; i++)
+    {
+        glm::vec3 pos = lightManager.points[i].position;
+        PointShadowData uboData;
+        uboData.lightPos = glm::vec4(pos, 1.0f); // .w is padding
+        uboData.farPlane = pointShadowFar;
+
+        // +X (Right)
+        uboData.shadowMatrices[0] = shadowProj * glm::lookAt(pos, pos + glm::vec3( 1, 0, 0), glm::vec3(0,-1, 0));
+        // -X (Left)
+        uboData.shadowMatrices[1] = shadowProj * glm::lookAt(pos, pos + glm::vec3(-1, 0, 0), glm::vec3(0,-1, 0));
+        // +Y (Top)
+        uboData.shadowMatrices[2] = shadowProj * glm::lookAt(pos, pos + glm::vec3( 0, 1, 0), glm::vec3(0, 0, 1));
+        // -Y (Bottom)
+        uboData.shadowMatrices[3] = shadowProj * glm::lookAt(pos, pos + glm::vec3( 0,-1, 0), glm::vec3(0, 0,-1));
+        // +Z (Near)
+        uboData.shadowMatrices[4] = shadowProj * glm::lookAt(pos, pos + glm::vec3( 0, 0, 1), glm::vec3(0,-1, 0));
+        // -Z (Far)
+        uboData.shadowMatrices[5] = shadowProj * glm::lookAt(pos, pos + glm::vec3( 0, 0,-1), glm::vec3(0,-1, 0));
+
+        // Upload  Ubo
+        pointShadowUBO->UploadData(&uboData, sizeof(PointShadowData));
+        pointShadowShader->setInt("lightIndex", i);
+
+        // optimization: filter out entities with massive instance counts (asteroids/grass)
+        // to prevent geometry shader from a lot of calculations
+        for (const auto &e : opaqueEntities)
+        {
+            if (e->modelComp && e->modelComp->instanceCount > 100) 
+            {
+                continue; 
+            }
+            DrawEntityInPass(e.get(), pointShadowShader);
+        }
+    }
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    Framebuffer::Unbind();
+}          
+
 void Renderer::RenderLightingPass(const std::vector<std::shared_ptr<Entity>> &opaque,
                                   const std::vector<std::shared_ptr<Entity>> &transparent,
                                   std::shared_ptr<Entity> skybox,
@@ -439,8 +534,15 @@ void Renderer::RenderLightingPass(const std::vector<std::shared_ptr<Entity>> &op
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     // bind the shadow map texture to slot 10 so our lighting shaders can read from it
-    glActiveTexture(GL_TEXTURE10);
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_CSM_SHADOW);
     glBindTexture(GL_TEXTURE_2D_ARRAY, shadowFBO->GetDepthTexture());
+
+    // bind the shadow map texture for points lights (if any) to slot 11
+    if (pointShadowFBO) 
+    {
+        glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_POINT_SHADOW);
+        glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, pointShadowFBO->GetDepthTexture());
+    }
 
     // 1. draw opaque geometry first as they write to the depth buffer
     RenderPass(opaque, viewMatrix, projMatrix, nullptr);
@@ -512,6 +614,9 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
     glm::vec3 lightDir = glm::normalize(lightManager.GetDirectionalLightDir());
     RenderShadowMap(opaqueEntities, lightDir, camera);
 
+    // generate the shadow map texture for point lights
+    RenderPointShadows(opaqueEntities, lightManager);
+
     // execute the main rendering pass
     if (!wireFrame)
     {
@@ -574,21 +679,18 @@ void Renderer::UploadMeshUniforms(const std::shared_ptr<Shader> &shader, const g
     // if the shader supports shadows, we verify the texture unit and bind the depth map
     if (shader->hasUniform("shadowMap"))
     {
-        shader->setInt("shadowMap", 10);
-        glActiveTexture(GL_TEXTURE10);
+        shader->setInt("shadowMap", Bindings::TEX_SLOT_CSM_SHADOW);
+        glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_CSM_SHADOW);
         glBindTexture(GL_TEXTURE_2D_ARRAY, shadowFBO->GetDepthTexture()); 
     }
 
-    // the fragment shader needs these to decide which cascade layer to sample
-    if (shader->hasUniform("cascadeCount"))
+    // if the shader supports omnidirectional shadows, we verify the texture unit and bind the depth map
+    if(shader->hasUniform("pointShadowMap"))
     {
-        shader->setInt("cascadeCount", shadowCascadeLevels.size());
-        shader->setFloat("farPlane", cameraFarPlane);
-
-        for (size_t i = 0; i < shadowCascadeLevels.size(); ++i)
-        {
-            shader->setFloat("cascadePlaneDistances[" + std::to_string(i) + "]", shadowCascadeLevels[i]);
-        }
+        shader->setInt("pointShadowMap", Bindings::TEX_SLOT_POINT_SHADOW);
+        shader->setFloat("pointShadowFarPlane", pointShadowFar);
+        glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_POINT_SHADOW);
+        glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, pointShadowFBO->GetDepthTexture());
     }
 
     // upload all standard transformation matrices required for vertex processing
@@ -712,16 +814,6 @@ void Renderer::SubmitInstancedModel(Model& modelObj,
         shader->setInt("shadowMap", 10);
         glActiveTexture(GL_TEXTURE10);
         glBindTexture(GL_TEXTURE_2D_ARRAY, shadowFBO->GetDepthTexture());
-    }
-
-    if (shader->hasUniform("cascadeCount"))
-    {
-        shader->setInt("cascadeCount", shadowCascadeLevels.size());
-        shader->setFloat("farPlane", cameraFarPlane);
-        for (size_t i = 0; i < shadowCascadeLevels.size(); ++i)
-        {
-            shader->setFloat("cascadePlaneDistances[" + std::to_string(i) + "]", shadowCascadeLevels[i]);
-        }
     }
 
     for (const auto& entry : modelObj.GetMeshes())

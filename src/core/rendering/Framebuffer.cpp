@@ -2,8 +2,8 @@
 #include <iostream>
 
 Framebuffer::Framebuffer(unsigned int w, unsigned int h, bool withDepth, bool multiSampled, bool withColor, 
-    unsigned int textureLayers)
-    : width(w), height(h), depth(withDepth), multiSampled(multiSampled), color(withColor), textureLayers(textureLayers)
+    unsigned int textureLayers, bool isCubeMap)
+    : width(w), height(h), depth(withDepth), multiSampled(multiSampled), color(withColor), textureLayers(textureLayers), isCubeMap(isCubeMap)
 {
     CreateResources();
 }
@@ -65,9 +65,31 @@ void Framebuffer::CreateResources()
         {   
             // shadow map case (depth only)
             glGenTextures(1, &depthTexture);
+
+
+            // check if we need a cubemap (for omnidirectional shadows)
+            if(isCubeMap && textureLayers > 0)
+            {
+                glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, depthTexture);
+                glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 0, GL_DEPTH_COMPONENT32F, width, 
+                    height, textureLayers * 6, 0, 
+                    GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                // Enable Hardware Shadow Comparison
+                // This turns "0.5 depth" into a "50% lit" probability automatically
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+                
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+                glTexParameteri(GL_TEXTURE_CUBE_MAP_ARRAY, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+                glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depthTexture, 0);
+            }
             
             // check if we need a texture array (CSM) or standard texture
-            if (textureLayers > 1) 
+            else if (textureLayers > 1) 
             {
                 glBindTexture(GL_TEXTURE_2D_ARRAY, depthTexture);
                 glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_DEPTH_COMPONENT32F, width, 
