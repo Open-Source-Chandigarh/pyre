@@ -30,10 +30,17 @@ The project features a self-contained CMake build system that automatically mana
 
 ## Visual Showcase
 
-| **Omni-Directional Point Shadows** | **Cascaded Shadow Maps (CSM)** |
-| :---: | :---: |
-| <img src="resources/gifs/point shadows.gif" alt="Point Shadows Demo" width="100%"> | <img src="resources/gifs/csm.gif" alt="CSM Demo" width="100%"> |
-| *Dynamic omni-directional shadows using Geometry Shaders.* | *High-resolution directional shadows with cascade splits.* |
+### Feature Demonstrations
+
+**Omni-Directional Point Shadows**
+*Dynamic omni-directional shadows using Geometry Shaders.*
+https://github.com/user-attachments/assets/1e2e123c-aa3c-41d9-bb57-5e14d23d1234
+
+**Cascaded Shadow Maps (CSM)**
+*High-resolution directional shadows with cascade splits.*
+https://github.com/user-attachments/assets/22f3f373-fad0-41c5-8a3e-8e3a32ee3bee
+
+### Screenshots
 
 | **Environment Mapping Reflections** | **Non-Photorealistic Rendering (Toon)** |
 | :---: | :---: |
@@ -44,7 +51,6 @@ The project features a self-contained CMake build system that automatically mana
 | :---: | :---: |
 | <img src="resources/screenshots/moon.png" alt="Instancing Demo" width="100%"> | <img src="resources/screenshots/post_inversion.png" alt="Post Processing Demo" width="100%"> |
 | *High-throughput rendering using vertex attribute divisors.* | *Framebuffer-based effects chain (Inversion).* |
-
 ---
 
 ## Technical Features
@@ -92,7 +98,7 @@ Ensure the following tools are available in your environment:
 
 ```bash
 # 1. Clone the repository
-git clone [https://github.com/Open-Source-Chandigarh/pyre.git](https://github.com/Open-Source-Chandigarh/pyre.git)
+git clone https://github.com/Open-Source-Chandigarh/pyre.git
 cd pyre
 
 # 2. Generate build files
@@ -111,7 +117,7 @@ cmake --build . --config Debug
 
 # Windows
 
-.\/Debug\/Pyre.exe
+.\Debug\Pyre.exe
 
 
 
