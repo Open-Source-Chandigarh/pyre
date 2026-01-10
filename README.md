@@ -34,10 +34,12 @@ The project features a self-contained CMake build system that automatically mana
 
 **Omni-Directional Point Shadows**
 *Dynamic omni-directional shadows using Geometry Shaders.*
+
 https://github.com/user-attachments/assets/1e2e123c-aa3c-41d9-bb57-5e14d23d1234
 
 **Cascaded Shadow Maps (CSM)**
 *High-resolution directional shadows with cascade splits.*
+
 https://github.com/user-attachments/assets/22f3f373-fad0-41c5-8a3e-8e3a32ee3bee
 
 ### Screenshots
