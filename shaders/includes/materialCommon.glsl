@@ -5,6 +5,7 @@
 uniform sampler2D material_diffuse;
 uniform samplerCube material_skybox;
 uniform sampler2D material_specular;
+uniform sampler2D material_normal;
 
 // Fallback / direct values
 uniform vec3 material_diffuseColor;
@@ -15,6 +16,7 @@ uniform float material_reflectivity;
 uniform int material_diffuse_present;
 uniform int material_specular_present;
 uniform int material_skybox_present;
+uniform int material_normal_present;
 
 // Helper accessors used by lighting_common.glsl
 vec3 GetDiffuseColor()

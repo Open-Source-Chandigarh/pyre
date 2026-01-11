@@ -155,7 +155,7 @@ std::shared_ptr<Texture> ResourceManager::LoadCubeMap(
 
     std::shared_ptr<Texture> texture = std::make_shared<Texture>();
     texture->ID = tex;
-    texture->type = TextureType::TEX_CUBEMAP;
+    texture->type = TextureType::TEX_ENVIRONMENT;
     texture->width = width;
     texture->height = height;
     texture->channels = nrChannels;

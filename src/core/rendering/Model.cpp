@@ -32,8 +32,10 @@ void Model::loadModel(std::string path)
 {
     Assimp::Importer importer;
     // We keep GenNormals and FlipUVs as they are essential for standard rendering
+    // added calctangentspace for normal mapping
     const aiScene* scene = importer.ReadFile(path, 
-        aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
+        aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals 
+        | aiProcess_CalcTangentSpace);
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
@@ -59,6 +61,32 @@ void Model::processNode(aiNode* node, const aiScene* scene)
     }
 }
 
+// helper to load texture from assimp material
+std::shared_ptr<Texture> Model::LoadMaterialTexture(aiMaterial* mat, aiTextureType type, TextureType typeName)
+{
+    if (mat->GetTextureCount(type) > 0)
+    {
+        aiString str;
+        mat->GetTexture(type, 0, &str);
+        
+        // Use std::filesystem to extract just the filename (e.g. "diffuse.png")
+        // avoiding issues with absolute paths baked into FBX files
+        std::string filename = std::filesystem::path(str.C_Str()).filename().string();
+
+        std::string fullPath = this->directory + "/" + filename;
+        fullPath = SanitizePath(fullPath);
+
+        if (std::filesystem::exists(fullPath))
+        {
+            return ResourceManager::LoadTexture(fullPath, typeName);
+        }
+        else
+        {
+            std::cout << "[Model] Missing Texture: " << fullPath << std::endl;
+        }
+    }
+    return nullptr;
+}
 
 // We ignore what the .fbx/.obj says internally. We only look for specific filenames.
 std::shared_ptr<Texture> Model::LoadStandardMap(TextureType type)
@@ -71,6 +99,10 @@ std::shared_ptr<Texture> Model::LoadStandardMap(TextureType type)
     }
     else if (type == TextureType::TEX_SPECULAR) {
         standardNames = { "specular.png", "specular.jpg", "spec.png", "spec.jpg", "roughness.png", "roughness.jpg" };
+    }
+    // added normal map standard names
+    else if (type == TextureType::TEX_NORMAL) {
+        standardNames = { "normal.png", "normal.jpg", "norm.png", "norm.jpg" };
     }
 
     // Scan the directory
@@ -125,6 +157,16 @@ MeshEntry Model::processMesh(aiMesh* mesh, const aiScene* scene)
             vertex.TexCoords = glm::vec2(0.0f, 0.0f);
         }
 
+        // tangent calculation
+        if (mesh->HasTangentsAndBitangents()) {
+            vector.x = mesh->mTangents[i].x;
+            vector.y = mesh->mTangents[i].y;
+            vector.z = mesh->mTangents[i].z;
+            vertex.Tangent = vector;
+        } else {
+            vertex.Tangent = glm::vec3(0.0f);
+        }
+
         vertices.push_back(vertex);
     }
 
@@ -142,22 +184,31 @@ MeshEntry Model::processMesh(aiMesh* mesh, const aiScene* scene)
     mat.defaultDiffuseColor = glm::vec3(1.0f, 1.0f, 1.0f);
     mat.defaultShininess = 32.0f;
 
-    // A. Load Textures via Standard Naming Convention
-    auto diffuseTex = LoadStandardMap(TextureType::TEX_DIFFUSE);
-    if (diffuseTex) {
-        mat.textures["material_diffuse"] = diffuseTex;
-    }
-
-    auto specTex = LoadStandardMap(TextureType::TEX_SPECULAR);
-    if (specTex) {
-        mat.textures["material_specular"] = specTex;
-    }
-
-    // B. Load Fallback Properties from Assimp (Colors/Shininess)
-    // We still read these just in case the model has specific color data we want to respect
+    // hybrid approach: try assimp path first, fallback to directory scan
     if (mesh->mMaterialIndex >= 0)
     {
         aiMaterial* aMat = scene->mMaterials[mesh->mMaterialIndex];
+
+        // diffuse map
+        auto diffuseTex = LoadMaterialTexture(aMat, aiTextureType_DIFFUSE, TextureType::TEX_DIFFUSE);
+        if (!diffuseTex) diffuseTex = LoadMaterialTexture(aMat, aiTextureType_BASE_COLOR, TextureType::TEX_DIFFUSE);
+        if (!diffuseTex) diffuseTex = LoadStandardMap(TextureType::TEX_DIFFUSE);
+        if (diffuseTex) mat.textures["material_diffuse"] = diffuseTex;
+
+        // specular map
+        auto specTex = LoadMaterialTexture(aMat, aiTextureType_SPECULAR, TextureType::TEX_SPECULAR);
+        if (!specTex) specTex = LoadStandardMap(TextureType::TEX_SPECULAR);
+        if (!specTex) specTex = LoadMaterialTexture(aMat, aiTextureType_METALNESS, TextureType::TEX_SPECULAR);
+        if (specTex) mat.textures["material_specular"] = specTex;
+
+        // normal map (check normals and height slots)
+        auto normTex = LoadMaterialTexture(aMat, aiTextureType_NORMALS, TextureType::TEX_NORMAL);
+        if (!normTex) normTex = LoadMaterialTexture(aMat, aiTextureType_HEIGHT, TextureType::TEX_NORMAL);
+        if (!normTex) normTex = LoadStandardMap(TextureType::TEX_NORMAL);
+        if (normTex) mat.textures["material_normal"] = normTex;
+
+        // B. Load Fallback Properties from Assimp (Colors/Shininess)
+        // We still read these just in case the model has specific color data we want to respect
         aiColor3D color(1.0f, 1.0f, 1.0f);
 
         if (AI_SUCCESS == aMat->Get(AI_MATKEY_COLOR_DIFFUSE, color)) {

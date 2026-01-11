@@ -5,10 +5,11 @@
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
 layout (location = 2) in vec2 aTexCoords;
+layout (location = 3) in vec3 aTangent;
 
 // A mat4 is treated as 4 vec4s by the driver
-// Instancing Matrix (Takes up locations 3, 4, 5, 6)
-layout (location = 3) in mat4 aInstanceMatrix;
+// Instancing Matrix (Takes up locations 4, 5, 6, 7)
+layout (location = 4) in mat4 aInstanceMatrix;
 
 #ifdef HAS_GEOMETRY_SHADER
     // If GS exists, package outputs into a struct
@@ -16,17 +17,18 @@ layout (location = 3) in mat4 aInstanceMatrix;
         vec3 FragPos;
         vec3 Normal;
         vec2 TexCoords;
+        mat3 TBN;
     } vs_out;
 #else
     // If no GS, output standard globals for the FS
     out vec3 FragPos;
     out vec3 Normal;
     out vec2 TexCoords;
+    out mat3 TBN;
 #endif
 
 uniform mat4 model;        // Used when isInstanced = false
 uniform bool isInstanced;  // Model matrix Switch
-uniform mat4 lightSpaceMatrix;
 
 void main()
 {
@@ -34,16 +36,26 @@ void main()
     mat4 currentModel = isInstanced ? aInstanceMatrix : model;
 
     vec3 worldPos = vec3(currentModel * vec4(aPos, 1.0));
-    vec3 worldNormal = mat3(transpose(inverse(currentModel))) * aNormal;
+    mat3 normalMatrix = mat3(transpose(inverse(currentModel)));
+
+    vec3 T = normalize(normalMatrix * aTangent);
+    vec3 N = normalize(normalMatrix * aNormal);
+
+    // Gram-Schmidt re-orthogonalization
+    T = normalize(T - dot(T, N) * N);
+
+    vec3 B = cross(N, T);
     
     #ifdef HAS_GEOMETRY_SHADER
         vs_out.FragPos = worldPos;
-        vs_out.Normal = worldNormal;
+        vs_out.Normal = N;
         vs_out.TexCoords = aTexCoords;
+        vs_out.TBN = mat3(T, B, N);
     #else
         FragPos = worldPos;
-        Normal = worldNormal;
+        Normal = N;
         TexCoords = aTexCoords;
+        TBN = mat3(T, B, N);
     #endif
 
     gl_Position = proj * view * vec4(worldPos, 1.0);

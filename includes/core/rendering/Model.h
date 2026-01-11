@@ -34,6 +34,7 @@ private:
 	std::string directory;
 	void loadModel(std::string path);
 	std::shared_ptr<Texture> LoadStandardMap(TextureType type);
+	std::shared_ptr<Texture> LoadMaterialTexture(aiMaterial* mat, aiTextureType type, TextureType typeName);
 	void processNode(aiNode* node, const aiScene* scene);
 	MeshEntry processMesh(aiMesh* mesh, const aiScene* scene);
 	std::vector<std::shared_ptr<Texture>> loadMaterialTextures(aiMaterial* mat,

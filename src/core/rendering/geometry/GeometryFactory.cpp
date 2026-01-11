@@ -6,9 +6,55 @@
 
 using namespace GeometryFactory;
 
-static inline void pushVertex(std::vector<float>& v, glm::vec3 pos, glm::vec3 n, glm::vec2 uv)
+// Pushes 11 floats (Pos, Normal, UV, Tangent)
+static inline void PushVertex(std::vector<float>& v, glm::vec3 pos, glm::vec3 n, glm::vec2 uv, glm::vec3 t)
 {
-    v.insert(v.end(), { pos.x, pos.y, pos.z, n.x, n.y, n.z, uv.x, uv.y });
+    v.insert(v.end(), { 
+        pos.x, pos.y, pos.z, 
+        n.x, n.y, n.z, 
+        uv.x, uv.y,
+        t.x, t.y, t.z
+    });
+}
+
+// Triangle-based Tangent Calculation
+static glm::vec3 CalcTangent(
+    glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, 
+    glm::vec2 uv1, glm::vec2 uv2, glm::vec2 uv3)
+{
+    glm::vec3 edge1 = p2 - p1;
+    glm::vec3 edge2 = p3 - p1;
+    glm::vec2 deltaUV1 = uv2 - uv1;
+    glm::vec2 deltaUV2 = uv3 - uv1;
+
+    float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+    glm::vec3 tangent;
+    tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+    tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+    tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+    
+    return glm::normalize(tangent);
+}
+
+// Converts raw float buffer (stride 11) to Mesh object
+static Mesh BuildMeshFromData(const std::vector<float>& data, const std::vector<unsigned int>& indices)
+{
+    Mesh m;
+    m.vertexCount = data.size() / 11;
+    m.indexCount = indices.size();
+    m.vertices.resize(m.vertexCount);
+
+    for(int i = 0; i < m.vertexCount; i++)
+    {
+        int base = i * 11;
+        m.vertices[i].Position  = glm::vec3(data[base+0], data[base+1], data[base+2]);
+        m.vertices[i].Normal    = glm::vec3(data[base+3], data[base+4], data[base+5]);
+        m.vertices[i].TexCoords = glm::vec2(data[base+6], data[base+7]);
+        m.vertices[i].Tangent   = glm::vec3(data[base+8], data[base+9], data[base+10]);
+    }
+    // We return a new Mesh using the constructor to ensure setupMesh() is called correctly
+    return Mesh(m.vertices, indices);
 }
 
 Mesh GeometryFactory::CreateCube(float size)
@@ -29,17 +75,23 @@ Mesh GeometryFactory::CreateCube(float size)
 
     glm::vec2 uvs[4] = { {0,0}, {1,0}, {1,1}, {0,1} };
 
-    // Front face (0�1�2�3 style indexing)
     auto quad = [&](int a, int b, int c, int d, glm::vec3 n)
-        {
-            unsigned int startIndex = data.size() / 8;
-            pushVertex(data, positions[a], n, uvs[0]);
-            pushVertex(data, positions[b], n, uvs[1]);
-            pushVertex(data, positions[c], n, uvs[2]);
-            pushVertex(data, positions[d], n, uvs[3]);
-            indices.insert(indices.end(), { startIndex, startIndex + 1, startIndex + 2,
-                                            startIndex, startIndex + 2, startIndex + 3 });
-        };
+    {
+        // Calculate tangent based on the first triangle
+        glm::vec3 t = CalcTangent(positions[a], positions[b], positions[c], uvs[0], uvs[1], uvs[2]);
+
+        unsigned int startIndex = data.size() / 11; 
+
+        PushVertex(data, positions[a], n, uvs[0], t);
+        PushVertex(data, positions[b], n, uvs[1], t);
+        PushVertex(data, positions[c], n, uvs[2], t);
+        PushVertex(data, positions[d], n, uvs[3], t);
+
+        indices.insert(indices.end(), { 
+            startIndex, startIndex + 1, startIndex + 2,
+            startIndex, startIndex + 2, startIndex + 3 
+        });
+    };
 
     quad(4, 5, 6, 7, normals[1]); // front
     quad(1, 0, 3, 2, normals[0]); // back
@@ -48,19 +100,14 @@ Mesh GeometryFactory::CreateCube(float size)
     quad(3, 7, 6, 2, normals[4]); // top
     quad(0, 1, 5, 4, normals[5]); // bottom
 
-    return Mesh::CreateFromIndexedData(
-        data.data(), data.size() * sizeof(float),
-        indices.data(), indices.size() * sizeof(unsigned int),
-        indices.size()
-    );
+    return BuildMeshFromData(data, indices);
 }
 
 Mesh GeometryFactory::CreateSkyboxCube(float size)
 {
+    // Skybox does not need tangents or lighting, keeping it simple (Positions Only)
     float h = size * 0.5f;
-    // 36 positions (6 faces * 2 triangles * 3 vertices)
     static const float skyboxVertices[] = {
-        // positions          
         -1.0f,  1.0f, -1.0f,
         -1.0f, -1.0f, -1.0f,
          1.0f, -1.0f, -1.0f,
@@ -104,17 +151,14 @@ Mesh GeometryFactory::CreateSkyboxCube(float size)
          1.0f, -1.0f,  1.0f
     };
 
-    // scale if requested
-    if (size != 1.0f)
-    {
-        for (size_t i = 0; i < sizeof(skyboxVertices) / sizeof(float); ++i)
-            ((float*)skyboxVertices)[i] *= h;
+    std::vector<float> vBuffer(std::begin(skyboxVertices), std::end(skyboxVertices));
+
+    if (size != 1.0f) {
+        for (float& f : vBuffer) f *= h;
     }
 
-    // vertex count = 36
-    return Mesh::CreatePositionsOnly(skyboxVertices, sizeof(skyboxVertices), 36);
+    return Mesh::CreatePositionsOnly(vBuffer.data(), vBuffer.size() * sizeof(float), 36);
 }
-
 
 Mesh GeometryFactory::CreatePlane(float size)
 {
@@ -122,16 +166,25 @@ Mesh GeometryFactory::CreatePlane(float size)
     std::vector<float> data;
     std::vector<unsigned int> indices = { 0,1,2, 0,2,3 };
 
-    pushVertex(data, { -h,0,-h }, { 0,1,0 }, { 0,0 });
-    pushVertex(data, { h,0,-h }, { 0,1,0 }, { 1,0 });
-    pushVertex(data, { h,0, h }, { 0,1,0 }, { 1,1 });
-    pushVertex(data, { -h,0, h }, { 0,1,0 }, { 0,1 });
+    glm::vec3 p1 = { -h,0,-h };
+    glm::vec3 p2 = { h,0,-h };
+    glm::vec3 p3 = { h,0, h };
+    glm::vec3 p4 = { -h,0, h };
+    glm::vec3 n = { 0,1,0 };
 
-    return Mesh::CreateFromIndexedData(
-        data.data(), data.size() * sizeof(float),
-        indices.data(), indices.size() * sizeof(unsigned int),
-        indices.size()
-    );
+    glm::vec2 uv1 = { 0,0 };
+    glm::vec2 uv2 = { 1,0 };
+    glm::vec2 uv3 = { 1,1 };
+    glm::vec2 uv4 = { 0,1 };
+
+    glm::vec3 t = CalcTangent(p1, p2, p3, uv1, uv2, uv3);
+
+    PushVertex(data, p1, n, uv1, t);
+    PushVertex(data, p2, n, uv2, t);
+    PushVertex(data, p3, n, uv3, t);
+    PushVertex(data, p4, n, uv4, t);
+
+    return BuildMeshFromData(data, indices);
 }
 
 Mesh GeometryFactory::CreateSphere(float radius, int segments, int rings)
@@ -147,7 +200,7 @@ Mesh GeometryFactory::CreateSphere(float radius, int segments, int rings)
         for (int x = 0; x <= segments; ++x)
         {
             float u = (float)x / segments;
-            float theta = u * std::numbers::pi_v<float> *2.0f;
+            float theta = u * std::numbers::pi_v<float> * 2.0f;
 
             glm::vec3 pos{
                 radius * sin(phi) * cos(theta),
@@ -155,7 +208,17 @@ Mesh GeometryFactory::CreateSphere(float radius, int segments, int rings)
                 radius * sin(phi) * sin(theta)
             };
             glm::vec3 n = glm::normalize(pos);
-            pushVertex(data, pos, n, { u, v });
+
+            // Analytical Tangent for Sphere (follows U/Longitude)
+            // Derivative of Pos w.r.t theta is (-sin(theta), 0, cos(theta)) 
+            // We ignore Y component because it is driven by Phi, not Theta.
+            glm::vec3 t = glm::normalize(glm::vec3(
+                -sin(theta), 
+                0.0f, 
+                cos(theta)
+            ));
+
+            PushVertex(data, pos, n, { u, v }, t);
         }
     }
 
@@ -169,11 +232,7 @@ Mesh GeometryFactory::CreateSphere(float radius, int segments, int rings)
         }
     }
 
-    return Mesh::CreateFromIndexedData(
-        data.data(), data.size() * sizeof(float),
-        indices.data(), indices.size() * sizeof(unsigned int),
-        indices.size()
-    );
+    return BuildMeshFromData(data, indices);
 }
 
 Mesh GeometryFactory::CreateCylinder(float radius, float height, int segments)
@@ -182,33 +241,39 @@ Mesh GeometryFactory::CreateCylinder(float radius, float height, int segments)
     std::vector<unsigned int> indices;
     float halfH = height * 0.5f;
 
-    // Side vertices
+    // Side Vertices
     for (int i = 0; i <= segments; ++i)
     {
         float theta = (i / (float)segments) * 2.0f * std::numbers::pi_v<float>;
         float x = cos(theta), z = sin(theta);
         glm::vec3 normal{ x, 0, z };
+        
+        // Tangent is horizontal along the circle
+        glm::vec3 tangent{ -sin(theta), 0.0f, cos(theta) };
 
-        pushVertex(data, { radius * x, -halfH, radius * z }, normal, { (float)i / segments, 0 });
-        pushVertex(data, { radius * x,  halfH, radius * z }, normal, { (float)i / segments, 1 });
+        PushVertex(data, { radius * x, -halfH, radius * z }, normal, { (float)i / segments, 0 }, tangent);
+        PushVertex(data, { radius * x,  halfH, radius * z }, normal, { (float)i / segments, 1 }, tangent);
     }
 
-    // Side indices
+    // Side Indices
     for (int i = 0; i < segments; ++i)
     {
         unsigned int base = i * 2;
         indices.insert(indices.end(), { base, base + 1, base + 2, base + 1, base + 3, base + 2 });
     }
 
-    // Bottom cap
-    unsigned int bottomCenterIndex = data.size() / 8;
-    pushVertex(data, { 0, -halfH, 0 }, { 0, -1, 0 }, { 0.5f, 0.5f });
+    // Bottom Cap
+    unsigned int bottomCenterIndex = data.size() / 11;
+    // Planar mapping -> Tangent along X
+    glm::vec3 capTangent{ 1.0f, 0.0f, 0.0f }; 
+
+    PushVertex(data, { 0, -halfH, 0 }, { 0, -1, 0 }, { 0.5f, 0.5f }, capTangent);
 
     for (int i = 0; i <= segments; ++i)
     {
         float theta = (i / (float)segments) * 2.0f * std::numbers::pi_v<float>;
         float x = cos(theta), z = sin(theta);
-        pushVertex(data, { radius * x, -halfH, radius * z }, { 0, -1, 0 }, { (x + 1) * 0.5f, (z + 1) * 0.5f });
+        PushVertex(data, { radius * x, -halfH, radius * z }, { 0, -1, 0 }, { (x + 1) * 0.5f, (z + 1) * 0.5f }, capTangent);
     }
 
     for (int i = 0; i < segments; ++i)
@@ -220,15 +285,15 @@ Mesh GeometryFactory::CreateCylinder(float radius, float height, int segments)
             });
     }
 
-    // Top cap
-    unsigned int topCenterIndex = data.size() / 8;
-    pushVertex(data, { 0, halfH, 0 }, { 0, 1, 0 }, { 0.5f, 0.5f });
+    // Top Cap
+    unsigned int topCenterIndex = data.size() / 11;
+    PushVertex(data, { 0, halfH, 0 }, { 0, 1, 0 }, { 0.5f, 0.5f }, capTangent);
 
     for (int i = 0; i <= segments; ++i)
     {
         float theta = (i / (float)segments) * 2.0f * std::numbers::pi_v<float>;
         float x = cos(theta), z = sin(theta);
-        pushVertex(data, { radius * x, halfH, radius * z }, { 0, 1, 0 }, { (x + 1) * 0.5f, (z + 1) * 0.5f });
+        PushVertex(data, { radius * x, halfH, radius * z }, { 0, 1, 0 }, { (x + 1) * 0.5f, (z + 1) * 0.5f }, capTangent);
     }
 
     for (int i = 0; i < segments; ++i)
@@ -240,11 +305,7 @@ Mesh GeometryFactory::CreateCylinder(float radius, float height, int segments)
             });
     }
 
-    return Mesh::CreateFromIndexedData(
-        data.data(), data.size() * sizeof(float),
-        indices.data(), indices.size() * sizeof(unsigned int),
-        indices.size()
-    );
+    return BuildMeshFromData(data, indices);
 }
 
 Mesh GeometryFactory::CreateCone(float radius, float height, int segments)
@@ -255,19 +316,27 @@ Mesh GeometryFactory::CreateCone(float radius, float height, int segments)
 
     glm::vec3 apex{ 0, halfH, 0 };
 
-    // Base rin
+    // Side Ring
     for (int i = 0; i <= segments; ++i)
     {
         float theta = (i / (float)segments) * 2.0f * std::numbers::pi_v<float>;
         float x = cos(theta), z = sin(theta);
         glm::vec3 pos{ radius * x, -halfH, radius * z };
+        
+        // Normal is tilted
         glm::vec3 normal = glm::normalize(glm::vec3(x, radius / height, z));
-        pushVertex(data, pos, normal, { (float)i / segments, 0 });
+        
+        // Tangent is horizontal along the ring
+        glm::vec3 tangent{ -sin(theta), 0.0f, cos(theta) };
+
+        PushVertex(data, pos, normal, { (float)i / segments, 0 }, tangent);
     }
 
-    // Apex vertex
-    pushVertex(data, apex, { 0,1,0 }, { 0.5f,1 });
-    unsigned int apexIndex = data.size() / 8 - 1;
+    // Apex vertex (Texture coordinate top center)
+    // Tangent at the tip is ambiguous, defaulting to X-axis
+    PushVertex(data, apex, { 0,1,0 }, { 0.5f, 1 }, { 1.0f, 0.0f, 0.0f });
+    
+    unsigned int apexIndex = data.size() / 11 - 1;
 
     // Side triangles
     for (int i = 0; i < segments; ++i)
@@ -275,17 +344,19 @@ Mesh GeometryFactory::CreateCone(float radius, float height, int segments)
         indices.insert(indices.end(), { (unsigned)i, (unsigned)(i + 1), apexIndex });
     }
 
-    // Base center
-    unsigned int baseCenterIndex = data.size() / 8;
-    pushVertex(data, { 0, -halfH, 0 }, { 0, -1, 0 }, { 0.5f, 0.5f });
+    // Base Center
+    unsigned int baseCenterIndex = data.size() / 11;
+    glm::vec3 baseTangent{ 1.0f, 0.0f, 0.0f };
+    
+    PushVertex(data, { 0, -halfH, 0 }, { 0, -1, 0 }, { 0.5f, 0.5f }, baseTangent);
 
     // Base ring again (for separate normal)
-    unsigned int baseStart = data.size() / 8;
+    unsigned int baseStart = data.size() / 11;
     for (int i = 0; i <= segments; ++i)
     {
         float theta = (i / (float)segments) * 2.0f * std::numbers::pi_v<float>;
         float x = cos(theta), z = sin(theta);
-        pushVertex(data, { radius * x, -halfH, radius * z }, { 0, -1, 0 }, { (x + 1) * 0.5f, (z + 1) * 0.5f });
+        PushVertex(data, { radius * x, -halfH, radius * z }, { 0, -1, 0 }, { (x + 1) * 0.5f, (z + 1) * 0.5f }, baseTangent);
     }
 
     // Base triangles
@@ -298,11 +369,7 @@ Mesh GeometryFactory::CreateCone(float radius, float height, int segments)
             });
     }
 
-    return Mesh::CreateFromIndexedData(
-        data.data(), data.size() * sizeof(float),
-        indices.data(), indices.size() * sizeof(unsigned int),
-        indices.size()
-    );
+    return BuildMeshFromData(data, indices);
 }
 
 Mesh GeometryFactory::CreateTorus(float radius, float tubeRadius, int segments, int rings)
@@ -330,7 +397,12 @@ Mesh GeometryFactory::CreateTorus(float radius, float tubeRadius, int segments, 
                 sinV,
                 sinU * cosV
             };
-            pushVertex(data, pos, glm::normalize(n), { (float)seg / segments, (float)ring / rings });
+            
+            // Tangent follows the major ring (U direction)
+            // Normalized derivative w.r.t U: (-sinU, 0, cosU)
+            glm::vec3 t{ -sinU, 0.0f, cosU };
+
+            PushVertex(data, pos, glm::normalize(n), { (float)seg / segments, (float)ring / rings }, glm::normalize(t));
         }
     }
 
@@ -344,9 +416,5 @@ Mesh GeometryFactory::CreateTorus(float radius, float tubeRadius, int segments, 
         }
     }
 
-    return Mesh::CreateFromIndexedData(
-        data.data(), data.size() * sizeof(float),
-        indices.data(), indices.size() * sizeof(unsigned int),
-        indices.size()
-    );
+    return BuildMeshFromData(data, indices);
 }

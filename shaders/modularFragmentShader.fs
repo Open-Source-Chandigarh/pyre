@@ -3,6 +3,7 @@
 in vec3 FragPos;
 in vec3 Normal;
 in vec2 TexCoords;
+in mat3 TBN;
 
 out vec4 FragColor;
 
@@ -16,7 +17,21 @@ void main()
         FragColor = vec4(1, 0, 1, 1); // Magic pink: texture is not bound
     return;
     }
-    vec3 N = normalize(Normal);
+
+    vec3 N;
+    if (material_normal_present == 1)
+    {
+        // Sample map [0,1]
+        vec3 normal = texture(material_normal, TexCoords).rgb;
+        // Transform to [-1, 1]
+        normal = normal * 2.0 - 1.0;
+        // TBN Transform
+        N = normalize(TBN * normal);
+    }
+    else
+    {
+        N = normalize(Normal);
+    }
     vec3 V = normalize(vec3(viewPos) - FragPos); // viewPos from UBO
 
     vec3 result = vec3(0.0);

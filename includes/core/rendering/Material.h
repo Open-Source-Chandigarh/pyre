@@ -41,6 +41,7 @@ struct Material
         const char* presentUniforms[] = {
             "material_diffuse_present",
             "material_specular_present",
+            "material_normal_present",
             "material_skybox_present"
         };
 
@@ -63,7 +64,9 @@ struct Material
             // shader doesn't want this texture, skip
             if (!shader.hasUniform(name)) continue;  
 
-            GLenum target = (tex->type == TextureType::TEX_CUBEMAP) ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
+            GLenum target = (tex->type == TextureType::TEX_CUBEMAP || tex->type == TextureType::TEX_ENVIRONMENT) 
+              ? GL_TEXTURE_CUBE_MAP 
+              : GL_TEXTURE_2D;
             int slot = -1;
 
             // Map texture types to fixed binding slots
@@ -75,7 +78,11 @@ struct Material
             {
                 slot = Bindings::TEX_SLOT_SPECULAR;
             }
-            else if (name == "material_skybox") 
+            else if (tex->type == TextureType::TEX_NORMAL) 
+            {
+                slot = Bindings::TEX_SLOT_NORMAL;
+            }
+            else if (tex->type == TextureType::TEX_ENVIRONMENT)
             {
                 slot = Bindings::TEX_SLOT_SKYBOX;
             }

@@ -17,8 +17,9 @@ void Test::Init(AppState &appState)
     shader = ResourceManager::LoadShader("test", "shaders/modularVertexShader.vs", "shaders/modularFragmentShader.fs");
     ResourceManager::LoadShader("skybox", "shaders/common/skyBox.vs", "shaders/common/skyBox.fs");
 
-    auto floorDiffuseMap = ResourceManager::LoadTexture("resources/textures/woodDiff.png", TextureType::TEX_DIFFUSE);
-    auto floorSpecularMap = ResourceManager::LoadTexture("resources/textures/woodSpec.png", TextureType::TEX_SPECULAR);
+    auto floorDiffuseMap = ResourceManager::LoadTexture("resources/textures/floor/stoneDiffuse.jpg", TextureType::TEX_DIFFUSE);
+    auto floorSpecularMap = ResourceManager::LoadTexture("resources/textures/floor/stoneSpecular.jpg", TextureType::TEX_SPECULAR);
+    auto floorNormalMap = ResourceManager::LoadTexture("resources/textures/floor/stoneNormal.jpg", TextureType::TEX_NORMAL);
     auto cubeDiffuseMap = ResourceManager::LoadTexture("resources/textures/crateDiff.jpg", TextureType::TEX_DIFFUSE);
     auto cubeSpecularMap = ResourceManager::LoadTexture("resources/textures/crateSpec.jpg", TextureType::TEX_SPECULAR);
     auto grassDiffuseMap = ResourceManager::LoadTexture("resources/textures/grass.png", TextureType::TEX_DIFFUSE);
@@ -112,11 +113,12 @@ void Test::Init(AppState &appState)
         mat -> cullMode = CullMode::Front;
         mat -> textures["material_diffuse"] = floorDiffuseMap;
         mat -> textures["material_specular"] = floorSpecularMap;
+        mat -> textures["material_normal"] = floorNormalMap;
         mat -> floats["material_shininess"] = 164.0f;
 
         std::shared_ptr<Entity> e = Entity::Create();
         e -> AddMesh(&plane, mat, shader);
-        e -> transform.scale = glm::vec3(20);
+        e -> transform.scale = glm::vec3(10);
         entities.push_back(e);
     }
 
@@ -154,21 +156,21 @@ void Test::OnActivate(AppState &appState)
     s.constant = 1; s.linear = 0.09f; s.quadratic = 0.032f;
     appState.lightManager -> AddPointLight(s);
 
-    PointLight f;
-    f.position = glm::vec3(-1, 2, 1);
-    f.ambient = glm::vec3(0.04f);
-    f.diffuse = glm::vec3(0.7, 0.4, 0.1);
-    f.specular = glm::vec3(0.4f);
-    f.constant = 1; f.linear = 0.14f; f.quadratic = 0.07f;
-    appState.lightManager -> AddPointLight(f);
+    // PointLight f;
+    // f.position = glm::vec3(-1, 2, 1);
+    // f.ambient = glm::vec3(0.04f);
+    // f.diffuse = glm::vec3(0.7, 0.4, 0.1);
+    // f.specular = glm::vec3(0.4f);
+    // f.constant = 1; f.linear = 0.14f; f.quadratic = 0.07f;
+    // appState.lightManager -> AddPointLight(f);
 
-    PointLight r;
-    r.position = glm::vec3(-1, 2, -2);
-    r.ambient = glm::vec3(0.01f);
-    r.diffuse = glm::vec3(0.2, 0.5, 0.4);
-    r.specular = glm::vec3(0.2f);
-    r.constant = 1; r.linear = 0.09f; r.quadratic = 0.032f;
-    appState.lightManager->AddPointLight(r);
+    // PointLight r;
+    // r.position = glm::vec3(-1, 2, -2);
+    // r.ambient = glm::vec3(0.01f);
+    // r.diffuse = glm::vec3(0.2, 0.5, 0.4);
+    // r.specular = glm::vec3(0.2f);
+    // r.constant = 1; r.linear = 0.09f; r.quadratic = 0.032f;
+    // appState.lightManager->AddPointLight(r);
 
     appState.lightManager->ShowDebugLights(true);
 }
@@ -177,21 +179,21 @@ void Test::Update(AppState &appState)
 {
     float time = (float)glfwGetTime();
 
-    if (!appState.lightManager->points.empty())
-    {
-        for(unsigned int i = 0; i < appState.lightManager->points.size(); i++)
-        {
-            // Orbit radius 10 around the crate stack
-            float radius = 2.0f;
+    // if (!appState.lightManager->points.empty())
+    // {
+    //     for(unsigned int i = 0; i < appState.lightManager->points.size(); i++)
+    //     {
+    //         // Orbit radius 10 around the crate stack
+    //         float radius = 2.0f;
             
-            // Move in a circle
-            float x = sin(time * 0.5f * (i + 1)) * radius * (i + 1);
-            float z = cos(time * 0.5f * (i + 1)) * radius * (i + 1);
+    //         // Move in a circle
+    //         float x = sin(time * 0.5f * (i + 1)) * radius * (i + 1);
+    //         float z = cos(time * 0.5f * (i + 1)) * radius * (i + 1);
             
-            // Bob up and down slightly (height 4 to 8) to change shadow length
-            float y = 1.5f + (i + 1);
+    //         // Bob up and down slightly (height 4 to 8) to change shadow length
+    //         float y = 1.5f + (i + 1);
 
-            appState.lightManager->points[i].position = glm::vec3(x, y, z);
-        }
-    }
+    //         appState.lightManager->points[i].position = glm::vec3(x, y, z);
+    //     }
+    // }
 }

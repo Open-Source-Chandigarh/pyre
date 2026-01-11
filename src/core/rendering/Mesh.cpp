@@ -83,6 +83,9 @@ void Mesh::setupMesh()
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
         (void*)offsetof(Vertex, TexCoords));
+    // vertex tangent
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, Tangent));
     glBindVertexArray(0);
 }
 
@@ -100,10 +103,10 @@ void Mesh::SetupInstancing(const std::vector<glm::mat4> &models)
 
     for (int i = 0; i < 4; i++) 
     {
-        glEnableVertexAttribArray(3 + i); 
-        glVertexAttribPointer(3 + i, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(i * vec4Size));
+        glEnableVertexAttribArray(4 + i); 
+        glVertexAttribPointer(4 + i, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(i * vec4Size));
         // Tell OpenGL this attribute changes per INSTANCE, not per vertex
-        glVertexAttribDivisor(3 + i, 1); 
+        glVertexAttribDivisor(4 + i, 1); 
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
