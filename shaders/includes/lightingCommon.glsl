@@ -166,7 +166,7 @@ float ShadowCalculation(vec3 fragPosWorldSpace, vec3 normal, vec3 lightDir)
     return shadow;
 }
 
-vec3 CalcDirLight(vec3 normal, vec3 fragPos, vec3 viewDir)
+vec3 CalcDirLight(vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv)
 {
     vec3 lightDir = normalize(-vec3(dir_direction));
     
@@ -180,8 +180,8 @@ vec3 CalcDirLight(vec3 normal, vec3 fragPos, vec3 viewDir)
     float shininess = GetShininess();
     float spec = pow(max(dot(normal, halfWayDir), 0.0), shininess);
 
-    vec3 diffuseColor = GetDiffuseColor();
-    vec3 specColor = GetSpecularColor();
+    vec3 diffuseColor = GetDiffuseColor(uv);
+    vec3 specColor = GetSpecularColor(uv);
 
     // combine results
     // ambient light is always present
@@ -197,7 +197,7 @@ vec3 CalcDirLight(vec3 normal, vec3 fragPos, vec3 viewDir)
     return (ambient + (1.0 - shadow) * (diffuse + specular));
 }
 
-vec3 CalcPointLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir)
+vec3 CalcPointLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv)
 {
     // standard lighting logic
     vec3 lightPos = vec3(point_position[idx]);
@@ -216,8 +216,8 @@ vec3 CalcPointLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir)
     float distance = length(lightPos - fragPos);
     float attenuation = 1.0 / (constant + linear * distance + quadratic * distance * distance);
 
-    vec3 diffuseColor = GetDiffuseColor();
-    vec3 specColor = GetSpecularColor();
+    vec3 diffuseColor = GetDiffuseColor(uv);
+    vec3 specColor = GetSpecularColor(uv);
 
     vec3 ambient  = vec3(point_ambient[idx]) * diffuseColor;
     vec3 diffuse  = vec3(point_diffuse[idx]) * diff * diffuseColor;
@@ -232,7 +232,7 @@ vec3 CalcPointLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir)
     return ambient + (1.0 - shadow) * (diffuse + specular);
 }
 
-vec3 CalcSpotLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir)
+vec3 CalcSpotLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv)
 {
     // standard lighting logic, no changes for csm here
     vec3 lightPos = vec3(spot_position[idx]);
@@ -256,8 +256,8 @@ vec3 CalcSpotLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir)
     float epsilon = inner - outer;
     float intensity = clamp((theta - outer) / epsilon, 0.0, 1.0);
 
-    vec3 diffuseColor = GetDiffuseColor();
-    vec3 specColor = GetSpecularColor();
+    vec3 diffuseColor = GetDiffuseColor(uv);
+    vec3 specColor = GetSpecularColor(uv);
 
     vec3 ambient  = vec3(spot_ambient[idx]) * diffuseColor;
     vec3 diffuse  = vec3(spot_diffuse[idx]) * diff * diffuseColor;
@@ -271,4 +271,44 @@ vec3 CalcSpotLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir)
     specular *= attenuation;
 
     return ambient + diffuse + specular;
+}
+
+vec2 ParallaxMapping(vec2 texCoords, vec3 viewDir)
+{
+    const float minLayers = 8.0;
+    const float maxLayers = 32.0;
+    float numLayers = mix(maxLayers, minLayers, max(dot(vec3(0.0, 0.0, 1.0), viewDir), 0.0));  
+    // calculate the size of each layer
+    float layerDepth = 1.0 / numLayers;
+    // depth of current layer
+    float currentLayerDepth = 0.0;
+    // the amount to shift the texture coordinates per layer (from vector P)
+    vec2 P = viewDir.xy * 0.03; 
+    vec2 deltaTexCoords = P / numLayers;
+
+    // get initial values
+    vec2 currentTexCoords = texCoords;
+    float currentDepthMapValue = texture(material_displacement, currentTexCoords).r;
+
+    while(currentLayerDepth < currentDepthMapValue)
+    {
+        // shift texture coordinates along direction of P
+        currentTexCoords -= deltaTexCoords;
+        // get depthmap value at current texture coordinates
+        currentDepthMapValue = texture(material_displacement, currentTexCoords).r;  
+        // get depth of next layer
+        currentLayerDepth += layerDepth;  
+    }
+
+    // get texture coordinates before collision (reverse operations)
+    vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
+
+    // get depth after and before collision for linear interpolation
+    float afterDepth  = currentDepthMapValue - currentLayerDepth;
+    float beforeDepth = texture(material_displacement, prevTexCoords).r - currentLayerDepth + layerDepth;
+
+    // interpolation of texture coordinates
+    float weight = afterDepth / (afterDepth - beforeDepth);
+    vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
+    return finalTexCoords;
 }

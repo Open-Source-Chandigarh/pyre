@@ -42,6 +42,7 @@ struct Material
             "material_diffuse_present",
             "material_specular_present",
             "material_normal_present",
+            "material_displacement_present",
             "material_skybox_present"
         };
 
@@ -70,23 +71,12 @@ struct Material
             int slot = -1;
 
             // Map texture types to fixed binding slots
-            if (tex->type == TextureType::TEX_DIFFUSE) 
-            {
-                slot = Bindings::TEX_SLOT_DIFFUSE;
-            }
-            else if (tex->type == TextureType::TEX_SPECULAR) 
-            {
-                slot = Bindings::TEX_SLOT_SPECULAR;
-            }
-            else if (tex->type == TextureType::TEX_NORMAL) 
-            {
-                slot = Bindings::TEX_SLOT_NORMAL;
-            }
-            else if (tex->type == TextureType::TEX_ENVIRONMENT)
-            {
-                slot = Bindings::TEX_SLOT_SKYBOX;
-            }
-
+            if (tex->type == TextureType::TEX_DIFFUSE)           slot = Bindings::TEX_SLOT_DIFFUSE;
+            else if (tex->type == TextureType::TEX_SPECULAR)     slot = Bindings::TEX_SLOT_SPECULAR;
+            else if (tex->type == TextureType::TEX_NORMAL)       slot = Bindings::TEX_SLOT_NORMAL;
+            else if (tex->type == TextureType::TEX_DISPLACEMENT) slot = Bindings::TEX_SLOT_DISPLACEMENT;
+            else if (tex->type == TextureType::TEX_ENVIRONMENT)  slot = Bindings::TEX_SLOT_SKYBOX;
+        
             // Only bind if we have a valid slot
             if (slot != -1)
             {

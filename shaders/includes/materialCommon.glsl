@@ -6,6 +6,7 @@ uniform sampler2D material_diffuse;
 uniform samplerCube material_skybox;
 uniform sampler2D material_specular;
 uniform sampler2D material_normal;
+uniform sampler2D material_displacement;
 
 // Fallback / direct values
 uniform vec3 material_diffuseColor;
@@ -17,19 +18,20 @@ uniform int material_diffuse_present;
 uniform int material_specular_present;
 uniform int material_skybox_present;
 uniform int material_normal_present;
+uniform int material_displacement_present;
 
 // Helper accessors used by lighting_common.glsl
-vec3 GetDiffuseColor()
+vec3 GetDiffuseColor(vec2 uv)
 {
     if (material_diffuse_present == 1)
-        return texture(material_diffuse, TexCoords).rgb;
+        return texture(material_diffuse, uv).rgb;
     return material_diffuseColor;
 }
 
-vec3 GetSpecularColor()
+vec3 GetSpecularColor(vec2 uv)
 {
     if (material_specular_present == 1)
-        return texture(material_specular, TexCoords).rgb;
+        return texture(material_specular, uv).rgb;
     return material_specularColor;
 }
 

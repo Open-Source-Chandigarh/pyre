@@ -15,14 +15,32 @@ void main()
 {
     if (material_diffuse_present != 1) {
         FragColor = vec4(1, 0, 1, 1); // Magic pink: texture is not bound
-    return;
+        return;
+    }
+    // view dir in world space
+    vec3 V = normalize(vec3(viewPos) - FragPos); // viewPos from UBO
+
+    // Parallax Mapping
+    vec2 uv = TexCoords;
+
+    if(material_displacement_present == 1)
+    {
+        mat3 InvTBN = transpose(TBN); // since TBN is orthagonal it's transpose is equal to it's inverse
+        // view dir in tangent space
+        vec3 TangentViewDir = InvTBN * V;
+
+        uv = ParallaxMapping(uv, TangentViewDir);
+
+        if(uv.x > 1.0 || uv.y > 1.0 || uv.x < 0.0 || uv.y < 0.0)
+            discard;
     }
 
+    // Normal Mapping
     vec3 N;
     if (material_normal_present == 1)
     {
         // Sample map [0,1]
-        vec3 normal = texture(material_normal, TexCoords).rgb;
+        vec3 normal = texture(material_normal, uv).rgb;
         // Transform to [-1, 1]
         normal = normal * 2.0 - 1.0;
         // TBN Transform
@@ -32,20 +50,19 @@ void main()
     {
         N = normalize(Normal);
     }
-    vec3 V = normalize(vec3(viewPos) - FragPos); // viewPos from UBO
 
     vec3 result = vec3(0.0);
 
     // Directional light (single)
-    result += CalcDirLight(N, FragPos, V);
+    result += CalcDirLight(N, FragPos, V, uv);
 
     // Point lights
     for (int i = 0; i < numPointLights; ++i)
-        result += CalcPointLight(i, N, FragPos, V);
+        result += CalcPointLight(i, N, FragPos, V, uv);
 
     // Spot lights
     for (int i = 0; i < numSpotLights; ++i)
-        result += CalcSpotLight(i, N, FragPos, V);
+        result += CalcSpotLight(i, N, FragPos, V, uv);
 
     // Calculate reflectivity if present
     vec3 reflectionColor = vec3(0.0);
@@ -62,7 +79,7 @@ void main()
     // Alpha from diffuse texture if present
     float alpha = 1.0;
     if (material_diffuse_present == 1) {
-        alpha = texture(material_diffuse, TexCoords).a;
+        alpha = texture(material_diffuse, uv).a;
         if (alpha < 0.05) discard; // alpha cutoff
     }
     

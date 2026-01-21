@@ -10,6 +10,7 @@ enum class TextureType
     TEX_DIFFUSE,
     TEX_SPECULAR,
     TEX_NORMAL,
+    TEX_DISPLACEMENT,
     TEX_CUBEMAP, // generic Cubemap
     TEX_ENVIRONMENT, // specifically for Skybox/Reflections
     Other

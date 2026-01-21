@@ -17,9 +17,9 @@ void Test::Init(AppState &appState)
     shader = ResourceManager::LoadShader("test", "shaders/modularVertexShader.vs", "shaders/modularFragmentShader.fs");
     ResourceManager::LoadShader("skybox", "shaders/common/skyBox.vs", "shaders/common/skyBox.fs");
 
-    auto floorDiffuseMap = ResourceManager::LoadTexture("resources/textures/floor/stoneDiffuse.jpg", TextureType::TEX_DIFFUSE);
-    auto floorSpecularMap = ResourceManager::LoadTexture("resources/textures/floor/stoneSpecular.jpg", TextureType::TEX_SPECULAR);
-    auto floorNormalMap = ResourceManager::LoadTexture("resources/textures/floor/stoneNormal.jpg", TextureType::TEX_NORMAL);
+    auto floorDiffuseMap = ResourceManager::LoadTexture("resources/textures/bricks.jpg", TextureType::TEX_DIFFUSE);
+    auto floorNormalMap = ResourceManager::LoadTexture("resources/textures/bricks_normal.jpg", TextureType::TEX_NORMAL);
+    auto floorDisplacementMap = ResourceManager::LoadTexture("resources/textures/bricks_disp.jpg", TextureType::TEX_DISPLACEMENT);
     auto cubeDiffuseMap = ResourceManager::LoadTexture("resources/textures/crateDiff.jpg", TextureType::TEX_DIFFUSE);
     auto cubeSpecularMap = ResourceManager::LoadTexture("resources/textures/crateSpec.jpg", TextureType::TEX_SPECULAR);
     auto grassDiffuseMap = ResourceManager::LoadTexture("resources/textures/grass.png", TextureType::TEX_DIFFUSE);
@@ -112,8 +112,8 @@ void Test::Init(AppState &appState)
         std::shared_ptr<Material> mat = std::make_shared<Material>();
         mat -> cullMode = CullMode::Front;
         mat -> textures["material_diffuse"] = floorDiffuseMap;
-        mat -> textures["material_specular"] = floorSpecularMap;
         mat -> textures["material_normal"] = floorNormalMap;
+        mat -> textures["material_displacement"] = floorDisplacementMap;
         mat -> floats["material_shininess"] = 164.0f;
 
         std::shared_ptr<Entity> e = Entity::Create();

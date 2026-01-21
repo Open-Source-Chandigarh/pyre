@@ -41,8 +41,8 @@ vec3 CalcToonDirectional(vec3 normal, vec3 viewDir)
     float spec = ToonSpecular(normal, lightDir, viewDir);
     
     // Combine
-    vec3 color = GetDiffuseColor() * vec3(dir_diffuse) * intensity;
-    color += GetSpecularColor() * vec3(dir_specular) * spec;
+    vec3 color = GetDiffuseColor(TexCoords) * vec3(dir_diffuse) * intensity;
+    color += GetSpecularColor(TexCoords) * vec3(dir_specular) * spec;
     
     return color;
 }
@@ -67,8 +67,8 @@ vec3 CalcToonPoint(int idx, vec3 normal, vec3 fragPos, vec3 viewDir)
     float spec = ToonSpecular(normal, lightDir, viewDir);
 
     // Combine
-    vec3 color = GetDiffuseColor() * vec3(point_diffuse[idx]) * intensity;
-    color += GetSpecularColor() * vec3(point_specular[idx]) * spec;
+    vec3 color = GetDiffuseColor(TexCoords) * vec3(point_diffuse[idx]) * intensity;
+    color += GetSpecularColor(TexCoords) * vec3(point_specular[idx]) * spec;
 
     return color * attenuation;
 }
@@ -100,8 +100,8 @@ vec3 CalcToonSpot(int idx, vec3 normal, vec3 fragPos, vec3 viewDir)
     // Specular
     float spec = ToonSpecular(normal, lightDir, viewDir);
 
-    vec3 color = GetDiffuseColor() * vec3(spot_diffuse[idx]) * intensity;
-    color += GetSpecularColor() * vec3(spot_specular[idx]) * spec;
+    vec3 color = GetDiffuseColor(TexCoords) * vec3(spot_diffuse[idx]) * intensity;
+    color += GetSpecularColor(TexCoords) * vec3(spot_specular[idx]) * spec;
 
     return color * attenuation * spotIntensity;
 }
@@ -113,7 +113,7 @@ void main()
 
     vec3 result = vec3(0.0);
 
-    result += vec3(dir_ambient) * GetDiffuseColor();
+    result += vec3(dir_ambient) * GetDiffuseColor(TexCoords);
 
     result += CalcToonDirectional(N, V);
 

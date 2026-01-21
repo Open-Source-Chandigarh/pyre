@@ -11,7 +11,8 @@ namespace Bindings
     // Texture Units / Slots
     constexpr int TEX_SLOT_DIFFUSE      = 0;
     constexpr int TEX_SLOT_SPECULAR     = 1;
-    constexpr int TEX_SLOT_NORMAL       = 2; // Reserved for future use
+    constexpr int TEX_SLOT_NORMAL       = 2;
+    constexpr int TEX_SLOT_DISPLACEMENT = 3;
     constexpr int TEX_SLOT_CSM_SHADOW   = 10;
     constexpr int TEX_SLOT_POINT_SHADOW = 11;
     constexpr int TEX_SLOT_SKYBOX       = 15;
