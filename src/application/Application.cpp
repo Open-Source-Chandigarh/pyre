@@ -63,6 +63,11 @@ void Application::ConfigureInput()
         app->camera.ProcessKeyboard(RIGHT, dt); 
     });
 
+      // camera reset
+    input->BindKeyEvent(GLFW_KEY_R, GLFW_PRESS, [app]() {
+        app->camera.Reset();
+    });
+
     // mouse
     input->BindMouseMove([app](double x, double y) {
         app->camera.ProcessMouseMovement((float)x, (float)y);
