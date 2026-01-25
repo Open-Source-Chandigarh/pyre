@@ -94,7 +94,10 @@ public:
     {
         return glm::lookAt(Position, Position + Front, Up);
     }
-
+    // Helper getters 
+    const glm::vec3& GetPosition() const { return Position; }
+    const glm::vec3& GetFront() const { return Front; }
+    
     // processes input received from any keyboard-like input system
     void ProcessKeyboard(Camera_Movement direction, float deltaTime)
     {
