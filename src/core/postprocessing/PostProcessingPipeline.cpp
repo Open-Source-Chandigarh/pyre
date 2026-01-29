@@ -24,6 +24,9 @@ PostProcessingPipeline::PostProcessingPipeline(unsigned int w, unsigned int h)
 
     ResourceManager::LoadShader("post_gamma", 
         "shaders/common/simpleTexture.vs", "shaders/postprocessing/gamma.fs");
+
+    ResourceManager::LoadShader("post_hdr", 
+        "shaders/common/simpleTexture.vs", "shaders/postprocessing/hdr.fs");
 }
 
 void PostProcessingPipeline::EnsureQuad()
@@ -153,5 +156,12 @@ std::shared_ptr<PostEffect> PostProcessingPipeline::AddGammaCorrection(float gam
 {
     return AddEffectFromShader("post_gamma", [gammaVal](Shader& s) {
         s.setFloat("gamma", gammaVal);
+    });
+}
+
+std::shared_ptr<PostEffect> PostProcessingPipeline::AddToneMapping(float exposure)
+{
+    return AddEffectFromShader("post_hdr", [exposure](Shader& s) {
+        s.setFloat("exposure", exposure);
     });
 }

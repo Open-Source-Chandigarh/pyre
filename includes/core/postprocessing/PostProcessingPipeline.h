@@ -32,6 +32,7 @@ public:
     std::shared_ptr<PostEffect> AddGrayscale();
     std::shared_ptr<PostEffect> AddSharpen(float strength);
     std::shared_ptr<PostEffect> AddGammaCorrection(float gammaVal);
+    std::shared_ptr<PostEffect> AddToneMapping(float exposure);
 
     // Run all effects on inputTex. Returns GLuint of final texture.
     GLuint Apply(GLuint inputTex);

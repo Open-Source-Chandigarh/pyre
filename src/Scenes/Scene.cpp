@@ -33,6 +33,7 @@ void Scene::BindWindow(Window *window)
     postPipeline = std::make_unique<PostProcessingPipeline>(
         (unsigned int)win->Width(), (unsigned int)win->Height());
     
+    postPipeline->AddToneMapping(0.8f);
     postPipeline->AddGammaCorrection(2.2f);
 }
 

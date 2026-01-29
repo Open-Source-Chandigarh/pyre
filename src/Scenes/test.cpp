@@ -142,9 +142,9 @@ void Test::OnActivate(AppState &appState)
 
     PointLight k;
     k.position = glm::vec3(1.5f, 2, 1.5f);
-    k.ambient = glm::vec3(0.03f);
-    k.diffuse = glm::vec3(1);
-    k.specular = glm::vec3(0.5f);
+    k.ambient = glm::vec3(0.05f); // Ambient should be tiny (e.g. 0.01 to 0.1)
+    k.diffuse = glm::vec3(10.0f); // 5.0 to 10.0 is plenty bright for HDR
+    k.specular = glm::vec3(10.0f);
     k.constant = 1; k.linear = 0.09f; k.quadratic = 0.032f;
     appState.lightManager -> AddPointLight(k);
 
