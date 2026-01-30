@@ -9,6 +9,7 @@ PostProcessingPipeline::PostProcessingPipeline(unsigned int w, unsigned int h)
 {
     pingpong[0] = std::make_unique<Framebuffer>(width, height, false); // no depth for pingpong
     pingpong[1] = std::make_unique<Framebuffer>(width, height, false);
+    bloomBuffer = std::make_unique<Framebuffer>(width, height, false);
     EnsureQuad();
 
     // make sure simple texture shader is loaded (used by DrawToScreen)
@@ -27,6 +28,11 @@ PostProcessingPipeline::PostProcessingPipeline(unsigned int w, unsigned int h)
 
     ResourceManager::LoadShader("post_hdr", 
         "shaders/common/simpleTexture.vs", "shaders/postprocessing/hdr.fs");
+
+    ResourceManager::LoadShader("post_blur", 
+        "shaders/common/simpleTexture.vs", "shaders/postprocessing/blur.fs");
+    ResourceManager::LoadShader("post_hdr_combine", 
+        "shaders/common/simpleTexture.vs", "shaders/postprocessing/hdr_combine.fs");
 }
 
 void PostProcessingPipeline::EnsureQuad()
@@ -57,10 +63,71 @@ void PostProcessingPipeline::EnsureQuad()
     glBindVertexArray(0);
 }
 
-GLuint PostProcessingPipeline::Apply(GLuint inputTex)
+GLuint PostProcessingPipeline::PerformBlur(GLuint inputTex, int iterations)
 {
-    if (effects.empty()) return inputTex;
+    bool horizontal = true;
+    bool first_iteration = true;
+    auto shader = ResourceManager::GetShader("post_blur");
 
+    shader->use();
+    shader->setInt("scene", 0);
+
+    for (int i = 0; i < iterations; i++)
+    {
+        pingpong[horizontal]->Bind();
+
+        shader->setInt("horizontal", horizontal);
+        glActiveTexture(GL_TEXTURE0);
+        // if it is the very first step, read from the input.
+        // otherwise, read from the pingpong buffer we wrote to in the last step.
+        glBindTexture(GL_TEXTURE_2D, first_iteration ? inputTex : pingpong[!horizontal]->GetColorTexture());
+
+        // render to quad
+        glBindVertexArray(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        
+        // swap for next run
+        horizontal = !horizontal;
+        if (first_iteration) first_iteration = false;
+    }
+
+    Framebuffer::Unbind();
+
+    // we wrote to 'horizontal' inside the loop, The loop toggles 'horizontal' at the end.
+    // so the valid data is in '!horizontal'.
+    return pingpong[!horizontal]->GetColorTexture();
+}
+
+GLuint PostProcessingPipeline::Apply(GLuint inputTex, GLuint brightnessTex)
+{
+    if (bloomEnabled && brightnessTex != 0) 
+    {
+        // run the blur loop using pingpong buffers
+        // this leaves the result in one of the pingpong buffers
+        GLuint blurredTex = PerformBlur(brightnessTex, 10);
+
+        // we must copy 'blurredTex' into 'bloomBuffer' because the very next loop
+        // will overwrite the pingpong buffers.
+        bloomBuffer->Bind();
+        glDisable(GL_DEPTH_TEST);
+        
+        auto shader = ResourceManager::GetShader("simpleTex");
+        shader->use();
+        shader->setInt("screenTexture", 0);
+        
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, blurredTex);
+        
+        glBindVertexArray(quadVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        
+        Framebuffer::Unbind();
+
+        // point to the safe texture, not the reused pingpong one
+        this->blurredBloomTexture = bloomBuffer->GetColorTexture();
+    }
+    if (effects.empty()) return inputTex;
+    
     EnsureQuad();
 
     GLuint currentInput = inputTex;
@@ -102,6 +169,7 @@ void PostProcessingPipeline::Resize(unsigned int w, unsigned int h)
     width = w; height = h;
     pingpong[0]->Resize(w, h);
     pingpong[1]->Resize(w, h);
+    bloomBuffer->Resize(w, h);
 }
 
 std::shared_ptr<PostEffect> PostProcessingPipeline::AddEffectFromShader(
@@ -161,7 +229,17 @@ std::shared_ptr<PostEffect> PostProcessingPipeline::AddGammaCorrection(float gam
 
 std::shared_ptr<PostEffect> PostProcessingPipeline::AddToneMapping(float exposure)
 {
-    return AddEffectFromShader("post_hdr", [exposure](Shader& s) {
+    return AddEffectFromShader("post_hdr_combine", [this, exposure](Shader& s) {
+        s.setInt("scene", 0);
         s.setFloat("exposure", exposure);
+        s.setInt("bloomEnabled", this->bloomEnabled);
+        
+        // if bloom is active, bind the blurred texture to Slot 1
+        if (this->bloomEnabled) {
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, this->blurredBloomTexture);
+            s.setInt("bloomBlur", 1);
+        }
+        glActiveTexture(GL_TEXTURE0);
     });
 }

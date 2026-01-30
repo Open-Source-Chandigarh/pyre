@@ -530,8 +530,13 @@ void Renderer::RenderLightingPass(const std::vector<std::shared_ptr<Entity>> &op
     glViewport(0, 0, sceneFBO.Width(), sceneFBO.Height());
 
     glEnable(GL_DEPTH_TEST);
-    glClearColor(clearColor.r, clearColor.g, clearColor.b, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    // clear attachment 0 (scene) to specified sky color
+    const float sceneClearColor[] = { clearColor.r, clearColor.g, clearColor.b, 1.0f };
+    glClearBufferfv(GL_COLOR, 0, sceneClearColor);
+    // clear attachment 1 (brightness) to black color
+    const float zeroClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+    glClearBufferfv(GL_COLOR, 1, zeroClearColor);
 
     // bind the shadow map texture to slot 10 so our lighting shaders can read from it
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_CSM_SHADOW);
@@ -550,9 +555,14 @@ void Renderer::RenderLightingPass(const std::vector<std::shared_ptr<Entity>> &op
     // 2. draw the skybox afterwards to optimize performance by avoiding pixels already covered by geometry
     if (skybox)
     {
+        // do not write the brightness buffer attachment for skybox
+        GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
+        glDrawBuffers(1, drawBuffers);
         SubmitSkybox(*skybox->skyboxComp->mesh, 
             skybox->skyboxComp->shader,
             skybox->skyboxComp->material);
+        GLenum bothBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 }; // Restore
+        glDrawBuffers(2, bothBuffers);
     }
 
     // 3. draw debug visualizations for lights
@@ -563,7 +573,9 @@ void Renderer::RenderLightingPass(const std::vector<std::shared_ptr<Entity>> &op
 
     // 5. finally resolve any msaa and run the post-processing pipeline
     sceneFBO.ResolveToScreen();
-    GLuint processed = postProcessor.Apply(sceneFBO.GetIntermediateTexture());
+    GLuint sceneTex = sceneFBO.GetIntermediateTexture(0);
+    GLuint brightTex = sceneFBO.GetIntermediateTexture(1);
+    GLuint processed = postProcessor.Apply(sceneTex, brightTex);
     postProcessor.DrawToScreen(processed);
 
     glEnable(GL_DEPTH_TEST); 

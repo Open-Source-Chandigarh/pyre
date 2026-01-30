@@ -33,21 +33,26 @@ public:
     std::shared_ptr<PostEffect> AddSharpen(float strength);
     std::shared_ptr<PostEffect> AddGammaCorrection(float gammaVal);
     std::shared_ptr<PostEffect> AddToneMapping(float exposure);
+    void AddBloom() { bloomEnabled = true; }
+    GLuint PerformBlur(GLuint inputTexture, int iterations = 10);
 
     // Run all effects on inputTex. Returns GLuint of final texture.
-    GLuint Apply(GLuint inputTex);
+    GLuint Apply(GLuint inputTex, GLuint brightnessTex = 0);
 
     // Draw a given texture directly to default framebuffer using the internal quad + simpleTex shader
     void DrawToScreen(GLuint texture);
 
     // Handle resize
     void Resize(unsigned int w, unsigned int h);
+    unsigned int blurredBloomTexture = 0;
 
 private:
     std::unique_ptr<Framebuffer> pingpong[2];
+    std::unique_ptr<Framebuffer> bloomBuffer;
     std::vector<std::shared_ptr<PostEffect>> effects;
     GLuint quadVAO = 0, quadVBO = 0;
     unsigned int width = 0, height = 0;
+    bool bloomEnabled = false;
 
     void EnsureQuad();
 };
