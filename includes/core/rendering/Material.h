@@ -45,11 +45,11 @@ struct Material
         return (it != floats.end()) ? it->second : defaultVal;
     }
 
-    void SetOutline(bool enabled, glm::vec3 color = glm::vec3(1.0f), bool glow = false) 
+    void SetOutline(bool enabled, glm::vec3 color = glm::vec3(1.0f), float bloomFactor = 0.0f) 
     {
         bools["outlineEnabled"] = enabled;
         vec3s["outlineColor"] = color;
-        bools["outlineGlow"] = glow; 
+        floats["bloomFactor"] = bloomFactor; 
     }
 
     void SetShadows(bool enabled) 

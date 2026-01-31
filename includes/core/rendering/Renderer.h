@@ -143,7 +143,7 @@ private:
     void UploadMeshUniforms(const std::shared_ptr<Shader> &shader, const glm::mat4 &model);
 
     // draws the slightly scaled outline mesh if enabled
-    void RenderMeshOutline(const Mesh &mesh, const glm::mat4 &model, const glm::vec3 &color, bool glow);
+    void RenderMeshOutline(const Mesh &mesh, const glm::mat4 &model, const glm::vec3 &color, float bloomFactor);
 
     // draws debug lines for vertex normals if enabled
     void RenderMeshNormals(const Mesh &mesh, const glm::mat4 &model);

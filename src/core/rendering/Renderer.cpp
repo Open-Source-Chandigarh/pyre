@@ -656,7 +656,7 @@ void Renderer::UploadMeshUniforms(const std::shared_ptr<Shader> &shader, const g
     if (shader->hasUniform("viewPos"))          shader->setVec3("viewPos", viewPosition);
 }
 
-void Renderer::RenderMeshOutline(const Mesh &mesh, const glm::mat4 &model, const glm::vec3 &color, bool glow)
+void Renderer::RenderMeshOutline(const Mesh &mesh, const glm::mat4 &model, const glm::vec3 &color, float bloomFactor)
 {
     // if the shader failed to load earlier, we simply skip the effect to avoid crashing
     if (!outlineShader) return;
@@ -675,7 +675,7 @@ void Renderer::RenderMeshOutline(const Mesh &mesh, const glm::mat4 &model, const
     outlineShader->setMat4("view", viewMatrix);
     outlineShader->setMat4("projection", projMatrix);
     outlineShader->setVec3("color", color);
-    outlineShader->setBool("uGlow", glow);
+    outlineShader->setFloat("bloomFactor", bloomFactor);
 
     mesh.DrawSimple();
 
@@ -720,7 +720,7 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     // we merge the global overrides with the material's specific settings
     bool doShowNormals = mat->GetBool("showNormals");
     bool doOutline = mat->GetBool("outlineEnabled");
-    bool glow = mat->GetBool("outlineGlow");
+    float bloomFactor = mat->GetFloat("bloomFactor");
     glm::vec3 outlineCol = mat->GetVec3("outlineColor");
     bool wireframe = mat->GetBool("wireframe");
 
@@ -744,7 +744,7 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     if (wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     if (doOutline)
-        RenderMeshOutline(mesh, model, outlineCol, glow);
+        RenderMeshOutline(mesh, model, outlineCol, bloomFactor);
 
     if (doShowNormals)
         RenderMeshNormals(mesh, model);

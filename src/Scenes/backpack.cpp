@@ -24,7 +24,7 @@ void Backpack::Init(AppState &appState)
         "shaders/modularFragmentShader.fs");
 
     auto overrideMat = std::make_shared<Material>();
-    overrideMat->SetOutline(true, glm::vec3(1.0f), true);
+    overrideMat->SetOutline(true, glm::vec3(1.0f), 1.5f);
 
     entities.clear();
     std::shared_ptr<Entity> e = Entity::Create();
