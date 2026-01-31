@@ -14,10 +14,6 @@ out vec4 BrightColor;
 
 void main()
 {
-    if (material_diffuse_present != 1) {
-        FragColor = vec4(1, 0, 1, 1); // Magic pink: texture is not bound
-        return;
-    }
     // view dir in world space
     vec3 V = normalize(vec3(viewPos) - FragPos); // viewPos from UBO
 

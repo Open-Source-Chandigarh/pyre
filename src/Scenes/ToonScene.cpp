@@ -30,11 +30,10 @@ void ToonScene::Init(AppState &appState)
         std::shared_ptr<Material> mat = std::make_shared<Material>();
         mat -> vec3s["material_diffuseColor"] = glm::vec3(0.9f, 0.2f, 0.1f);
         mat -> floats["material_shininess"] = 32.0f;
-        mat -> outlineEnabled = true;
-        mat -> outlineColor = glm::vec3(0.0f, 0.0f, 0.0f);
+        mat -> SetOutline(true, glm::vec3(0.0f, 0.0f, 0.0f));
 
         std::shared_ptr<Entity> e = Entity::Create();
-        e -> AddMesh(&cube, mat, toonShader);
+        e -> AddMesh(std::move(cube), mat, toonShader);
 
         e -> transform.position = glm::vec3(-2.0f, 0.0f, 0.0f);
         e -> transform.scale = glm::vec3(1.0f);
@@ -45,11 +44,10 @@ void ToonScene::Init(AppState &appState)
         std::shared_ptr<Material> mat = std::make_shared<Material>();
         mat -> vec3s["material_diffuseColor"] = glm::vec3(1.5f, 1.5f, 0.0f);
         mat -> floats["material_shininess"] = 32.0f;
-        mat -> outlineEnabled = true;
-        mat -> outlineColor = glm::vec3(0.0f, 0.0f, 0.0f); 
+        mat -> SetOutline(true, glm::vec3(0.0f, 0.0f, 0.0f));
 
         std::shared_ptr<Entity> e = Entity::Create();
-        e -> AddMesh(&sphere, mat, toonShader);
+        e -> AddMesh(std::move(sphere), mat, toonShader);
 
         e -> transform.position = glm::vec3(0.0f, 0.0f, 0.0f);
         e -> transform.scale = glm::vec3(0.7f);
@@ -61,11 +59,10 @@ void ToonScene::Init(AppState &appState)
         std::shared_ptr<Material> mat = std::make_shared<Material>();
         mat -> vec3s["material_diffuseColor"] = glm::vec3(0.1f, 0.2f, 0.8f);
         mat -> floats["material_shininess"] = 32.0f;
-        mat -> outlineEnabled = true;
-        mat -> outlineColor = glm::vec3(0.0f, 0.0f, 0.0f);
+        mat -> SetOutline(true, glm::vec3(0.0f, 0.0f, 0.0f));
 
         std::shared_ptr<Entity> e = Entity::Create();
-        e -> AddMesh(&torus, mat, toonShader);
+        e -> AddMesh(torus, mat, toonShader);
         e -> transform.position = glm::vec3(2.0f, 0.0f, 0.0f);
         e -> transform.scale = glm::vec3(0.7f);
 

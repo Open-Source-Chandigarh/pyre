@@ -7,6 +7,7 @@
 #include <memory>
 #include <iostream>
 #include "helpers/Shader.h"
+#include "core/rendering/Material.h"
 
 class Material;
 
@@ -25,6 +26,7 @@ public:
 
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
+    std::shared_ptr<Material> localMaterial;
     unsigned int VAO = 0;
     unsigned int VBO = 0;
     unsigned int EBO = 0;
@@ -32,7 +34,7 @@ public:
     int vertexCount = 0;
     int indexCount = 0;
 
-    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
+    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::shared_ptr<Material> mat);
     Mesh() = default;
     ~Mesh();
     Mesh(const Mesh&) = delete;

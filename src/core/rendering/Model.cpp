@@ -14,20 +14,6 @@ std::string SanitizePath(std::string path) {
     return path;
 }
 
-void Model::Draw(Shader& shader)
-{
-    for (unsigned int i = 0; i < meshes.size(); i++)
-        meshes[i].mesh->Draw(shader, *meshes[i].material);
-}
-
-void Model::SetupInstancing(const std::vector<glm::mat4>& matrices)
-{
-    for (auto& entry : meshes)
-    {
-        entry.mesh->SetupInstancing(matrices);
-    }
-}
-
 void Model::loadModel(std::string path)
 {
     Assimp::Importer importer;
@@ -53,7 +39,7 @@ void Model::processNode(aiNode* node, const aiScene* scene)
     for (unsigned int i = 0; i < node->mNumMeshes; i++)
     {
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-        meshes.push_back(processMesh(mesh, scene));
+        nodes.push_back(processMesh(mesh, scene));
     }
     for (unsigned int i = 0; i < node->mNumChildren; i++)
     {
@@ -119,7 +105,7 @@ std::shared_ptr<Texture> Model::LoadStandardMap(TextureType type)
     return nullptr; // No standard map found
 }
 
-MeshEntry Model::processMesh(aiMesh* mesh, const aiScene* scene)
+ModelNode Model::processMesh(aiMesh* mesh, const aiScene* scene)
 {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
@@ -177,13 +163,10 @@ MeshEntry Model::processMesh(aiMesh* mesh, const aiScene* scene)
             indices.push_back(face.mIndices[j]);
     }
 
-    // Process Material (Engine Standard Way)
-    Material mat;
+    // Process Material (Base Material)
+    // We create a new Material instance for every mesh to store its Assimp properties
+    std::shared_ptr<Material> baseMat = std::make_shared<Material>();
     
-    // Default Material Settings
-    mat.defaultDiffuseColor = glm::vec3(1.0f, 1.0f, 1.0f);
-    mat.defaultShininess = 32.0f;
-
     // hybrid approach: try assimp path first, fallback to directory scan
     if (mesh->mMaterialIndex >= 0)
     {
@@ -193,39 +176,43 @@ MeshEntry Model::processMesh(aiMesh* mesh, const aiScene* scene)
         auto diffuseTex = LoadMaterialTexture(aMat, aiTextureType_DIFFUSE, TextureType::TEX_DIFFUSE);
         if (!diffuseTex) diffuseTex = LoadMaterialTexture(aMat, aiTextureType_BASE_COLOR, TextureType::TEX_DIFFUSE);
         if (!diffuseTex) diffuseTex = LoadStandardMap(TextureType::TEX_DIFFUSE);
-        if (diffuseTex) mat.textures["material_diffuse"] = diffuseTex;
+        if (diffuseTex) baseMat->textures["material_diffuse"] = diffuseTex;
 
         // specular map
         auto specTex = LoadMaterialTexture(aMat, aiTextureType_SPECULAR, TextureType::TEX_SPECULAR);
         if (!specTex) specTex = LoadStandardMap(TextureType::TEX_SPECULAR);
         if (!specTex) specTex = LoadMaterialTexture(aMat, aiTextureType_METALNESS, TextureType::TEX_SPECULAR);
-        if (specTex) mat.textures["material_specular"] = specTex;
+        if (specTex) baseMat->textures["material_specular"] = specTex;
 
         // normal map (check normals and height slots)
         auto normTex = LoadMaterialTexture(aMat, aiTextureType_NORMALS, TextureType::TEX_NORMAL);
         if (!normTex) normTex = LoadMaterialTexture(aMat, aiTextureType_HEIGHT, TextureType::TEX_NORMAL);
         if (!normTex) normTex = LoadStandardMap(TextureType::TEX_NORMAL);
-        if (normTex) mat.textures["material_normal"] = normTex;
+        if (normTex) baseMat->textures["material_normal"] = normTex;
 
         // B. Load Fallback Properties from Assimp (Colors/Shininess)
         // We still read these just in case the model has specific color data we want to respect
         aiColor3D color(1.0f, 1.0f, 1.0f);
 
         if (AI_SUCCESS == aMat->Get(AI_MATKEY_COLOR_DIFFUSE, color)) {
-            mat.vec3s["material_diffuseColor"] = glm::vec3(color.r, color.g, color.b);
+            baseMat->vec3s["material_diffuseColor"] = glm::vec3(color.r, color.g, color.b);
         }
         if (AI_SUCCESS == aMat->Get(AI_MATKEY_COLOR_SPECULAR, color)) {
-            mat.vec3s["material_specularColor"] = glm::vec3(color.r, color.g, color.b);
+            baseMat->vec3s["material_specularColor"] = glm::vec3(color.r, color.g, color.b);
         }
 
         float shininess = 0.0f;
         if (AI_SUCCESS == aMat->Get(AI_MATKEY_SHININESS, shininess)) {
-            mat.floats["material_shininess"] = shininess;
+            baseMat->floats["material_shininess"] = shininess;
+        } 
+        else {
+            baseMat->floats["material_shininess"] = 32.0f; // Default
         }
     }
 
-    MeshEntry entry;
-    entry.mesh = std::make_shared<Mesh>(vertices, indices);
-    entry.material = std::make_shared<Material>(mat);
-    return entry;
+    ModelNode node;
+    // Pass the baseMat into the Mesh constructor
+    node.mesh = std::make_shared<Mesh>(vertices, indices, baseMat);
+    node.localTransform = glm::mat4(1.0f); // Default transform (Assimp node transform handling can be added here)
+    return node;
 }

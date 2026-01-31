@@ -16,17 +16,19 @@ void Backpack::Init(AppState &appState)
 {
     obj = std::make_shared<Model>("resources/models/backpack/backpack.obj");
     if(!obj) return;
-    std::cerr << "Backpack model mesh count: " << obj -> GetMeshCount() << "\n";
+    std::cerr << "Backpack model mesh count: " << obj -> GetNodeCount() << "\n";
 
     // shaders
     shader = ResourceManager::LoadShader("factory",
         "shaders/modularVertexShader.vs",
         "shaders/modularFragmentShader.fs");
 
+    auto overrideMat = std::make_shared<Material>();
+    overrideMat->SetOutline(true, glm::vec3(1.0f), true);
+
     entities.clear();
     std::shared_ptr<Entity> e = Entity::Create();
-    e->AddModel(obj.get(), shader);
-    e->modelComp->renderSettings.outlineEnabled = true;
+    e->AddModel(obj.get(), shader, overrideMat);
     e->transform.position = glm::vec3(0.0f);
     e->transform.scale = glm::vec3(1.0f);
     entities.push_back(std::move(e));   

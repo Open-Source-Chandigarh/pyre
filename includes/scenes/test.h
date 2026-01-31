@@ -26,7 +26,7 @@ public:
 
 private:
     std::shared_ptr<Shader> shader;
-    Mesh cube;
-    Mesh plane;
-    Mesh skyMesh;
+    std::shared_ptr<Mesh> cube;
+    std::shared_ptr<Mesh> plane;
+    std::shared_ptr<Mesh> skyMesh;
 };

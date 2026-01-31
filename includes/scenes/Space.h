@@ -41,7 +41,7 @@ private:
     std::shared_ptr<Model> planet;
     std::shared_ptr<Model> asteroid;
 
-    Mesh skyMesh;
+    std::shared_ptr<Mesh> skyMesh;
 
     std::vector<glm::mat4> asteroidTransforms;
 

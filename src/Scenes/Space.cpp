@@ -40,7 +40,7 @@ void Space::Init(AppState &appState)
     skyMat -> textures["skybox"] = skyBox;
     
     std::shared_ptr<Entity> skyEntity = Entity::Create();
-    skyEntity -> AddSkybox(&skyMesh, skyMat, ResourceManager::GetShader("skybox"));
+    skyEntity -> AddSkybox(skyMesh.get(), skyMat, ResourceManager::GetShader("skybox"));
     entities.push_back(std::move(skyEntity));
 
     unsigned int amount = 100000;
@@ -85,8 +85,10 @@ void Space::Init(AppState &appState)
     }
 
     {
+        auto asteroidMat = std::make_shared<Material>();
+        asteroidMat->SetShadows(false);
         std::shared_ptr<Entity> e = Entity::Create();
-        e -> AddModel(asteroid.get(), planetShader, amount, false, false, glm::vec3(1.0f), false);
+        e -> AddModel(asteroid.get(), planetShader, asteroidMat, amount);
         entities.push_back(e);
     }
 

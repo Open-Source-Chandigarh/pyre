@@ -57,7 +57,7 @@ void FactoryScene::Init(AppState &appState)
     skyMat -> textures["skybox"] = skyBox;
 
     std::shared_ptr<Entity> skyEntity = Entity::Create();
-    skyEntity -> AddSkybox(&skyMesh, skyMat, ResourceManager::GetShader("skybox"));
+    skyEntity -> AddSkybox(skyMesh.get(), skyMat, ResourceManager::GetShader("skybox"));
     entities.push_back(std::move(skyEntity));
 
     // Create random shapes 
@@ -82,13 +82,11 @@ void FactoryScene::Init(AppState &appState)
         mat -> floats["material_reflectivity"] = 0.6f; 
 
         std::shared_ptr<Entity> e = Entity::Create();
-        e -> AddMesh(&mesh[i], mat, shader);
+        e -> AddMesh(std::move(mesh[i]), mat, shader);
         e -> transform.position = cubePositions[i];
         e -> transform.scale = glm::vec3(0.7f);
-        entities.push_back(std::move(e));
+        entities.push_back(e);
     }
-
-  
 }
 
 void FactoryScene::OnActivate(AppState &appState)

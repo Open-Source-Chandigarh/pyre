@@ -13,14 +13,6 @@ class Camera;
 class PostProcessingPipeline;
 struct Entity;
 
-struct RenderSettings
-{
-    bool showNormals = false;
-    bool outlineEnabled = false;
-    glm::vec3 outlineColor = glm::vec3(1.0f, 1.0f, 1.0f);
-    bool castsShadows = true;
-};
-
 class Renderer 
 {
 public:
@@ -36,32 +28,13 @@ public:
                     bool wireFrame = false, 
                     glm::vec3 clearColor = glm::vec3(0.1f));
         
-    // submit mesh overloads
-    void SubmitMesh(const glm::mat4 &model, 
-                    const Mesh &mesh, 
-                    const std::shared_ptr<Shader> &shader, 
-                    const std::shared_ptr<Material> &mat);
-
+    // submit mesh
+    // handles both single meshes and instanced meshes
     void SubmitMesh(const glm::mat4 &model, 
                     const Mesh &mesh, 
                     const std::shared_ptr<Shader> &shader, 
                     const std::shared_ptr<Material> &mat,
-                    const RenderSettings &overrides);
-
-    // submit model overloads
-    void SubmitModel(const glm::mat4 &model, 
-                     Model &modelObj, 
-                     const std::shared_ptr<Shader> &shader);
-
-    void SubmitModel(const glm::mat4 &model, 
-                     Model &modelObj, 
-                     const std::shared_ptr<Shader> &shader,
-                     const RenderSettings &settings);
-
-    // draw a model n times using hardware instancing
-    void SubmitInstancedModel(Model &modelObj, 
-                              const std::shared_ptr<Shader> &shader, 
-                              int instanceCount);
+                    int instanceCount = 1);
 
     void SubmitSkybox(const Mesh &mesh, 
                       const std::shared_ptr<Shader> &shader, 
@@ -170,7 +143,7 @@ private:
     void UploadMeshUniforms(const std::shared_ptr<Shader> &shader, const glm::mat4 &model);
 
     // draws the slightly scaled outline mesh if enabled
-    void RenderMeshOutline(const Mesh &mesh, const glm::mat4 &model, const glm::vec3 &color);
+    void RenderMeshOutline(const Mesh &mesh, const glm::mat4 &model, const glm::vec3 &color, bool glow);
 
     // draws debug lines for vertex normals if enabled
     void RenderMeshNormals(const Mesh &mesh, const glm::mat4 &model);

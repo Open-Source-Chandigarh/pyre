@@ -7,6 +7,7 @@
 Mesh::Mesh(Mesh&& other) noexcept 
     : vertices(std::move(other.vertices)), 
       indices(std::move(other.indices)),
+      localMaterial(std::move(other.localMaterial)),
       VAO(other.VAO), VBO(other.VBO), EBO(other.EBO), instanceVBO(other.instanceVBO),
       vertexCount(other.vertexCount), indexCount(other.indexCount)
 {
@@ -34,6 +35,7 @@ Mesh& Mesh::operator=(Mesh&& other) noexcept
         indexCount = other.indexCount;
         vertices = std::move(other.vertices);
         indices = std::move(other.indices);
+        localMaterial = std::move(other.localMaterial);
         other.VAO = 0; 
         other.VBO = 0; 
         other.EBO = 0; 
@@ -44,8 +46,8 @@ Mesh& Mesh::operator=(Mesh&& other) noexcept
     return *this;
 }
 
-Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices) : 
-    vertices(vertices), indices(indices)
+Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::shared_ptr<Material> mat) : 
+    vertices(vertices), indices(indices), localMaterial(mat)
 {
     setupMesh();
 }
@@ -128,24 +130,9 @@ void Mesh::DrawSimple() const
 
 void Mesh::Draw(Shader &shader, const Material &material) const
 {
-    shader.use();
-
-    switch (material.cullMode)
-    {
-    case CullMode::Back:
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_BACK);
-        break;
-    case CullMode::Front:
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
-        break;
-    case CullMode::None:
-        glDisable(GL_CULL_FACE);
-        break;
-    }
-
     // apply material data (bind textures and set material uniforms if shader has them)
+    shader.use();
+    shader.setBool("isInstanced", false);
     material.ApplyToShader(shader);
 
     glBindVertexArray(VAO);
@@ -155,9 +142,8 @@ void Mesh::Draw(Shader &shader, const Material &material) const
         glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0);
     else
         glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+        
     glBindVertexArray(0);
-
-
     glActiveTexture(GL_TEXTURE0);
 }
 

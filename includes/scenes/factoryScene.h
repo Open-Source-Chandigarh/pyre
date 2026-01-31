@@ -36,8 +36,8 @@ private:
     std::shared_ptr<Shader> shader;
     glm::vec3 cubePositions[10];
 
-    Mesh mesh[10];
-    Mesh skyMesh;
+    std::shared_ptr<Mesh> mesh[10];
+    std::shared_ptr<Mesh> skyMesh;
 
     float rotationAngle;
     float rotationSpeed;

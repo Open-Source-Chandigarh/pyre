@@ -24,7 +24,7 @@ public:
 
 private:
     std::shared_ptr<Shader> toonShader;
-    Mesh cube;
-    Mesh sphere;
-    Mesh torus;
+    std::shared_ptr<Mesh> cube;
+    std::shared_ptr<Mesh> sphere;
+    std::shared_ptr<Mesh> torus;
 };

@@ -72,6 +72,6 @@ private:
     glm::vec3 dirSpec = glm::vec3(0.0f);
     // show debug spheres for lights
     bool showDebugSpheres = true;
-    Mesh debugSphere;
+    std::shared_ptr<Mesh> debugSphere;
     std::shared_ptr<Shader> debugShader;
 };

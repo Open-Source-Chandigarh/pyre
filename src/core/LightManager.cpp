@@ -157,6 +157,6 @@ void LightManager::RenderDebugLights(
         glm::mat4 model = glm::translate(glm::mat4(1.0f), p.position);
         debugShader->setMat4("model", model);
         debugShader->setVec3("color", p.diffuse);
-        debugSphere.DrawSimple();
+        debugSphere->DrawSimple();
     }
 }

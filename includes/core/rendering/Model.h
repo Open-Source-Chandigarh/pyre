@@ -9,34 +9,39 @@
 #include "core/rendering/Material.h"
 #include "core/rendering/Texture.h"
 
-struct MeshEntry {
-	std::shared_ptr<Mesh> mesh;
-	std::shared_ptr<Material> material;
+struct ModelNode {
+    std::shared_ptr<Mesh> mesh;
+    glm::mat4 localTransform = glm::mat4(1.0f);
 };
 
 class Model
 {
 public:
+	// model data
+	std::vector<ModelNode> nodes;
 	Model(const std::string& path)
 	{
 		loadModel(path);
 	}
-	size_t GetMeshCount() const { return meshes.size(); }
-	std::vector<MeshEntry> GetMeshes() const { return meshes; }
+	size_t GetNodeCount() const { return nodes.size(); }
 
-	// Helper to setup instancing for all sub-meshes
-    void SetupInstancing(const std::vector<glm::mat4>& matrices);
-	void Draw(Shader& shader);
+	void SetupInstancing(const std::vector<glm::mat4> &matrices) 
+	{
+		for (auto& node : nodes)
+    	{
+        	if (node.mesh)
+        	{
+            	// Forward the matrices to the Mesh's VBO setup
+            	node.mesh->SetupInstancing(matrices);
+        	}
+    	}
+	};
 	
 private:
-	// model data
-	std::vector<MeshEntry> meshes;
 	std::string directory;
 	void loadModel(std::string path);
 	std::shared_ptr<Texture> LoadStandardMap(TextureType type);
 	std::shared_ptr<Texture> LoadMaterialTexture(aiMaterial* mat, aiTextureType type, TextureType typeName);
 	void processNode(aiNode* node, const aiScene* scene);
-	MeshEntry processMesh(aiMesh* mesh, const aiScene* scene);
-	std::vector<std::shared_ptr<Texture>> loadMaterialTextures(aiMaterial* mat,
-		aiTextureType type, TextureType typeName);
+	ModelNode processMesh(aiMesh* mesh, const aiScene* scene);
 };

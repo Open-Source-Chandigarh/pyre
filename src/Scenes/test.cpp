@@ -42,7 +42,7 @@ void Test::Init(AppState &appState)
         auto skyMat = std::make_shared<Material>();
         skyMat -> textures["skybox"] = skyBox; 
         std::shared_ptr<Entity> e = Entity::Create();
-        e -> AddSkybox(&skyMesh, skyMat, ResourceManager::GetShader("skybox"));
+        e -> AddSkybox(skyMesh.get(), skyMat, ResourceManager::GetShader("skybox"));
         entities.push_back(e);
     }
 
@@ -54,7 +54,7 @@ void Test::Init(AppState &appState)
         mat -> floats["material_shininess"] = 16.0f;
 
         std::shared_ptr<Entity> e = Entity::Create();
-        e -> AddMesh(&plane, mat, shader);
+        e -> AddMesh(plane, mat, shader);
         e -> transform.position = glm::vec3(1.5f, 0.5f, 4.0f);
         e -> transform.rotation = glm::vec3(270, 0, 0);
         e -> transform.scale = glm::vec3(1);
@@ -70,7 +70,7 @@ void Test::Init(AppState &appState)
         mat -> floats["material_shininess"] = 100.0f;
 
         std::shared_ptr<Entity> e = Entity::Create();
-        e -> AddMesh(&plane, mat, shader);
+        e -> AddMesh(plane, mat, shader);
         e -> transform.position = glm::vec3(0.0f, 0.5f, 4.0f);
         e -> transform.rotation = glm::vec3(270, 0, 0);
         e -> transform.scale = glm::vec3(1);
@@ -100,7 +100,7 @@ void Test::Init(AppState &appState)
             for (int j = 0; j < base - layer; j++)
             {
                 std::shared_ptr<Entity> e = Entity::Create();
-                e -> AddMesh(&cube, cubeMat, shader);
+                e -> AddMesh(cube, cubeMat, shader);
                 e -> transform.position = glm::vec3(start + i * spacing, y, start + j * spacing);
                 e -> transform.scale = glm::vec3(1.1f);
                 entities.push_back(e);
@@ -117,12 +117,10 @@ void Test::Init(AppState &appState)
         mat -> floats["material_shininess"] = 164.0f;
 
         std::shared_ptr<Entity> e = Entity::Create();
-        e -> AddMesh(&plane, mat, shader);
+        e -> AddMesh(plane, mat, shader);
         e -> transform.scale = glm::vec3(10);
         entities.push_back(e);
     }
-
-
 }
 
 void Test::OnActivate(AppState &appState)

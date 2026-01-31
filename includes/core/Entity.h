@@ -4,9 +4,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "core/rendering/Renderer.h"
+#include "core/rendering/Model.h"
 
 class Mesh;
-class Model;
 class Shader;
 struct Material;
 
@@ -28,19 +28,19 @@ struct Transform
     }
 };
 
-struct MeshComponent 
+// Unified Render Component
+struct RenderComponent 
 {
-    Mesh* mesh = nullptr;             
-    std::shared_ptr<Material> material; 
-    std::shared_ptr<Shader> shader;   
-};
+    // the list of things to draw (backpack parts, or a single Cube)
+    std::vector<ModelNode> nodes; 
 
-struct ModelComponent 
-{
-    Model* model = nullptr; 
+    // Global Material Override
+    // Properties here (e.g., "OutlineEnabled=true") will be mixed with the Mesh's Local Material.
+    // If this is null, the Mesh Local Material is used as is.
+    std::shared_ptr<Material> materialOverride; 
+    
     std::shared_ptr<Shader> shader;
     int instanceCount = 1;
-    RenderSettings renderSettings;
 };
 
 struct SkyboxComponent 
@@ -56,39 +56,39 @@ struct Entity
     Transform transform;
 
     // Component Slots 
-    std::shared_ptr<MeshComponent> meshComp;
-    std::shared_ptr<ModelComponent> modelComp;
+    std::shared_ptr<RenderComponent> renderComp;
     std::shared_ptr<SkyboxComponent> skyboxComp;
-
-    //Helper Factory
+    
     static std::shared_ptr<Entity> Create(const std::string& name = "Entity") {
         auto e = std::make_shared<Entity>();
         e->name = name;
         return e;
     }
 
-    //Helper Methods to Add Components
+    // Helper Methods to Add Components
     
-    void AddMesh(Mesh* mesh, std::shared_ptr<Material> mat, std::shared_ptr<Shader> shader) 
+    void AddMesh(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> mat, std::shared_ptr<Shader> shader, int instanceCount = 1) 
     {
-        meshComp = std::make_shared<MeshComponent>();
-        meshComp->mesh = mesh;
-        meshComp->material = mat;
-        meshComp->shader = shader;
+        renderComp = std::make_shared<RenderComponent>();
+        
+        ModelNode node;
+        node.mesh = mesh;
+        node.localTransform = glm::mat4(1.0f);
+        
+        renderComp->nodes.push_back(node);
+        renderComp->shader = shader;
+        renderComp->materialOverride = mat;
+        renderComp->instanceCount = instanceCount;
     }
 
-    void AddModel(Model* model, std::shared_ptr<Shader> shader, int instanceCount = 1,
-                bool showNormals = false, bool showOutline = false, 
-                glm::vec3 outlineColor = glm::vec3(1.0, 1.0, 1.0), bool castsShadows = true)
-     {
-        modelComp = std::make_shared<ModelComponent>();
-        modelComp->model = model;
-        modelComp->shader = shader;
-        modelComp->instanceCount = instanceCount;
-        modelComp->renderSettings.showNormals = showNormals;
-        modelComp->renderSettings.outlineColor = outlineColor;
-        modelComp->renderSettings.outlineEnabled = showOutline;
-        modelComp->renderSettings.castsShadows = castsShadows;
+    void AddModel(Model* model, std::shared_ptr<Shader> shader, 
+                  std::shared_ptr<Material> overrideMat = nullptr, int instanceCount = 1)
+    {
+        renderComp = std::make_shared<RenderComponent>();
+        renderComp->nodes = model->nodes; // Copy the list of nodes
+        renderComp->shader = shader;
+        renderComp->materialOverride = overrideMat; 
+        renderComp->instanceCount = instanceCount;
     }
     
     void AddSkybox(Mesh* mesh, std::shared_ptr<Material> mat, std::shared_ptr<Shader> shader) 

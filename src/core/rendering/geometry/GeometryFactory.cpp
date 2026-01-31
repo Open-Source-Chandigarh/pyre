@@ -38,26 +38,25 @@ static glm::vec3 CalcTangent(
 }
 
 // Converts raw float buffer (stride 11) to Mesh object
-static Mesh BuildMeshFromData(const std::vector<float>& data, const std::vector<unsigned int>& indices)
+static std::shared_ptr<Mesh> BuildMeshFromData(const std::vector<float>& data, const std::vector<unsigned int>& indices)
 {
-    Mesh m;
-    m.vertexCount = data.size() / 11;
-    m.indexCount = indices.size();
-    m.vertices.resize(m.vertexCount);
+    std::vector<Vertex> vertices;
+    vertices.resize(data.size() / 11);
 
-    for(int i = 0; i < m.vertexCount; i++)
+    for(size_t i = 0; i < vertices.size(); i++)
     {
-        int base = i * 11;
-        m.vertices[i].Position  = glm::vec3(data[base+0], data[base+1], data[base+2]);
-        m.vertices[i].Normal    = glm::vec3(data[base+3], data[base+4], data[base+5]);
-        m.vertices[i].TexCoords = glm::vec2(data[base+6], data[base+7]);
-        m.vertices[i].Tangent   = glm::vec3(data[base+8], data[base+9], data[base+10]);
+        size_t base = i * 11;
+        vertices[i].Position  = glm::vec3(data[base+0], data[base+1], data[base+2]);
+        vertices[i].Normal    = glm::vec3(data[base+3], data[base+4], data[base+5]);
+        vertices[i].TexCoords = glm::vec2(data[base+6], data[base+7]);
+        vertices[i].Tangent   = glm::vec3(data[base+8], data[base+9], data[base+10]);
     }
-    // We return a new Mesh using the constructor to ensure setupMesh() is called correctly
-    return Mesh(m.vertices, indices);
+
+    // Single allocation for both Control Block and Mesh
+    return std::make_shared<Mesh>(vertices, indices, nullptr);
 }
 
-Mesh GeometryFactory::CreateCube(float size)
+std::shared_ptr<Mesh> GeometryFactory::CreateCube(float size)
 {
     const float h = size * 0.5f;
     std::vector<float> data;
@@ -103,7 +102,7 @@ Mesh GeometryFactory::CreateCube(float size)
     return BuildMeshFromData(data, indices);
 }
 
-Mesh GeometryFactory::CreateSkyboxCube(float size)
+std::shared_ptr<Mesh> GeometryFactory::CreateSkyboxCube(float size)
 {
     // Skybox does not need tangents or lighting, keeping it simple (Positions Only)
     float h = size * 0.5f;
@@ -157,10 +156,11 @@ Mesh GeometryFactory::CreateSkyboxCube(float size)
         for (float& f : vBuffer) f *= h;
     }
 
-    return Mesh::CreatePositionsOnly(vBuffer.data(), vBuffer.size() * sizeof(float), 36);
+    Mesh temp = Mesh::CreatePositionsOnly(vBuffer.data(), vBuffer.size() * sizeof(float), 36);
+    return std::make_shared<Mesh>(std::move(temp));
 }
 
-Mesh GeometryFactory::CreatePlane(float size)
+std::shared_ptr<Mesh> GeometryFactory::CreatePlane(float size)
 {
     float h = size * 0.5f;
     std::vector<float> data;
@@ -187,7 +187,7 @@ Mesh GeometryFactory::CreatePlane(float size)
     return BuildMeshFromData(data, indices);
 }
 
-Mesh GeometryFactory::CreateSphere(float radius, int segments, int rings)
+std::shared_ptr<Mesh> GeometryFactory::CreateSphere(float radius, int segments, int rings)
 {
     std::vector<float> data;
     std::vector<unsigned int> indices;
@@ -235,7 +235,7 @@ Mesh GeometryFactory::CreateSphere(float radius, int segments, int rings)
     return BuildMeshFromData(data, indices);
 }
 
-Mesh GeometryFactory::CreateCylinder(float radius, float height, int segments)
+std::shared_ptr<Mesh> GeometryFactory::CreateCylinder(float radius, float height, int segments)
 {
     std::vector<float> data;
     std::vector<unsigned int> indices;
@@ -308,7 +308,7 @@ Mesh GeometryFactory::CreateCylinder(float radius, float height, int segments)
     return BuildMeshFromData(data, indices);
 }
 
-Mesh GeometryFactory::CreateCone(float radius, float height, int segments)
+std::shared_ptr<Mesh> GeometryFactory::CreateCone(float radius, float height, int segments)
 {
     std::vector<float> data;
     std::vector<unsigned int> indices;
@@ -372,7 +372,7 @@ Mesh GeometryFactory::CreateCone(float radius, float height, int segments)
     return BuildMeshFromData(data, indices);
 }
 
-Mesh GeometryFactory::CreateTorus(float radius, float tubeRadius, int segments, int rings)
+std::shared_ptr<Mesh> GeometryFactory::CreateTorus(float radius, float tubeRadius, int segments, int rings)
 {
     std::vector<float> data;
     std::vector<unsigned int> indices;
