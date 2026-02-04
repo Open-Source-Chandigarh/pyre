@@ -35,6 +35,7 @@ void Application::Init()
 
     if (!appState->scenes.empty()) {
         appState->scenes[appState->currentSceneIndex]->OnActivate(*appState);
+        appState->camera.SetDefault();
     }
 
     ConfigureInput();
@@ -80,14 +81,20 @@ void Application::ConfigureInput()
         if (n == 0) return;
         app->currentSceneIndex = (app->currentSceneIndex + offset + n) % n;
         glfwSetWindowTitle(winPtr->GetNative(), app->scenes[app->currentSceneIndex]->Name().c_str());
-        app->camera.Reset();
+        app->camera.Reset(); // Clear any extreme movement/rotation
         app->scenes[app->currentSceneIndex]->OnActivate(*app);
+        app->camera.SetDefault(); // Lock in the scene's starting camera state
     };
 
     input->BindKeyEvent(GLFW_KEY_RIGHT, GLFW_RELEASE, 
         [SwitchScene](){ SwitchScene(1); });
     input->BindKeyEvent(GLFW_KEY_LEFT, GLFW_RELEASE, 
         [SwitchScene](){ SwitchScene(-1); });
+
+    // camera reset
+    input->BindKeyEvent(GLFW_KEY_R, GLFW_RELEASE, [app]() {
+        app->camera.Reset();
+    });
 
     // debug options
     input->BindKeyEvent(GLFW_KEY_F, GLFW_RELEASE, [app]() {

@@ -51,6 +51,14 @@ public:
         WorldUp = up;
         Yaw = yaw;
         Pitch = pitch;
+
+        // Store initial state
+        StartPosition = Position;
+        StartWorldUp = WorldUp;
+        StartYaw = Yaw;
+        StartPitch = Pitch;
+        StartZoom = Zoom;
+
         updateCameraVectors();
     }
 
@@ -67,26 +75,46 @@ public:
         WorldUp = glm::vec3(upX, upY, upZ);
         Yaw = yaw;
         Pitch = pitch;
+
+        // Store initial state
+        StartPosition = Position;
+        StartWorldUp = WorldUp;
+        StartYaw = Yaw;
+        StartPitch = Pitch;
+        StartZoom = Zoom;
+
         updateCameraVectors();
     }
 
     void ResetProjection()
     {
-        Zoom = ZOOM; 
+        Zoom = StartZoom; 
         Near = 0.1f;
         Far = 100.0f;
     }
 
     void Reset()
     {
-        Position = glm::vec3(0.0f, 0.0f, 3.0f);
+        Position = StartPosition;
+        WorldUp = StartWorldUp;
+        Yaw = StartYaw;
+        Pitch = StartPitch;
+        Zoom = StartZoom;
         Front = glm::vec3(0.0f, 0.0f, -1.0f);
-        Up = glm::vec3(0.0f, 1.0f, 0.0f);
-        Yaw = YAW;
-        Pitch = PITCH;
-        Zoom = ZOOM;
+        Up = glm::vec3(0.0f, 1.0f, 0.0f); // Default up
+        
         updateCameraVectors();
         ResetProjection();
+    }
+
+    // Capture current camera state as the new 'home' for Reset()
+    void SetDefault()
+    {
+        StartPosition = Position;
+        StartWorldUp = WorldUp;
+        StartYaw = Yaw;
+        StartPitch = Pitch;
+        StartZoom = Zoom;
     }
 
     // returns the view matrix calculated using Euler Angles and the LookAt Matrix
@@ -136,6 +164,13 @@ public:
     }
 
 private:
+    // Initial State for Reset
+    glm::vec3 StartPosition;
+    glm::vec3 StartWorldUp;
+    float StartYaw;
+    float StartPitch;
+    float StartZoom;
+
     // calculates the front vector from the Camera's (updated) Euler Angles
     void updateCameraVectors()
     {
