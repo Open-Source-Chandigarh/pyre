@@ -38,6 +38,35 @@ FetchContent_Declare(
     URL ${CMAKE_CURRENT_SOURCE_DIR}/deps/assimp-5.2.5.zip
 )
 FetchContent_MakeAvailable(assimp)
+
+# JSON (nlohmann) - Added for Proposal
+message(STATUS "Downloading nlohmann/json...")
+FetchContent_Declare(
+    json
+    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+)
+FetchContent_MakeAvailable(json)
+
+# IMGUI (Dear ImGui) - Added for Proposal
+message(STATUS "Downloading Dear ImGui...")
+FetchContent_Declare(
+    imgui
+    URL https://github.com/ocornut/imgui/archive/refs/tags/v1.91.5.zip
+)
+FetchContent_MakeAvailable(imgui)
+
+# Define ImGui Sources
+set(IMGUI_DIR ${imgui_SOURCE_DIR})
+set(IMGUI_SOURCES
+    ${IMGUI_DIR}/imgui.cpp
+    ${IMGUI_DIR}/imgui_demo.cpp
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+    ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+)
+
 # SOURCE FILES
 file(GLOB_RECURSE SOURCES 
     "src/*.cpp" 
@@ -47,15 +76,17 @@ file(GLOB_RECURSE SOURCES
 )
 
 # EXECUTABLE TARGET
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(${PROJECT_NAME} ${SOURCES} ${IMGUI_SOURCES})
 
 # INCLUDE DIRECTORIES
 target_include_directories(${PROJECT_NAME} PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}/includes
     ${CMAKE_CURRENT_SOURCE_DIR}/includes/thirdparty 
+    ${IMGUI_DIR}
+    ${IMGUI_DIR}/backends
 )
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw assimp)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw assimp nlohmann_json::nlohmann_json)
 
 # LINKING LIBRARIES (OS Specifics)
 find_package(OpenGL REQUIRED)
