@@ -27,7 +27,6 @@ install_manifest.txt
 *.exe
 *.dll
 *.lib
-*.obj
 *.pdb
 *.ilk
 *.a
