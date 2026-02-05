@@ -52,13 +52,7 @@ public:
         Yaw = yaw;
         Pitch = pitch;
 
-        // Store initial state
-        StartPosition = Position;
-        StartWorldUp = WorldUp;
-        StartYaw = Yaw;
-        StartPitch = Pitch;
-        StartZoom = Zoom;
-
+        SetDefault();
         updateCameraVectors();
     }
 
@@ -76,13 +70,7 @@ public:
         Yaw = yaw;
         Pitch = pitch;
 
-        // Store initial state
-        StartPosition = Position;
-        StartWorldUp = WorldUp;
-        StartYaw = Yaw;
-        StartPitch = Pitch;
-        StartZoom = Zoom;
-
+        SetDefault();
         updateCameraVectors();
     }
 

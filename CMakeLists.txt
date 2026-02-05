@@ -39,7 +39,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(assimp)
 
-# JSON (nlohmann) - Added for Proposal
+# JSON (nlohmann)
 message(STATUS "Downloading nlohmann/json...")
 FetchContent_Declare(
     json
@@ -47,7 +47,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(json)
 
-# IMGUI (Dear ImGui) - Added for Proposal
+# IMGUI (Dear ImGui)
 message(STATUS "Downloading Dear ImGui...")
 FetchContent_Declare(
     imgui
