@@ -10,6 +10,10 @@
 #include "scenes/ToonScene.h"
 #include "scenes/Test.h"
 
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
+
 Application::Application(const std::string& title, int width, int height)
 {
     window = std::make_unique<Window>(width, height, title);
@@ -18,6 +22,11 @@ Application::Application(const std::string& title, int width, int height)
 
 Application::~Application()
 {
+    // Cleanup ImGui
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
     ResourceManager::Clear(); 
     
     // appState and window will be destroyed automatically by unique_ptr
@@ -42,6 +51,19 @@ void Application::Init()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // Setup ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+
+    // Setup ImGui style
+    ImGui::StyleColorsDark();
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(window->GetNative(), true);
+    ImGui_ImplOpenGL3_Init("#version 420");
 }
 
 void Application::ConfigureInput()
@@ -154,6 +176,19 @@ void Application::Run()
 
         Update(appState->deltaTime);
         Render();
+
+        // Render UI
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        ImGui::Begin("Pyre Editor");
+        ImGui::Text("Application Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+        ImGui::End();
+
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         window->SwapBuffers();
         window->PollEvents();
     }
