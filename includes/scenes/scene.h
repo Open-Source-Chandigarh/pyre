@@ -27,6 +27,25 @@ public:
     std::vector<std::shared_ptr<Entity>>& GetEntities() { return entities; }
     PostProcessingPipeline* GetPostPipeline() { return postPipeline.get(); }
     
+    // Entity management for serialization
+    std::shared_ptr<Entity> FindEntityByName(const std::string& name)
+    {
+        for (auto& e : entities)
+        {
+            if (e && e->name == name) return e;
+        }
+        return nullptr;
+    }
+    
+    std::shared_ptr<Entity> CreateEntity(const std::string& name = "Entity")
+    {
+        auto e = Entity::Create(name);
+        entities.push_back(e);
+        return e;
+    }
+    
+    void ClearEntities() { entities.clear(); }
+    
 protected:
     std::string name;
     Window *win = nullptr;
