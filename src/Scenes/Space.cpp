@@ -39,7 +39,7 @@ void Space::Init(AppState &appState)
     std::shared_ptr<Material> skyMat = std::make_shared<Material>();
     skyMat -> textures["skybox"] = skyBox;
     
-    std::shared_ptr<Entity> skyEntity = Entity::Create();
+    std::shared_ptr<Entity> skyEntity = Entity::Create("Skybox");
     skyEntity -> AddSkybox(skyMesh.get(), skyMat, ResourceManager::GetShader("skybox"));
     entities.push_back(std::move(skyEntity));
 
@@ -77,7 +77,7 @@ void Space::Init(AppState &appState)
     if (asteroid) asteroid -> SetupInstancing(asteroidTransforms);
 
     {
-        std::shared_ptr<Entity> e = Entity::Create();
+        std::shared_ptr<Entity> e = Entity::Create("Planet (Moon)");
         e -> AddModel(planet.get(), planetShader);
         e -> transform.position = glm::vec3(0.0f, -3.0f, 0.0f);
         e -> transform.scale = glm::vec3(10.0f); 
@@ -87,7 +87,7 @@ void Space::Init(AppState &appState)
     {
         auto asteroidMat = std::make_shared<Material>();
         asteroidMat->SetShadows(false);
-        std::shared_ptr<Entity> e = Entity::Create();
+        std::shared_ptr<Entity> e = Entity::Create("Asteroid Belt");
         e -> AddModel(asteroid.get(), planetShader, asteroidMat, amount);
         entities.push_back(e);
     }

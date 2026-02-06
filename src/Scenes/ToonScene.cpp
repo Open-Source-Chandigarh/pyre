@@ -32,7 +32,7 @@ void ToonScene::Init(AppState &appState)
         mat -> floats["material_shininess"] = 32.0f;
         mat -> SetOutline(true, glm::vec3(0.0f, 0.0f, 0.0f));
 
-        std::shared_ptr<Entity> e = Entity::Create();
+        std::shared_ptr<Entity> e = Entity::Create("Toon Cube");
         e -> AddMesh(std::move(cube), mat, toonShader);
 
         e -> transform.position = glm::vec3(-2.0f, 0.0f, 0.0f);
@@ -46,7 +46,7 @@ void ToonScene::Init(AppState &appState)
         mat -> floats["material_shininess"] = 32.0f;
         mat -> SetOutline(true, glm::vec3(0.0f, 0.0f, 0.0f));
 
-        std::shared_ptr<Entity> e = Entity::Create();
+        std::shared_ptr<Entity> e = Entity::Create("Toon Sphere");
         e -> AddMesh(std::move(sphere), mat, toonShader);
 
         e -> transform.position = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -61,7 +61,7 @@ void ToonScene::Init(AppState &appState)
         mat -> floats["material_shininess"] = 32.0f;
         mat -> SetOutline(true, glm::vec3(0.0f, 0.0f, 0.0f));
 
-        std::shared_ptr<Entity> e = Entity::Create();
+        std::shared_ptr<Entity> e = Entity::Create("Toon Torus");
         e -> AddMesh(torus, mat, toonShader);
         e -> transform.position = glm::vec3(2.0f, 0.0f, 0.0f);
         e -> transform.scale = glm::vec3(0.7f);
