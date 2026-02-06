@@ -46,6 +46,9 @@ public:
     void Resize(unsigned int w, unsigned int h);
     unsigned int blurredBloomTexture = 0;
 
+    std::vector<std::shared_ptr<PostEffect>>& GetEffects() { return effects; }
+    bool& IsBloomEnabled() { return bloomEnabled; }
+
 private:
     std::unique_ptr<Framebuffer> pingpong[2];
     std::unique_ptr<Framebuffer> bloomBuffer;
