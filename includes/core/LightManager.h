@@ -51,6 +51,12 @@ public:
     void ClearPointLights();
     void ClearSpotLights();
     glm::vec3 GetDirectionalLightDir() { return dir; }
+    
+    // Directional Light accessors
+    glm::vec3& GetDirLightDirection() { return dir; }
+    glm::vec3& GetDirLightAmbient() { return dirAmbient; }
+    glm::vec3& GetDirLightDiffuse() { return dirDiffuse; }
+    glm::vec3& GetDirLightSpecular() { return dirSpec; }
 
     // Apply stored lights to the currently used shader
     void ApplyToShader(Shader& shader, Renderer& renderer,
