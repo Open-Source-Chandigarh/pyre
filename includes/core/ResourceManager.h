@@ -20,6 +20,7 @@ public:
     // Textures
     static std::shared_ptr<Texture> LoadTexture(const std::string& path, TextureType type);
     static std::shared_ptr<Texture> GetTexture(const std::string& path);
+    static std::shared_ptr<Texture> GetFallbackTexture();
 
     static std::shared_ptr<Texture> LoadCubeMap(std::vector<std::string> faces, std::string name = "");
 

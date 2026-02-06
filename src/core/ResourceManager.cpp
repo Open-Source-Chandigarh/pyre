@@ -47,8 +47,8 @@ std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& path, T
     stbi_set_flip_vertically_on_load(true);
     unsigned char* data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
     if (!data) {
-        std::cerr << "ResourceManager: Failed to load texture " << path << "\n";
-        return nullptr;
+        std::cerr << "ResourceManager: Failed to load texture " << path << ". Using fallback.\n";
+        return GetFallbackTexture();
     }
 
     // Determine the Data Format
@@ -169,6 +169,38 @@ std::shared_ptr<Texture> ResourceManager::GetTexture(const std::string& path)
     auto it = textures.find(path);
     if (it == textures.end()) return nullptr;
     return it->second;
+}
+
+std::shared_ptr<Texture> ResourceManager::GetFallbackTexture()
+{
+    if (textures.count("fallback_checkerboard")) return textures["fallback_checkerboard"];
+
+    // Create a 2x2 magenta/black checkerboard texture
+    unsigned char data[] = {
+        255, 0, 255, 0, 0, 0,
+        0, 0, 0, 255, 0, 255
+    };
+
+    unsigned int tex;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+    auto texture = std::make_shared<Texture>();
+    texture->ID = tex;
+    texture->type = TextureType::TEX_DIFFUSE;
+    texture->width = 2;
+    texture->height = 2;
+    texture->channels = 3;
+
+    textures["fallback_checkerboard"] = texture;
+    return texture;
 }
 
 std::string ResourceManager::combinePaths(std::vector<std::string> paths)
