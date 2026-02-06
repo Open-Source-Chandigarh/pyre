@@ -28,7 +28,8 @@ public:
                     Framebuffer &sceneFBO, 
                     PostProcessingPipeline &postProcessor,
                     bool wireFrame = false, 
-                    glm::vec3 clearColor = glm::vec3(0.1f));
+                    glm::vec3 clearColor = glm::vec3(0.1f),
+                    std::shared_ptr<Entity> selectedEntity = nullptr);
         
     // submit mesh
     // handles both single meshes and instanced meshes

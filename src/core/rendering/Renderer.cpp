@@ -567,7 +567,8 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
                            Framebuffer &sceneFBO, 
                            PostProcessingPipeline &postProcessor,
                            bool wireFrame,
-                           glm::vec3 clearColor)
+                           glm::vec3 clearColor,
+                           std::shared_ptr<Entity> selectedEntity)
 {
     std::vector<std::shared_ptr<Entity>> transparentEntities;
     std::vector<std::shared_ptr<Entity>> opaqueEntities;
@@ -591,6 +592,20 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
     {
         RenderLightingPass(opaqueEntities, transparentEntities, skyboxEntity, 
             lightManager, sceneFBO, postProcessor, clearColor);
+
+        // Selection Highlight: Draw outline visible through geometry (x-ray effect)
+        if (selectedEntity && selectedEntity->renderComp)
+        {
+            glDisable(GL_DEPTH_TEST);
+            for (const auto& node : selectedEntity->renderComp->nodes)
+            {
+                if (!node.mesh) continue;
+                glm::mat4 model = selectedEntity->transform.GetModelMatrix() * node.localTransform;
+                // Amber/Orange outline - industry standard selection color (Unity, Blender)
+                RenderMeshOutline(*node.mesh, model, glm::vec3(1.0f, 0.6f, 0.1f), 2.0f);
+            }
+            glEnable(GL_DEPTH_TEST);
+        }
     }
     else
     {
