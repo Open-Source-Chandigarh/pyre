@@ -23,6 +23,8 @@ public:
     virtual std::string Name() const = 0;
     virtual void OnResize(int w, int h);
     glm::vec3 clearColor = glm::vec3(0.1f, 0.1f, 0.1f);
+
+    std::vector<std::shared_ptr<Entity>>& GetEntities() { return entities; }
     
 protected:
     std::string name;
