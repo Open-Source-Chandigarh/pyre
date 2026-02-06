@@ -19,7 +19,8 @@ void Scene::Render(AppState &appState)
                           *sceneFBO, 
                           *postPipeline, 
                           appState.wireframeEnabled, 
-                          this->clearColor);
+                          this->clearColor,
+                          appState.selectedEntity);
 
     renderer->EndScene();
 }
