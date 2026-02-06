@@ -200,17 +200,17 @@ void Application::Run()
         // Display scene name header
         ImGui::TextColored(ImVec4(0.6f, 0.8f, 1.0f, 1.0f), "Scene: %s", currentScene->Name().c_str());
         
-        // Save/Load buttons
+        // Save/Load buttons (includes entities + lights)
         if (ImGui::Button("Save"))
         {
             std::string filepath = "scenes/" + currentScene->Name() + ".json";
-            SceneSerializer::Serialize(currentScene, filepath);
+            SceneSerializer::Serialize(currentScene, appState->lightManager.get(), filepath);
         }
         ImGui::SameLine();
         if (ImGui::Button("Load"))
         {
             std::string filepath = "scenes/" + currentScene->Name() + ".json";
-            SceneSerializer::Deserialize(currentScene, filepath);
+            SceneSerializer::Deserialize(currentScene, appState->lightManager.get(), filepath);
         }
         ImGui::Separator();
 
