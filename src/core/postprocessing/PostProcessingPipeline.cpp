@@ -134,6 +134,8 @@ GLuint PostProcessingPipeline::Apply(GLuint inputTex, GLuint brightnessTex)
     int ping = 0;
     for (size_t i = 0; i < effects.size(); i++)
     {
+        if (!effects[i]->enabled) continue;
+
         Framebuffer& outFbo = *pingpong[ping];
         effects[i]->Apply(currentInput, outFbo, quadVAO);
         currentInput = outFbo.GetColorTexture();
@@ -205,31 +207,39 @@ std::shared_ptr<PostEffect> PostProcessingPipeline::AddEffectFromShader(
 
 std::shared_ptr<PostEffect> PostProcessingPipeline::AddInversion()
 {
-    return AddEffectFromShader("post_invert");
+    auto e = AddEffectFromShader("post_invert");
+    if (e) e->name = "Inversion";
+    return e;
 }
 
 std::shared_ptr<PostEffect> PostProcessingPipeline::AddGrayscale()
 {
-    return AddEffectFromShader("post_grayscale");
+    auto e = AddEffectFromShader("post_grayscale");
+    if (e) e->name = "Grayscale";
+    return e;
 }
 
 std::shared_ptr<PostEffect> PostProcessingPipeline::AddSharpen(float strength)
 {
-    return AddEffectFromShader("post_sharpen", [strength](Shader& s) {
+    auto e = AddEffectFromShader("post_sharpen", [strength](Shader& s) {
         s.setFloat("strength", strength);
         });
+    if (e) e->name = "Sharpen";
+    return e;
 }
 
 std::shared_ptr<PostEffect> PostProcessingPipeline::AddGammaCorrection(float gammaVal)
 {
-    return AddEffectFromShader("post_gamma", [gammaVal](Shader& s) {
+    auto e = AddEffectFromShader("post_gamma", [gammaVal](Shader& s) {
         s.setFloat("gamma", gammaVal);
     });
+    if (e) e->name = "Gamma Correction";
+    return e;
 }
 
 std::shared_ptr<PostEffect> PostProcessingPipeline::AddToneMapping(float exposure)
 {
-    return AddEffectFromShader("post_hdr_combine", [this, exposure](Shader& s) {
+    auto e = AddEffectFromShader("post_hdr_combine", [this, exposure](Shader& s) {
         s.setInt("scene", 0);
         s.setFloat("exposure", exposure);
         s.setInt("bloomEnabled", this->bloomEnabled);
@@ -242,4 +252,6 @@ std::shared_ptr<PostEffect> PostProcessingPipeline::AddToneMapping(float exposur
         }
         glActiveTexture(GL_TEXTURE0);
     });
+    if (e) e->name = "Tone Mapping";
+    return e;
 }
