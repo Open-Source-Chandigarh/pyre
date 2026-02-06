@@ -104,6 +104,7 @@ void Application::ConfigureInput()
         app->currentSceneIndex = (app->currentSceneIndex + offset + n) % n;
         glfwSetWindowTitle(winPtr->GetNative(), app->scenes[app->currentSceneIndex]->Name().c_str());
         app->camera.Reset(); // Clear any extreme movement/rotation
+        app->selectedEntity = nullptr; // Reset selection on scene change
         app->scenes[app->currentSceneIndex]->OnActivate(*app);
         app->camera.SetDefault(); // Lock in the scene's starting camera state
     };
@@ -218,6 +219,7 @@ void Application::Run()
             if (ImGui::Selectable(nameText.c_str(), isSelected))
             {
                 selectedEntityIndex = i;
+                appState->selectedEntity = sceneEntities[i];
             }
 
             if (isSelected) {
@@ -248,6 +250,53 @@ void Application::Run()
                 ImGui::DragFloat3("Position", &entity->transform.position.x, 0.1f);
                 ImGui::DragFloat3("Rotation", &entity->transform.rotation.x, 1.0f);
                 ImGui::DragFloat3("Scale",    &entity->transform.scale.x,    0.05f);
+            }
+
+            // Render Component (Material Editing)
+            if (entity->renderComp && ImGui::CollapsingHeader("Material", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                if (entity->renderComp->materialOverride)
+                {
+                    Material* mat = entity->renderComp->materialOverride.get();
+                    
+                    // Standard Properties
+                    ImGui::DragFloat("Shininess", &mat->floats["material_shininess"], 1.0f, 1.0f, 256.0f);
+                    ImGui::ColorEdit3("Diffuse", &mat->vec3s["material_diffuseColor"].x);
+                    ImGui::ColorEdit3("Specular", &mat->vec3s["material_specularColor"].x);
+                    
+                    // Toggles
+                    bool wireframe = mat->GetBool("wireframe");
+                    if (ImGui::Checkbox("Wireframe", &wireframe)) mat->SetWireframe(wireframe);
+
+                    bool shadows = mat->GetBool("castShadows", true);
+                    if (ImGui::Checkbox("Cast Shadows", &shadows)) mat->SetShadows(shadows);
+
+                    // Outline / Bloom
+                    bool outline = mat->GetBool("outlineEnabled");
+                    if (ImGui::Checkbox("Outline / Glow", &outline)) mat->bools["outlineEnabled"] = outline;
+                    
+                    if (outline)
+                    {
+                        ImGui::ColorEdit3("Glow Color", &mat->vec3s["outlineColor"].x);
+                        ImGui::DragFloat("Bloom Factor", &mat->floats["bloomFactor"], 0.1f, 0.0f, 10.0f);
+                    }
+                }
+                else
+                {
+                    ImGui::TextDisabled("Using Mesh Default Material");
+                    if (ImGui::Button("Create Override Material"))
+                    {
+                        // Clone the first mesh's material as a base
+                        if (!entity->renderComp->nodes.empty() && entity->renderComp->nodes[0].mesh->localMaterial)
+                        {
+                            entity->renderComp->materialOverride = std::make_shared<Material>(*entity->renderComp->nodes[0].mesh->localMaterial);
+                        }
+                        else
+                        {
+                            entity->renderComp->materialOverride = std::make_shared<Material>();
+                        }
+                    }
+                }
             }
         }
         else
