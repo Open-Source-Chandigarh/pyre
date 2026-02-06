@@ -262,6 +262,42 @@ void Application::Run()
         ImGui::Text("FPS: %.1f (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
         ImGui::End();
 
+        // 3. Global Settings Panel (positioned at top-left)
+        ImGui::SetNextWindowPos(ImVec2(padding, padding), ImGuiCond_Appearing);
+        ImGui::SetNextWindowSize(ImVec2(250, 200), ImGuiCond_Appearing);
+        ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+        
+        if (ImGui::CollapsingHeader("Rendering", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            if (ImGui::Checkbox("Wireframe Mode (F)", &appState->wireframeEnabled))
+            {
+                glPolygonMode(GL_FRONT_AND_BACK, appState->wireframeEnabled ? GL_LINE : GL_FILL);
+            }
+
+            Renderer* renderer = appState->renderer.get();
+            if (renderer)
+            {
+                ImGui::Checkbox("Show Vertex Normals", &renderer->showNormals);
+                ImGui::Checkbox("Force Outlines", &renderer->forceOutlines);
+            }
+        }
+
+        if (ImGui::CollapsingHeader("Post-Processing", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            PostProcessingPipeline* pipeline = currentScene->GetPostPipeline();
+            if (pipeline)
+            {
+                ImGui::Checkbox("Bloom", &pipeline->IsBloomEnabled());
+                
+                auto& effects = pipeline->GetEffects();
+                for (auto& effect : effects)
+                {
+                    ImGui::Checkbox(effect->name.c_str(), &effect->enabled);
+                }
+            }
+        }
+        ImGui::End();
+
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
