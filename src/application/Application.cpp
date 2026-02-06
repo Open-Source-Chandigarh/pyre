@@ -9,6 +9,7 @@
 #include "scenes/Space.h"
 #include "scenes/ToonScene.h"
 #include "scenes/Test.h"
+#include "helpers/SceneSerializer.h"
 
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
@@ -198,6 +199,19 @@ void Application::Run()
 
         // Display scene name header
         ImGui::TextColored(ImVec4(0.6f, 0.8f, 1.0f, 1.0f), "Scene: %s", currentScene->Name().c_str());
+        
+        // Save/Load buttons
+        if (ImGui::Button("Save"))
+        {
+            std::string filepath = "scenes/" + currentScene->Name() + ".json";
+            SceneSerializer::Serialize(currentScene, filepath);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Load"))
+        {
+            std::string filepath = "scenes/" + currentScene->Name() + ".json";
+            SceneSerializer::Deserialize(currentScene, filepath);
+        }
         ImGui::Separator();
 
         for (int i = 0; i < sceneEntities.size(); i++)
