@@ -25,6 +25,7 @@ public:
     glm::vec3 clearColor = glm::vec3(0.1f, 0.1f, 0.1f);
 
     std::vector<std::shared_ptr<Entity>>& GetEntities() { return entities; }
+    PostProcessingPipeline* GetPostPipeline() { return postPipeline.get(); }
     
 protected:
     std::string name;
