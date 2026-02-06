@@ -256,6 +256,49 @@ void Application::Run()
         }
         ImGui::End();
 
+        // 4. Lights Panel
+        ImGui::SetNextWindowPos(ImVec2(appState->width - panelWidth * 2.0f - padding * 2.0f, padding), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(panelWidth, panelHeight + inspectorHeight + padding), ImGuiCond_Always);
+        ImGui::Begin("Lighting", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+        
+        LightManager* lm = appState->lightManager.get();
+        if (lm)
+        {
+            if (ImGui::CollapsingHeader("Directional Light", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::DragFloat3("Direction", &lm->GetDirLightDirection().x, 0.05f, -1.0f, 1.0f);
+                ImGui::ColorEdit3("Ambient##Dir", &lm->GetDirLightAmbient().x);
+                ImGui::ColorEdit3("Diffuse##Dir", &lm->GetDirLightDiffuse().x);
+                ImGui::ColorEdit3("Specular##Dir", &lm->GetDirLightSpecular().x);
+            }
+
+            if (ImGui::CollapsingHeader("Point Lights", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                for (int i = 0; i < lm->points.size(); i++)
+                {
+                    ImGui::PushID(i);
+                    std::string lightLabel = "Point Light " + std::to_string(i);
+                    if (ImGui::TreeNode(lightLabel.c_str()))
+                    {
+                        ImGui::DragFloat3("Position", &lm->points[i].position.x, 0.1f);
+                        ImGui::ColorEdit3("Ambient", &lm->points[i].ambient.x);
+                        ImGui::ColorEdit3("Diffuse", &lm->points[i].diffuse.x);
+                        ImGui::ColorEdit3("Specular", &lm->points[i].specular.x);
+                        
+                        ImGui::Separator();
+                        ImGui::Text("Attenuation");
+                        ImGui::DragFloat("Constant", &lm->points[i].constant, 0.01f, 0.0f, 2.0f);
+                        ImGui::DragFloat("Linear", &lm->points[i].linear, 0.001f, 0.0f, 1.0f);
+                        ImGui::DragFloat("Quadratic", &lm->points[i].quadratic, 0.0001f, 0.0f, 1.0f);
+                        
+                        ImGui::TreePop();
+                    }
+                    ImGui::PopID();
+                }
+            }
+        }
+        ImGui::End();
+
         // Performance Stats (bottom-left corner)
         ImGui::SetNextWindowPos(ImVec2(padding, appState->height - 40.0f), ImGuiCond_Always);
         ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
