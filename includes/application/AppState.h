@@ -2,6 +2,7 @@
 #include <vector>
 #include <memory>
 #include "helpers/camera.h"
+#include "core/Entity.h"
 
 class Scene;
 class Renderer;
@@ -18,6 +19,7 @@ struct AppState
 
     std::vector<std::unique_ptr<Scene>> scenes;
     int currentSceneIndex = 0;
+    std::shared_ptr<Entity> selectedEntity = nullptr;
     
     Camera camera = Camera(glm::vec3(0.0f, 0.0f, 3.0f));
     int width = 800;
