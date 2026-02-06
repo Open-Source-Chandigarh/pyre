@@ -769,6 +769,10 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     CullMode currentCull = activeBase->cullMode;
     if (overrideMat && overrideMat->cullMode != CullMode::Back) currentCull = overrideMat->cullMode;
 
+    // Apply Global Debug Overrides
+    if (showNormals) doNormals = true;
+    if (forceOutlines) doOutline = true;
+
     if (wireframe) 
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
