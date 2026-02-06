@@ -182,8 +182,84 @@ void Application::Run()
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::Begin("Pyre Editor");
-        ImGui::Text("Application Average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+       // 1. Scene Hierarchy Panel (positioned on the right side)
+        float panelWidth = 280.0f;
+        float panelHeight = 350.0f;
+        float padding = 10.0f;
+        
+        ImGui::SetNextWindowPos(ImVec2(appState->width - panelWidth - padding, padding), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(panelWidth, panelHeight), ImGuiCond_Always);
+        ImGui::Begin("Scene Hierarchy", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+        
+        static int selectedEntityIndex = -1;
+        Scene* currentScene = appState->scenes[appState->currentSceneIndex].get();
+        auto& sceneEntities = currentScene->GetEntities();
+
+        // Display scene name header
+        ImGui::TextColored(ImVec4(0.6f, 0.8f, 1.0f, 1.0f), "Scene: %s", currentScene->Name().c_str());
+        ImGui::Separator();
+
+        for (int i = 0; i < sceneEntities.size(); i++)
+        {
+            ImGui::PushID(i);
+            Entity* entity = sceneEntities[i].get();
+            std::string nameText = entity->name.empty() ? "Entity #" + std::to_string(i) : entity->name;
+            
+            bool isSelected = (selectedEntityIndex == i);
+            
+            // selection highlighting with background color
+            if (isSelected) {
+                ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.2f, 0.5f, 0.8f, 1.0f));        // Blue background when selected
+                ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.3f, 0.6f, 0.9f, 1.0f)); // Lighter blue on hover
+                ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.1f, 0.4f, 0.7f, 1.0f));  // Darker blue when clicked
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));          // White text
+            }
+
+            if (ImGui::Selectable(nameText.c_str(), isSelected))
+            {
+                selectedEntityIndex = i;
+            }
+
+            if (isSelected) {
+                ImGui::PopStyleColor(4);
+            }
+
+            ImGui::PopID();
+        }
+        ImGui::End();
+
+        // 2. Inspector Panel (positioned below hierarchy)
+        float inspectorY = padding + panelHeight + padding;
+        float inspectorHeight = appState->height - inspectorY - padding - 50.0f; // Leave space for stats
+        
+        ImGui::SetNextWindowPos(ImVec2(appState->width - panelWidth - padding, inspectorY), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(panelWidth, inspectorHeight), ImGuiCond_Always);
+        ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+        
+        if (selectedEntityIndex >= 0 && selectedEntityIndex < sceneEntities.size())
+        {
+            Entity* entity = sceneEntities[selectedEntityIndex].get();
+            ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f), "%s", entity->name.c_str());
+            ImGui::Separator();
+            
+            // Transform Component
+            if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                ImGui::DragFloat3("Position", &entity->transform.position.x, 0.1f);
+                ImGui::DragFloat3("Rotation", &entity->transform.rotation.x, 1.0f);
+                ImGui::DragFloat3("Scale",    &entity->transform.scale.x,    0.05f);
+            }
+        }
+        else
+        {
+            ImGui::TextDisabled("Select an entity to inspect.");
+        }
+        ImGui::End();
+
+        // Performance Stats (bottom-left corner)
+        ImGui::SetNextWindowPos(ImVec2(padding, appState->height - 40.0f), ImGuiCond_Always);
+        ImGui::Begin("Stats", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
+        ImGui::Text("FPS: %.1f (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
         ImGui::End();
 
         ImGui::Render();
