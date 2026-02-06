@@ -27,7 +27,7 @@ void Backpack::Init(AppState &appState)
     overrideMat->SetOutline(true, glm::vec3(1.0f), 1.5f);
 
     entities.clear();
-    std::shared_ptr<Entity> e = Entity::Create();
+    std::shared_ptr<Entity> e = Entity::Create("Backpack");
     e->AddModel(obj.get(), shader, overrideMat);
     e->transform.position = glm::vec3(0.0f);
     e->transform.scale = glm::vec3(1.0f);
