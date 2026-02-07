@@ -30,6 +30,8 @@ public:
 
 
 	void ToggleMouseCapture(bool forceEnable = false);
+	void SetMouseCaptured(bool captured);
+	bool IsMouseCaptured() const { return mouseCaptured; }
 
 	// Call each frame to process continuous actions
 	void Update(float deltaTime);
