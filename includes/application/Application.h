@@ -2,6 +2,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include "helpers/InputMapper.h"
 
 class Window;
 struct AppState;
@@ -18,13 +19,14 @@ public:
     void Run();
 
 private:
-    // core Subsystems
+    // Core Subsystems
     std::unique_ptr<Window> window;
     std::unique_ptr<AppState> appState;
+    InputMapper inputMapper;
 
-    // internal Helpers
-    void Init();       // setup scenes, render defaults
-    void ConfigureInput(); // bind keys to AppState logic
+    // Internal Methods
+    void Init();
+    void ConfigureInput();
     void Update(float dt);
     void Render();
 };

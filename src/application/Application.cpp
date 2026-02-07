@@ -37,6 +37,8 @@ Application::~Application()
 
 void Application::Init()
 {
+    inputMapper.LoadConfig("resources/config/input.json");
+
     for (auto& scene : appState->scenes)
         scene->BindWindow(window.get());
 
@@ -74,16 +76,16 @@ void Application::ConfigureInput()
     Window *winPtr = window.get();
 
     // camera Movement
-    input->BindKeyContinuous(GLFW_KEY_W, [app](float dt) { 
+    input->BindKeyContinuous(inputMapper.GetKey("MoveForward", GLFW_KEY_W), [app](float dt) { 
         app->camera.ProcessKeyboard(FORWARD, dt); 
     });
-    input->BindKeyContinuous(GLFW_KEY_S, [app](float dt) { 
+    input->BindKeyContinuous(inputMapper.GetKey("MoveBackward", GLFW_KEY_S), [app](float dt) { 
         app->camera.ProcessKeyboard(BACKWARD, dt); 
     });
-    input->BindKeyContinuous(GLFW_KEY_A, [app](float dt) { 
+    input->BindKeyContinuous(inputMapper.GetKey("MoveLeft", GLFW_KEY_A), [app](float dt) { 
         app->camera.ProcessKeyboard(LEFT, dt); 
     });
-    input->BindKeyContinuous(GLFW_KEY_D, [app](float dt) { 
+    input->BindKeyContinuous(inputMapper.GetKey("MoveRight", GLFW_KEY_D), [app](float dt) { 
         app->camera.ProcessKeyboard(RIGHT, dt); 
     });
 
@@ -94,7 +96,7 @@ void Application::ConfigureInput()
     input->BindScroll([app](double y) {
         app->camera.ProcessMouseScroll((float)y);
     });
-    input->BindKeyEvent(GLFW_KEY_ESCAPE, GLFW_PRESS, [input]() {
+    input->BindKeyEvent(inputMapper.GetKey("ToggleMouseCapture", GLFW_KEY_ESCAPE), GLFW_PRESS, [input]() {
         input->ToggleMouseCapture();
     });
 
@@ -116,12 +118,12 @@ void Application::ConfigureInput()
         [SwitchScene](){ SwitchScene(-1); });
 
     // camera reset
-    input->BindKeyEvent(GLFW_KEY_R, GLFW_RELEASE, [app]() {
+    input->BindKeyEvent(inputMapper.GetKey("ResetCamera", GLFW_KEY_R), GLFW_RELEASE, [app]() {
         app->camera.Reset();
     });
 
     // debug options
-    input->BindKeyEvent(GLFW_KEY_F, GLFW_RELEASE, [app]() {
+    input->BindKeyEvent(inputMapper.GetKey("ToggleWireframe", GLFW_KEY_F), GLFW_RELEASE, [app]() {
         app->wireframeEnabled = !app->wireframeEnabled;
         glPolygonMode(GL_FRONT_AND_BACK, 
             app->wireframeEnabled ? GL_LINE : GL_FILL);
