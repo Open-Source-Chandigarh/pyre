@@ -1,13 +1,17 @@
 #include "core/InputManager.h"
 #include "core/Window.h"
 #include <iostream>
+#include <imgui.h>
 
 InputManager::InputManager(Window* owner) : owner(owner)
 {
 	lastX = 0.0f;
 	lastY = 0.0f;
 	firstMouse = true;
-    mouseCaptured = true;
+    mouseCaptured = false; // Start with mouse visible (editor mode)
+    
+    // Ensure cursor is visible at start
+    glfwSetInputMode(owner->GetNative(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
 void InputManager::BindKeyEvent(int key, int action, std::function<void()> callback) {
@@ -27,12 +31,14 @@ void InputManager::BindScroll(std::function<void(double)> callback) {
 }
 
 void InputManager::HandleKey(int key, int action, int mods) {
-    if (!mouseCaptured) return;
-    // maintain pressed state for continuous handling
+    // Always track key state (for WASD while holding RMB)
     if (action == GLFW_PRESS) keysPressed[key] = true;
     else if (action == GLFW_RELEASE) keysPressed[key] = false;
 
-    // call all event bindings that match this key+action
+    // If ImGui wants the keyboard (e.g. typing in a text box), don't process game shortcuts
+    if (ImGui::GetIO().WantCaptureKeyboard) return;
+
+    // Call all event bindings that match this key+action
     auto it = eventBindings.find(key);
     if (it != eventBindings.end()) {
         for (auto& bind : it->second) {
@@ -67,27 +73,36 @@ void InputManager::HandleScroll(double xoffset, double yoffset) {
 }
 
 void InputManager::HandleMouseButton(int button, int action, int mods) {
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS && !mouseCaptured) {
-        ToggleMouseCapture(true); // recapture
+    // Right Mouse Button: Hold to look
+    if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+        if (action == GLFW_PRESS) {
+            // Only capture if we are NOT clicking on an ImGui window
+            if (!ImGui::GetIO().WantCaptureMouse) {
+                SetMouseCaptured(true);
+            }
+        } else if (action == GLFW_RELEASE) {
+            // Always release if the button is let go
+            SetMouseCaptured(false);
+        }
     }
+}
 
-    if (!mouseCaptured)
-        return;
+void InputManager::SetMouseCaptured(bool captured) 
+{
+    if (captured && !mouseCaptured) {
+        glfwSetInputMode(owner->GetNative(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        mouseCaptured = true;
+        firstMouse = true;
+    }
+    else if (!captured && mouseCaptured) {
+        glfwSetInputMode(owner->GetNative(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        mouseCaptured = false;
+    }
 }
 
 void InputManager::ToggleMouseCapture(bool forceEnable) 
 {
-    if (forceEnable || !mouseCaptured) {
-        glfwSetInputMode(owner->GetNative(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-        mouseCaptured = true;
-        firstMouse = true;
-        std::cout << "Mouse captured\n";
-    }
-    else {
-        glfwSetInputMode(owner->GetNative(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        mouseCaptured = false;
-        std::cout << "Mouse released\n";
-    }
+    SetMouseCaptured(forceEnable || !mouseCaptured);
 }
 
 void InputManager::Update(float deltaTime) 

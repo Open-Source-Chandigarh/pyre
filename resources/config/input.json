@@ -4,6 +4,5 @@
   "MoveLeft": 65,
   "MoveRight": 68,
   "ToggleWireframe": 70,
-  "ResetCamera": 82,
-  "ToggleMouseCapture": 256
+  "ResetCamera": 82
 }

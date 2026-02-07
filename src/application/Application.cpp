@@ -96,9 +96,7 @@ void Application::ConfigureInput()
     input->BindScroll([app](double y) {
         app->camera.ProcessMouseScroll((float)y);
     });
-    input->BindKeyEvent(inputMapper.GetKey("ToggleMouseCapture", GLFW_KEY_ESCAPE), GLFW_PRESS, [input]() {
-        input->ToggleMouseCapture();
-    });
+    // Note: Mouse capture now uses RMB hold-to-look (handled in InputManager)
 
     // scene switching
     auto SwitchScene = [app, winPtr](int offset) {

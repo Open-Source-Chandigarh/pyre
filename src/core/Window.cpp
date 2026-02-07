@@ -50,7 +50,6 @@ Window::Window(float width, float height, const std::string& name)
 	glfwSetScrollCallback(win, ScrollCallback);
 	glfwSetMouseButtonCallback(win, MouseButtonCallback);
 	glfwSetFramebufferSizeCallback(win, FramebufferSizeCallback);
-	glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	std::cout << "OpenGL version: " << glGetString(GL_VERSION) << std::endl;
 
 	glEnable(GL_DEPTH_TEST);
