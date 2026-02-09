@@ -48,6 +48,7 @@ public:
 
     std::vector<std::shared_ptr<PostEffect>>& GetEffects() { return effects; }
     bool& IsBloomEnabled() { return bloomEnabled; }
+    int bloomIterations = 10;
 
 private:
     std::unique_ptr<Framebuffer> pingpong[2];
