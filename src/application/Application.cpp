@@ -301,6 +301,15 @@ void Application::Run()
                 Material* mat = entity->GetUniqueMaterial().get();
                 if (mat)
                 {
+                    // Initialize properties with sensible defaults if they don't exist
+                    // (operator[] would create black/zero values otherwise)
+                    if (mat->floats.find("material_shininess") == mat->floats.end())
+                        mat->floats["material_shininess"] = 32.0f;
+                    if (mat->vec3s.find("material_diffuseColor") == mat->vec3s.end())
+                        mat->vec3s["material_diffuseColor"] = glm::vec3(1.0f); // White (neutral)
+                    if (mat->vec3s.find("material_specularColor") == mat->vec3s.end())
+                        mat->vec3s["material_specularColor"] = glm::vec3(1.0f); // White (neutral)
+
                     // Standard Properties
                     ImGui::DragFloat("Shininess", &mat->floats["material_shininess"], 1.0f, 1.0f, 256.0f);
                     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Specular exponent: Higher = smaller, sharper highlights");
@@ -332,32 +341,59 @@ void Application::Run()
                     }
 
                     // Texture Preview
-                    if (!mat->textures.empty() && ImGui::TreeNode("Textures"))
+                    if (ImGui::TreeNode("Textures"))
                     {
                         for (const auto& [name, tex] : mat->textures)
                         {
                             if (!tex) continue;
+                            if (tex->type == TextureType::TEX_CUBEMAP || tex->type == TextureType::TEX_ENVIRONMENT) continue;
+
+                            ImGui::PushID(name.c_str());
                             
-                            if (tex->type == TextureType::TEX_CUBEMAP || tex->type == TextureType::TEX_ENVIRONMENT) {
-                                ImGui::Text("%s: [Cubemap]", name.c_str());
-                                continue;
-                            }
+                            // Image Preview
+                            ImGui::Image((void*)(intptr_t)tex->ID, ImVec2(48, 48), ImVec2(0, 1), ImVec2(1, 0)); // Flip UVs for OpenGL
                             
-                            ImGui::Text("%s:", name.c_str());
-                            ImGui::SameLine();
-                            
-                            // Display 48x48 preview
-                            ImGui::Image((ImTextureID)(intptr_t)tex->ID, ImVec2(48, 48));
-                            
-                            // Tooltip with details
+                            // Tooltip
                             if (ImGui::IsItemHovered()) {
                                 ImGui::BeginTooltip();
-                                ImGui::Text("Texture ID: %u", tex->ID);
-                                ImGui::Text("Size: %dx%d", tex->width, tex->height);
-                                ImGui::Image((ImTextureID)(intptr_t)tex->ID, ImVec2(128, 128));
+                                ImGui::Text("ID: %u (%dx%d)", tex->ID, tex->width, tex->height);
+                                ImGui::Image((void*)(intptr_t)tex->ID, ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
                                 ImGui::EndTooltip();
                             }
+
+                            ImGui::SameLine();
+                            ImGui::BeginGroup();
+                            ImGui::TextColored(ImVec4(0.8f, 0.8f, 1.0f, 1.0f), "%s", name.c_str());
+                            ImGui::TextDisabled("%s", tex->path.c_str());
+                            ImGui::EndGroup();
+                            
+                            ImGui::PopID();
+                            ImGui::Separator();
                         }
+
+                        // Add/Replace Texture Logic
+                        if (ImGui::Button("Load Texture...")) ImGui::OpenPopup("LoadTexturePopup");
+                        
+                        if (ImGui::BeginPopup("LoadTexturePopup"))
+                        {
+                            static char keyBuf[64] = "material_diffuse";
+                            static char pathBuf[128] = "resources/textures/container2.png";
+                            
+                            ImGui::InputText("Slot (Key)", keyBuf, 64);
+                            ImGui::InputText("File Path", pathBuf, 128);
+                            
+                            if (ImGui::Button("Load & Assign"))
+                            {
+                                // Load via ResourceManager (using path as the resource name to ensure uniqueness)
+                                auto newTex = ResourceManager::LoadTexture(pathBuf, TextureType::TEX_DIFFUSE); // Defaulting to Diffuse for manual loads
+                                if (newTex) {
+                                    mat->textures[keyBuf] = newTex;
+                                    ImGui::CloseCurrentPopup();
+                                }
+                            }
+                            ImGui::EndPopup();
+                        }
+
                         ImGui::TreePop();
                     }
                 }
