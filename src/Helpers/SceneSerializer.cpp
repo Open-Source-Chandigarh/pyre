@@ -7,6 +7,7 @@
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <iostream>
+#include <filesystem>
 
 using json = nlohmann::json;
 
@@ -155,6 +156,13 @@ bool SceneSerializer::Serialize(Scene* scene, const std::string& filepath)
     }
     root["entities"] = entitiesArray;
     
+    // Ensure directory exists
+    std::filesystem::path path(filepath);
+    if (path.has_parent_path())
+    {
+        std::filesystem::create_directories(path.parent_path());
+    }
+
     // Write to file
     std::ofstream file(filepath);
     if (!file.is_open())
@@ -258,6 +266,7 @@ static json SerializePointLight(const PointLight& pl)
     j["constant"] = pl.constant;
     j["linear"]   = pl.linear;
     j["quadratic"] = pl.quadratic;
+    j["enabled"]  = pl.enabled;
     return j;
 }
 
@@ -270,6 +279,64 @@ static void DeserializePointLight(PointLight& pl, const json& j)
     if (j.contains("constant"))  pl.constant  = j["constant"].get<float>();
     if (j.contains("linear"))    pl.linear    = j["linear"].get<float>();
     if (j.contains("quadratic")) pl.quadratic = j["quadratic"].get<float>();
+    if (j.contains("enabled"))   pl.enabled   = j["enabled"].get<bool>();
+}
+
+// ============================================================================
+// POST-PROCESSING SERIALIZATION
+// ============================================================================
+
+#include "core/postprocessing/PostProcessingPipeline.h"
+
+static json SerializePostProcessing(PostProcessingPipeline* pipeline)
+{
+    json j;
+    if (!pipeline) return j;
+
+    j["bloomEnabled"] = pipeline->IsBloomEnabled();
+    j["bloomIterations"] = pipeline->bloomIterations;
+
+    json effectsArray = json::array();
+    for (const auto& effect : pipeline->GetEffects())
+    {
+        json ej;
+        ej["name"] = effect->name;
+        ej["enabled"] = effect->enabled;
+        ej["intensity"] = effect->intensity;
+        effectsArray.push_back(ej);
+    }
+    j["effects"] = effectsArray;
+
+    return j;
+}
+
+static void DeserializePostProcessing(PostProcessingPipeline* pipeline, const json& j)
+{
+    if (!pipeline || j.empty()) return;
+
+    if (j.contains("bloomEnabled")) pipeline->IsBloomEnabled() = j["bloomEnabled"].get<bool>();
+    if (j.contains("bloomIterations")) pipeline->bloomIterations = j["bloomIterations"].get<int>();
+
+    if (j.contains("effects"))
+    {
+        auto& pipelineEffects = pipeline->GetEffects();
+        for (const auto& effectJson : j["effects"])
+        {
+            if (!effectJson.contains("name")) continue;
+            std::string name = effectJson["name"].get<std::string>();
+
+            // Find matching effect in current pipeline
+            for (auto& effect : pipelineEffects)
+            {
+                if (effect->name == name)
+                {
+                    if (effectJson.contains("enabled")) effect->enabled = effectJson["enabled"].get<bool>();
+                    if (effectJson.contains("intensity")) effect->intensity = effectJson["intensity"].get<float>();
+                    break;
+                }
+            }
+        }
+    }
 }
 
 static json SerializeLights(LightManager* lm)
@@ -354,7 +421,20 @@ bool SceneSerializer::Serialize(Scene* scene, LightManager* lightManager, const 
     {
         root["lights"] = SerializeLights(lightManager);
     }
+
+    // Post-Processing
+    if (scene->GetPostPipeline())
+    {
+        root["postProcessing"] = SerializePostProcessing(scene->GetPostPipeline());
+    }
     
+    // Ensure directory exists
+    std::filesystem::path path(filepath);
+    if (path.has_parent_path())
+    {
+        std::filesystem::create_directories(path.parent_path());
+    }
+
     // Write to file
     std::ofstream file(filepath);
     if (!file.is_open())
@@ -439,6 +519,12 @@ bool SceneSerializer::Deserialize(Scene* scene, LightManager* lightManager, cons
     if (lightManager && root.contains("lights"))
     {
         DeserializeLights(lightManager, root["lights"]);
+    }
+
+    // Load Post-Processing
+    if (scene->GetPostPipeline() && root.contains("postProcessing"))
+    {
+        DeserializePostProcessing(scene->GetPostPipeline(), root["postProcessing"]);
     }
     
     std::cout << "[SceneSerializer] Scene + Lights loaded from: " << filepath << "\n";
