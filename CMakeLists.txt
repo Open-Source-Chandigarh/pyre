@@ -21,7 +21,7 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
 FetchContent_Declare(
     glfw
-    URL https://github.com/glfw/glfw/archive/refs/tags/3.3.8.zip
+    URL https://github.com/glfw/glfw/archive/refs/tags/3.4.zip
 )
 FetchContent_MakeAvailable(glfw)
 
@@ -31,7 +31,9 @@ set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
 set(ASSIMP_INJECT_DEBUG_POSTFIX OFF CACHE BOOL "" FORCE)
 set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
-set(ASSIMP_BUILD_ZLIB ON CACHE BOOL "" FORCE) 
+set(ASSIMP_BUILD_ZLIB ON CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_MMD_IMPORTER OFF CACHE BOOL "" FORCE)
+set(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE) 
 
 FetchContent_Declare(
     assimp
@@ -47,11 +49,11 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(json)
 
-# IMGUI (Dear ImGui)
+# IMGUI (Dear ImGui - stable version before viewport backend changes)
 message(STATUS "Downloading Dear ImGui...")
 FetchContent_Declare(
     imgui
-    URL https://github.com/ocornut/imgui/archive/refs/tags/v1.91.5.zip
+    URL https://github.com/ocornut/imgui/archive/refs/tags/v1.90.4.zip
 )
 FetchContent_MakeAvailable(imgui)
 
@@ -84,6 +86,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/includes/thirdparty 
     ${IMGUI_DIR}
     ${IMGUI_DIR}/backends
+)
+
+# ImGui compile definitions for standard (non-docking) branch
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    IMGUI_DISABLE_OBSOLETE_FUNCTIONS
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw assimp nlohmann_json::nlohmann_json)
