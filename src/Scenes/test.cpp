@@ -99,7 +99,7 @@ void Test::Init(AppState &appState)
         {
             for (int j = 0; j < base - layer; j++)
             {
-                std::shared_ptr<Entity> e = Entity::Create("Crate");
+                std::shared_ptr<Entity> e = Entity::Create("Crate_" + std::to_string(layer) + "_" + std::to_string(i) + "_" + std::to_string(j));
                 e -> AddMesh(cube, cubeMat, shader);
                 e -> transform.position = glm::vec3(start + i * spacing, y, start + j * spacing);
                 e -> transform.scale = glm::vec3(1.1f);
