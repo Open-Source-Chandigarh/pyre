@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iostream>
 #include <filesystem>
+#include <set>
 
 using json = nlohmann::json;
 
@@ -500,17 +501,30 @@ bool SceneSerializer::Deserialize(Scene* scene, LightManager* lightManager, cons
     // Load entity data
     if (root.contains("entities"))
     {
+        // Track which entities have been updated to handle duplicate names (e.g. multiple "Cube" objects)
+        std::set<Entity*> consumedEntities;
+
         for (const auto& entityJson : root["entities"])
         {
             if (!entityJson.contains("name")) continue;
             std::string name = entityJson["name"].get<std::string>();
             
-            std::shared_ptr<Entity> entity = scene->FindEntityByName(name);
+            // Find first entity that matches name AND hasn't been consumed yet
+            std::shared_ptr<Entity> entity = nullptr;
+            for (auto& e : scene->GetEntities()) {
+                if (e && e->name == name && consumedEntities.find(e.get()) == consumedEntities.end()) {
+                    entity = e;
+                    break;
+                }
+            }
+            
             if (!entity)
             {
                 entity = scene->CreateEntity(name);
                 std::cout << "[SceneSerializer] Spawning new entity: " << name << "\n";
             }
+            
+            consumedEntities.insert(entity.get());
             DeserializeEntity(entity, entityJson);
         }
     }
