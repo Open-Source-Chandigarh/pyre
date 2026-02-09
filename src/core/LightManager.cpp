@@ -65,16 +65,19 @@ void LightManager::UploadLightsToGPU()
     data.dir_specular = glm::vec4(dirSpec, 0.0f);
 
     // point lights
-    int pcount = std::min((int)points.size(), GLSL_MAX_POINT_LIGHTS);
-    data.numPointLights = pcount;
-    for (int i = 0; i < pcount; ++i) {
+    int pcount = 0;
+    for (int i = 0; i < points.size() && pcount < GLSL_MAX_POINT_LIGHTS; ++i) {
+        if (!points[i].enabled) continue;
+
         const auto& p = points[i];
-        data.point_position[i] = glm::vec4(p.position, 0.0f);
-        data.point_ambient[i] = glm::vec4(p.ambient, 0.0f);
-        data.point_diffuse[i] = glm::vec4(p.diffuse, 0.0f);
-        data.point_specular[i] = glm::vec4(p.specular, 0.0f);
-        data.point_params[i] = glm::vec4(p.constant, p.linear, p.quadratic, 0.0f);
+        data.point_position[pcount] = glm::vec4(p.position, 0.0f);
+        data.point_ambient[pcount] = glm::vec4(p.ambient, 0.0f);
+        data.point_diffuse[pcount] = glm::vec4(p.diffuse, 0.0f);
+        data.point_specular[pcount] = glm::vec4(p.specular, 0.0f);
+        data.point_params[pcount] = glm::vec4(p.constant, p.linear, p.quadratic, 0.0f);
+        pcount++;
     }
+    data.numPointLights = pcount;
 
     // spot lights
     int scount = std::min((int)spots.size(), GLSL_MAX_SPOT_LIGHTS);
@@ -154,6 +157,7 @@ void LightManager::RenderDebugLights(
 
     for (const auto& p : points)
     {
+        if (!p.enabled) continue;
         glm::mat4 model = glm::translate(glm::mat4(1.0f), p.position);
         debugShader->setMat4("model", model);
         debugShader->setVec3("color", p.diffuse);
