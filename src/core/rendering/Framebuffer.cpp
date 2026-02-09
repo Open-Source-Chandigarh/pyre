@@ -166,6 +166,12 @@ void Framebuffer::CreateResources()
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, tex, 0);
             screenTextures.push_back(tex);
         }
+
+        // We need to set the draw buffers for the intermediate FBO as well
+        std::vector<GLenum> intermediateAttachments;
+        for (unsigned int i = 0; i < numColorAttachments; i++)
+            intermediateAttachments.push_back(GL_COLOR_ATTACHMENT0 + i);
+        glDrawBuffers(intermediateAttachments.size(), intermediateAttachments.data());
     }
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
