@@ -184,6 +184,23 @@ void Application::Run()
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+        Scene* currentScene = appState->scenes[appState->currentSceneIndex].get();
+
+        // Shortcuts
+        if (ImGui::GetIO().KeyCtrl)
+        {
+            if (ImGui::IsKeyPressed(ImGuiKey_S))
+            {
+                std::string filepath = "scenes/" + currentScene->Name() + ".json";
+                SceneSerializer::Serialize(currentScene, appState->lightManager.get(), filepath);
+            }
+            if (ImGui::IsKeyPressed(ImGuiKey_O))
+            {
+                std::string filepath = "scenes/" + currentScene->Name() + ".json";
+                SceneSerializer::Deserialize(currentScene, appState->lightManager.get(), filepath);
+            }
+        }
+
        // 1. Scene Hierarchy Panel (positioned on the right side)
         float panelWidth = 280.0f;
         float panelHeight = 350.0f;
@@ -194,7 +211,6 @@ void Application::Run()
         ImGui::Begin("Scene Hierarchy", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
         
         static int selectedEntityIndex = -1;
-        Scene* currentScene = appState->scenes[appState->currentSceneIndex].get();
         auto& sceneEntities = currentScene->GetEntities();
 
         // Display scene name header
@@ -232,8 +248,16 @@ void Application::Run()
 
             if (ImGui::Selectable(nameText.c_str(), isSelected))
             {
-                selectedEntityIndex = i;
-                appState->selectedEntity = sceneEntities[i];
+                if (isSelected)
+                {
+                    selectedEntityIndex = -1;
+                    appState->selectedEntity = nullptr;
+                }
+                else
+                {
+                    selectedEntityIndex = i;
+                    appState->selectedEntity = sceneEntities[i];
+                }
             }
 
             if (isSelected) {
@@ -262,8 +286,13 @@ void Application::Run()
             if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 ImGui::DragFloat3("Position", &entity->transform.position.x, 0.1f);
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("World-space position (X, Y, Z)");
+                
                 ImGui::DragFloat3("Rotation", &entity->transform.rotation.x, 1.0f);
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Euler rotation in degrees");
+                
                 ImGui::DragFloat3("Scale",    &entity->transform.scale.x,    0.05f);
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Scale multiplier per axis");
             }
 
             // Render Component (Material Editing)
@@ -275,24 +304,62 @@ void Application::Run()
                     
                     // Standard Properties
                     ImGui::DragFloat("Shininess", &mat->floats["material_shininess"], 1.0f, 1.0f, 256.0f);
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Specular exponent: Higher = smaller, sharper highlights");
+                    
                     ImGui::ColorEdit3("Diffuse", &mat->vec3s["material_diffuseColor"].x);
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Base color of the material");
+                    
                     ImGui::ColorEdit3("Specular", &mat->vec3s["material_specularColor"].x);
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Color of specular reflections");
                     
                     // Toggles
                     bool wireframe = mat->GetBool("wireframe");
                     if (ImGui::Checkbox("Wireframe", &wireframe)) mat->SetWireframe(wireframe);
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Render this specific object in wireframe mode");
 
                     bool shadows = mat->GetBool("castShadows", true);
                     if (ImGui::Checkbox("Cast Shadows", &shadows)) mat->SetShadows(shadows);
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Whether this object casts shadows onto other surfaces");
 
                     // Outline / Bloom
                     bool outline = mat->GetBool("outlineEnabled");
                     if (ImGui::Checkbox("Outline / Glow", &outline)) mat->bools["outlineEnabled"] = outline;
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Enable bloom outline effect for this object");
                     
                     if (outline)
                     {
                         ImGui::ColorEdit3("Glow Color", &mat->vec3s["outlineColor"].x);
                         ImGui::DragFloat("Bloom Factor", &mat->floats["bloomFactor"], 0.1f, 0.0f, 10.0f);
+                    }
+
+                    // Texture Preview
+                    if (!mat->textures.empty() && ImGui::TreeNode("Textures"))
+                    {
+                        for (const auto& [name, tex] : mat->textures)
+                        {
+                            if (!tex) continue;
+                            
+                            if (tex->type == TextureType::TEX_CUBEMAP || tex->type == TextureType::TEX_ENVIRONMENT) {
+                                ImGui::Text("%s: [Cubemap]", name.c_str());
+                                continue;
+                            }
+                            
+                            ImGui::Text("%s:", name.c_str());
+                            ImGui::SameLine();
+                            
+                            // Display 48x48 preview
+                            ImGui::Image((ImTextureID)(intptr_t)tex->ID, ImVec2(48, 48));
+                            
+                            // Tooltip with details
+                            if (ImGui::IsItemHovered()) {
+                                ImGui::BeginTooltip();
+                                ImGui::Text("Texture ID: %u", tex->ID);
+                                ImGui::Text("Size: %dx%d", tex->width, tex->height);
+                                ImGui::Image((ImTextureID)(intptr_t)tex->ID, ImVec2(128, 128));
+                                ImGui::EndTooltip();
+                            }
+                        }
+                        ImGui::TreePop();
                     }
                 }
                 else
@@ -310,6 +377,7 @@ void Application::Run()
                             entity->renderComp->materialOverride = std::make_shared<Material>();
                         }
                     }
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Create a unique material for this entity to edit it independently");
                 }
             }
         }
@@ -340,9 +408,19 @@ void Application::Run()
                 for (int i = 0; i < lm->points.size(); i++)
                 {
                     ImGui::PushID(i);
+                    bool& enabled = lm->points[i].enabled;
+                    
+                    // Dim the tree node text if the light is disabled
+                    if (!enabled) ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+                    
                     std::string lightLabel = "Point Light " + std::to_string(i);
                     if (ImGui::TreeNode(lightLabel.c_str()))
                     {
+                        if (!enabled) ImGui::PopStyleVar();
+
+                        ImGui::Checkbox("Enabled", &enabled);
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Toggle this light on/off without deleting it");
+                        
                         ImGui::DragFloat3("Position", &lm->points[i].position.x, 0.1f);
                         ImGui::ColorEdit3("Ambient", &lm->points[i].ambient.x);
                         ImGui::ColorEdit3("Diffuse", &lm->points[i].diffuse.x);
@@ -351,13 +429,43 @@ void Application::Run()
                         ImGui::Separator();
                         ImGui::Text("Attenuation");
                         ImGui::DragFloat("Constant", &lm->points[i].constant, 0.01f, 0.0f, 2.0f);
-                        ImGui::DragFloat("Linear", &lm->points[i].linear, 0.001f, 0.0f, 1.0f);
-                        ImGui::DragFloat("Quadratic", &lm->points[i].quadratic, 0.0001f, 0.0f, 1.0f);
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Base intensity (usually 1.0)");
                         
+                        ImGui::DragFloat("Linear", &lm->points[i].linear, 0.001f, 0.0f, 1.0f);
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("How fast light fades over distance");
+                        
+                        ImGui::DragFloat("Quadratic", &lm->points[i].quadratic, 0.0001f, 0.0f, 1.0f);
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("How fast light fades over distance squared (realistic falloff)");
+                        
+                        ImGui::Separator();
+                        if (ImGui::Button("Delete Light"))
+                        {
+                            lm->points.erase(lm->points.begin() + i);
+                            ImGui::TreePop();
+                            ImGui::PopID();
+                            break;
+                        }
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Permanently remove this light from the scene");
+
                         ImGui::TreePop();
+                    }
+                    else if (!enabled) 
+                    {
+                        ImGui::PopStyleVar();
                     }
                     ImGui::PopID();
                 }
+
+                if (ImGui::Button("+ Add Point Light"))
+                {
+                    PointLight pl;
+                    pl.position = appState->camera.Position + appState->camera.Front * 2.0f;
+                    pl.diffuse = glm::vec3(1.0f);
+                    pl.ambient = glm::vec3(0.1f);
+                    pl.specular = glm::vec3(1.0f);
+                    lm->AddPointLight(pl);
+                }
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Spawn a new light in front of the camera");
             }
         }
         ImGui::End();
@@ -369,8 +477,8 @@ void Application::Run()
         ImGui::End();
 
         // 3. Global Settings Panel (positioned at top-left)
-        ImGui::SetNextWindowPos(ImVec2(padding, padding), ImGuiCond_Appearing);
-        ImGui::SetNextWindowSize(ImVec2(250, 200), ImGuiCond_Appearing);
+        ImGui::SetNextWindowPos(ImVec2(padding, padding), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(250, 200), ImGuiCond_Always);
         ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
         
         if (ImGui::CollapsingHeader("Rendering", ImGuiTreeNodeFlags_DefaultOpen))
@@ -379,12 +487,27 @@ void Application::Run()
             {
                 glPolygonMode(GL_FRONT_AND_BACK, appState->wireframeEnabled ? GL_LINE : GL_FILL);
             }
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Global toggle for wireframe rendering");
 
             Renderer* renderer = appState->renderer.get();
             if (renderer)
             {
                 ImGui::Checkbox("Show Vertex Normals", &renderer->showNormals);
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Visualize surface normals as yellow lines (Bypasses post-processing)");
+                
                 ImGui::Checkbox("Force Outlines", &renderer->forceOutlines);
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Enable selection glow for all objects globally");
+
+                ImGui::Separator();
+                
+                // MSAA Toggle (Informational / Toggle bit)
+                static bool msaa = true;
+                if (ImGui::Checkbox("Anti-Aliasing (MSAA)", &msaa))
+                {
+                    if (msaa) glEnable(GL_MULTISAMPLE);
+                    else glDisable(GL_MULTISAMPLE);
+                }
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Smooth jagged edges using hardware multisampling. (Applies to main scene FBO)");
             }
         }
 
@@ -394,11 +517,43 @@ void Application::Run()
             if (pipeline)
             {
                 ImGui::Checkbox("Bloom", &pipeline->IsBloomEnabled());
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Enable high-intensity glow effect for bright surfaces");
                 
+                if (pipeline->IsBloomEnabled())
+                {
+                    ImGui::Indent();
+                    ImGui::SliderInt("Intensity (Blur)", &pipeline->bloomIterations, 1, 20);
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Number of blur passes. Higher = smoother, wider glow (impacts performance)");
+                    ImGui::Unindent();
+                }
+
+                ImGui::Separator();
+
                 auto& effects = pipeline->GetEffects();
                 for (auto& effect : effects)
                 {
+                    ImGui::PushID(effect->name.c_str());
                     ImGui::Checkbox(effect->name.c_str(), &effect->enabled);
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip(("Toggle " + effect->name + " effect").c_str());
+                    
+                    if (effect->enabled)
+                    {
+                        ImGui::Indent();
+                        if (effect->name == "Tone Mapping") {
+                            ImGui::SliderFloat("Exposure", &effect->intensity, 0.1f, 5.0f);
+                            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Overall brightness of the scene (HDR)");
+                        }
+                        else if (effect->name == "Gamma Correction") {
+                            ImGui::SliderFloat("Gamma", &effect->intensity, 1.0f, 3.0f);
+                            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Brightness curve adjustment (usually 2.2)");
+                        }
+                        else if (effect->name == "Sharpen") {
+                            ImGui::SliderFloat("Strength", &effect->intensity, 0.0f, 5.0f);
+                            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Edge enhancement strength");
+                        }
+                        ImGui::Unindent();
+                    }
+                    ImGui::PopID();
                 }
             }
         }
