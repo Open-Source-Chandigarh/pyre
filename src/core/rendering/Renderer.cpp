@@ -916,13 +916,18 @@ void Renderer::RenderSelectionHighlight(std::shared_ptr<Entity> selectedEntity, 
     glClear(GL_STENCIL_BUFFER_BIT);
 
     // Pass 1: Create a mask of the object in the stencil buffer.
-    // We don't want to actually see this pass, so we disable color and depth writes.
+    // The default framebuffer's depth buffer is empty (scene was in FBO), so we disable depth test.
     glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE); // Always write 1 on draw
     glStencilMask(0xFF);
+    glDisable(GL_DEPTH_TEST); // Critical: default FB depth is empty
     glDepthMask(GL_FALSE);
     glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    glDisable(GL_CULL_FACE);
 
     outlineShader->use();
+    outlineShader->setFloat("outlineWidth", 0.0f); // No extrusion for mask pass
+    
     for (const auto& node : selectedEntity->renderComp->nodes)
     {
         if (!node.mesh) continue;
@@ -934,32 +939,38 @@ void Renderer::RenderSelectionHighlight(std::shared_ptr<Entity> selectedEntity, 
     }
 
     // Pass 2: Draw the actual outline.
-    // We re-enable color writes and set the stencil test to only pass where the 
-    // stencil value is NOT 1 (i.e., the area surrounding the object silhouette).
     glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-    glStencilMask(0x00); // Disable writing to stencil while drawing the outline
+    glStencilMask(0x00); 
     
-    // Disable depth testing to create an "X-Ray" effect, allowing the selection
-    // to be visible even if the object is behind other geometry.
-    glDisable(GL_DEPTH_TEST); 
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND); // Prevent outline from blending with scene 
 
     for (const auto& node : selectedEntity->renderComp->nodes)
     {
         if (!node.mesh) continue;
         glm::mat4 model = selectedEntity->transform.GetModelMatrix() * node.localTransform;
-        // Scale the model up slightly to create the border thickness
-        glm::mat4 outlineModel = glm::scale(model, glm::vec3(1.03f));
         
-        outlineShader->setMat4("model", outlineModel);
+        outlineShader->setMat4("model", model); // Use original model matrix
         outlineShader->setVec3("color", glm::vec3(1.0f, 0.6f, 0.1f)); // Industry standard Orange
         outlineShader->setFloat("bloomFactor", 0.0f);
+        
+        // Extrude along normals in shader instead of scaling matrix
+        // This prevents position drift for offset sub-meshes
+        outlineShader->setFloat("outlineWidth", 0.05f); 
+        
         node.mesh->DrawSimple();
     }
+    
+    // Reset outline width for other users of this shader
+    outlineShader->setFloat("outlineWidth", 0.0f); 
 
     // Standard cleanup: restore state for next frame's rendering passes
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
     glStencilMask(0xFF);
     glDisable(GL_STENCIL_TEST);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glEnable(GL_BLEND); // Restore blending for UI/transparent objects
 }
