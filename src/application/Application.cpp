@@ -298,10 +298,9 @@ void Application::Run()
             // Render Component (Material Editing)
             if (entity->renderComp && ImGui::CollapsingHeader("Material", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                if (entity->renderComp->materialOverride)
+                Material* mat = entity->GetUniqueMaterial().get();
+                if (mat)
                 {
-                    Material* mat = entity->renderComp->materialOverride.get();
-                    
                     // Standard Properties
                     ImGui::DragFloat("Shininess", &mat->floats["material_shininess"], 1.0f, 1.0f, 256.0f);
                     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Specular exponent: Higher = smaller, sharper highlights");
@@ -361,23 +360,6 @@ void Application::Run()
                         }
                         ImGui::TreePop();
                     }
-                }
-                else
-                {
-                    ImGui::TextDisabled("Using Mesh Default Material");
-                    if (ImGui::Button("Create Override Material"))
-                    {
-                        // Clone the first mesh's material as a base
-                        if (!entity->renderComp->nodes.empty() && entity->renderComp->nodes[0].mesh->localMaterial)
-                        {
-                            entity->renderComp->materialOverride = std::make_shared<Material>(*entity->renderComp->nodes[0].mesh->localMaterial);
-                        }
-                        else
-                        {
-                            entity->renderComp->materialOverride = std::make_shared<Material>();
-                        }
-                    }
-                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Create a unique material for this entity to edit it independently");
                 }
             }
         }
