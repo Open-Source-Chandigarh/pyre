@@ -11,6 +11,14 @@
 #include "core/rendering/Material.h"
 #include "core/Constants.h"
 
+Renderer::Renderer()
+{
+    defaultMat = std::make_shared<Material>();
+    defaultMat->floats["material_shininess"] = 32.0f;
+    defaultMat->floats["material_reflectivity"] = 0.0f;
+    defaultMat->vec3s["material_diffuseColor"] = glm::vec3(1.0f);
+}
+
 void Renderer::SetupCameraGlobals(const Camera &camera, float aspectRatio)
 {
     // we calculate the standard view and projection matrices based on the camera's current state
@@ -157,18 +165,23 @@ void Renderer::DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverrid
         // Get Override Material (from Entity settings)
         std::shared_ptr<Material> overrideMat = e->renderComp->materialOverride;
 
-        // Mix them (Override properties replace Base properties)
-        std::shared_ptr<Material> finalMat = Material::Mix(baseMat, overrideMat);
+        // Transparency
+        bool isTransparent = false;
+        if (overrideMat && overrideMat->isTransparent) isTransparent = true;
+        else if (baseMat && baseMat->isTransparent) isTransparent = true;
+        if (shaderOverride && isTransparent) continue;
 
-        // We get flags from the mixed material
-        bool castShadows = finalMat->GetBool("castShadows", true); 
-
+        // Shadows
+        bool castShadows = true;
+        if (overrideMat && overrideMat->bools.count("castShadows")) 
+            castShadows = overrideMat->GetBool("castShadows");
+        else if (baseMat) 
+            castShadows = baseMat->GetBool("castShadows", true);
         if (shaderOverride && !castShadows) continue;
-        if (shaderOverride && finalMat->isTransparent) continue;
 
         // Calculate Transform
         glm::mat4 nodeMatrix = e->transform.GetModelMatrix() * node.localTransform;
-        SubmitMesh(nodeMatrix, *node.mesh, currentShader, finalMat, e->renderComp->instanceCount);
+        SubmitMesh(nodeMatrix, *node.mesh, currentShader, baseMat, overrideMat, e->renderComp->instanceCount);
     }
 }
 
@@ -709,44 +722,76 @@ void Renderer::RenderMeshNormals(const Mesh &mesh, const glm::mat4 &model)
 void Renderer::SubmitMesh(const glm::mat4& model, 
                           const Mesh& mesh, 
                           const std::shared_ptr<Shader>& shader, 
-                          const std::shared_ptr<Material>& mat,
+                          const std::shared_ptr<Material>& baseMat,
+                          const std::shared_ptr<Material>& overrideMat,
                           int instanceCount)
 {
-    if (!shader || !mat)
-    {
-        return;
+    if (!shader) return;
+
+    const Material* activeBase = baseMat ? baseMat.get() : defaultMat.get();
+
+    activeBase->ApplyToShader(*shader, false);
+
+    if (overrideMat) 
+        overrideMat->ApplyToShader(*shader, true);
+
+    // Normals
+    bool doNormals = false;
+    if (overrideMat && overrideMat->bools.count("showNormals")) 
+        doNormals = overrideMat->GetBool("showNormals");
+    else if (activeBase) 
+        doNormals = activeBase->GetBool("showNormals");
+
+    // Wireframe
+    bool wireframe = false;
+    if (overrideMat && overrideMat->bools.count("wireframe")) 
+        wireframe = overrideMat->GetBool("wireframe");
+    else 
+        wireframe = activeBase->GetBool("wireframe");
+
+    // Outline
+    bool doOutline = false;
+    glm::vec3 outlineCol(1.0f);
+    float bloomFactor = 0.0f;
+
+    if (overrideMat && overrideMat->bools.count("outlineEnabled")) {
+        doOutline = overrideMat->GetBool("outlineEnabled");
+        outlineCol = overrideMat->GetVec3("outlineColor");
+        bloomFactor = overrideMat->GetFloat("bloomFactor");
+    } 
+    else if (activeBase->GetBool("outlineEnabled")) {
+        doOutline = true;
+        outlineCol = activeBase->GetVec3("outlineColor");
+        bloomFactor = activeBase->GetFloat("bloomFactor");
     }
 
-    // we merge the global overrides with the material's specific settings
-    bool doShowNormals = mat->GetBool("showNormals");
-    bool doOutline = mat->GetBool("outlineEnabled");
-    float bloomFactor = mat->GetFloat("bloomFactor");
-    glm::vec3 outlineCol = mat->GetVec3("outlineColor");
-    bool wireframe = mat->GetBool("wireframe");
+    // Culling
+    CullMode currentCull = activeBase->cullMode;
+    if (overrideMat && overrideMat->cullMode != CullMode::Back) currentCull = overrideMat->cullMode;
 
-    if (wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    if (wireframe) 
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     ConfigureStencilForOutline(doOutline);
     UploadMeshUniforms(shader, model);
 
-    if (mat->cullMode == CullMode::None) glDisable(GL_CULL_FACE);
-    else
-    {
+    if (currentCull == CullMode::None) 
+        glDisable(GL_CULL_FACE);
+    else {
         glEnable(GL_CULL_FACE);
-        // if mode is front, we cull front faces. otherwise we cull back faces.
-        GLenum face = (mat->cullMode == CullMode::Front) ? GL_FRONT : GL_BACK;
-        glCullFace(face);
+        glCullFace((currentCull == CullMode::Front) ? GL_FRONT : GL_BACK);
     }
 
-    if(instanceCount > 1) mesh.DrawInstanced(*shader, *mat, instanceCount);
-    else mesh.Draw(*shader, *mat);
+    if(instanceCount > 1) mesh.DrawInstanced(*shader, instanceCount);
+    else mesh.Draw(*shader);
 
-    if (wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    if (wireframe) 
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     if (doOutline)
         RenderMeshOutline(mesh, model, outlineCol, bloomFactor);
 
-    if (doShowNormals)
+    if (doNormals)
         RenderMeshNormals(mesh, model);
 
     // cleanup texture slots

@@ -65,6 +65,21 @@ struct Entity
         return e;
     }
 
+    std::shared_ptr<Material> GetUniqueMaterial() 
+    {
+        if (!renderComp) return nullptr;
+        
+        if (!renderComp->materialOverride) 
+            renderComp->materialOverride = std::make_shared<Material>();
+        else if (renderComp->materialOverride.use_count() > 1)
+        {
+            auto newMat = std::make_shared<Material>(*renderComp->materialOverride);
+            renderComp->materialOverride = newMat;
+        }
+        
+        return renderComp->materialOverride;
+    }
+
     // Helper Methods to Add Components
     
     void AddMesh(std::shared_ptr<Mesh> mesh, std::shared_ptr<Material> mat, std::shared_ptr<Shader> shader, int instanceCount = 1) 

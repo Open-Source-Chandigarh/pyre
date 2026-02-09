@@ -16,6 +16,8 @@ struct Entity;
 class Renderer 
 {
 public:
+    Renderer();
+
     void BeginScene(const Camera &camera, 
                     LightManager &lightManager, 
                     float aspectRatio);
@@ -33,7 +35,8 @@ public:
     void SubmitMesh(const glm::mat4 &model, 
                     const Mesh &mesh, 
                     const std::shared_ptr<Shader> &shader, 
-                    const std::shared_ptr<Material> &mat,
+                    const std::shared_ptr<Material> &baseMat,
+                    const std::shared_ptr<Material> &overrideMat,
                     int instanceCount = 1);
 
     void SubmitSkybox(const Mesh &mesh, 
@@ -149,6 +152,8 @@ private:
     void RenderMeshNormals(const Mesh &mesh, const glm::mat4 &model);
 
     // member variables
+    // The fallback material for objects that don't have one
+    std::shared_ptr<Material> defaultMat;
     glm::mat4 viewMatrix;
     glm::mat4 projMatrix;
     glm::vec3 viewPosition;

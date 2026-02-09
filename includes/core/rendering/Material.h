@@ -62,31 +62,7 @@ struct Material
         bools["wireframe"] = enabled;
     }
 
-    // returns a new material where 'base' provides defaults, and 'over' overrides them.
-    // if 'over' is null, returns base. If 'base' is null, returns over.
-    static std::shared_ptr<Material> Mix(const std::shared_ptr<Material>& base, const std::shared_ptr<Material>& over)
-    {
-        if (!base && !over) return std::make_shared<Material>();
-        if (!base) return over;
-        if (!over) return base;
-
-        // 1. Create a copy of the base material
-        auto result = std::make_shared<Material>(*base);
-
-        // 2. Overwrite with properties from 'over'
-        for (auto&& kv : over->textures) result->textures[kv.first] = kv.second;
-        for (auto&& kv : over->floats)   result->floats[kv.first] = kv.second;
-        for (auto&& kv : over->vec3s)    result->vec3s[kv.first] = kv.second;
-        for (auto&& kv : over->bools)    result->bools[kv.first] = kv.second;
-        
-        // 3. If override explicitly sets non-default pipeline states, take them.
-        if(over->isTransparent) result->isTransparent = true;
-        if(over->cullMode != CullMode::Back) result->cullMode = over->cullMode;
-
-        return result;
-    }
-
-    void ApplyToShader(Shader& shader) const
+    void ApplyToShader(Shader& shader, bool isOverride = false) const
     {
         shader.use();
 
@@ -97,12 +73,15 @@ struct Material
         shader.setInt("material_displacement", Bindings::TEX_SLOT_DISPLACEMENT);
         shader.setInt("material_skybox", Bindings::TEX_SLOT_SKYBOX);
 
-        // reset present flags to 0 (default state)
-        if (shader.hasUniform("material_diffuse_present"))      shader.setInt("material_diffuse_present", 0);
-        if (shader.hasUniform("material_specular_present"))     shader.setInt("material_specular_present", 0);
-        if (shader.hasUniform("material_normal_present"))       shader.setInt("material_normal_present", 0);
-        if (shader.hasUniform("material_displacement_present")) shader.setInt("material_displacement_present", 0);
-        if (shader.hasUniform("material_skybox_present"))       shader.setInt("material_skybox_present", 0);
+        // reset present flags to 0 if no override (default state)
+        if (!isOverride) 
+        {
+            if (shader.hasUniform("material_diffuse_present"))      shader.setInt("material_diffuse_present", 0);
+            if (shader.hasUniform("material_specular_present"))     shader.setInt("material_specular_present", 0);
+            if (shader.hasUniform("material_normal_present"))       shader.setInt("material_normal_present", 0);
+            if (shader.hasUniform("material_displacement_present")) shader.setInt("material_displacement_present", 0);
+            if (shader.hasUniform("material_skybox_present"))       shader.setInt("material_skybox_present", 0);
+        }
 
         // iterate available textures and bind based on type
         for (const auto& kv : textures)

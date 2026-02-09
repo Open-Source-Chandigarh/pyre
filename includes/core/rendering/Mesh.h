@@ -48,9 +48,9 @@ public:
     static Mesh CreatePositionsOnly(const float* vertices, size_t bytes, int vertexCount);
 
     // Drawing
-    void Draw(Shader &shader, const Material &material) const;
+    void Draw(Shader &shader) const;
     void DrawSimple() const;
-    void DrawInstanced(Shader &shader, const Material &material, int count) const;
+    void DrawInstanced(Shader &shader, int count) const;
     void SetupInstancing(const std::vector<glm::mat4> &models);
 
 private:

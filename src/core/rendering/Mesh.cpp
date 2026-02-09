@@ -128,12 +128,10 @@ void Mesh::DrawSimple() const
     glBindVertexArray(0);
 }
 
-void Mesh::Draw(Shader &shader, const Material &material) const
+void Mesh::Draw(Shader &shader) const
 {
-    // apply material data (bind textures and set material uniforms if shader has them)
     shader.use();
     shader.setBool("isInstanced", false);
-    material.ApplyToShader(shader);
 
     glBindVertexArray(VAO);
     if (!indices.empty())
@@ -147,12 +145,10 @@ void Mesh::Draw(Shader &shader, const Material &material) const
     glActiveTexture(GL_TEXTURE0);
 }
 
-void Mesh::DrawInstanced(Shader &shader, const Material &material, int count) const
+void Mesh::DrawInstanced(Shader &shader, int count) const
 {
     shader.use();
     shader.setBool("isInstanced", true); // Trigger the shader switch
-
-    material.ApplyToShader(shader); 
 
     glBindVertexArray(VAO);
     if (!indices.empty()) {
