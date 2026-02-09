@@ -53,6 +53,10 @@ public:
     bool showNormals = false;
     bool forceOutlines = false;
 
+    // Debug & Selection Rendering (Called after post-processing)
+    void RenderDebugPass(const std::vector<std::shared_ptr<Entity>>& entities);
+    void RenderSelectionHighlight(std::shared_ptr<Entity> selectedEntity, int width, int height);
+
 private:
     // internal initialization helpers
     

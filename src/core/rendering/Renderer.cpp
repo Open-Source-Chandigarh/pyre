@@ -593,18 +593,19 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
         RenderLightingPass(opaqueEntities, transparentEntities, skyboxEntity, 
             lightManager, sceneFBO, postProcessor, clearColor);
 
-        // Selection Highlight: Draw outline visible through geometry (x-ray effect)
-        if (selectedEntity && selectedEntity->renderComp)
+        // --- Post-Render Debug & Selection ---
+        // These are rendered directly to the screen after post-processing
+        // to avoid distortions from Bloom, HDR, or Gamma correction.
+        
+        if (showNormals)
         {
-            glDisable(GL_DEPTH_TEST);
-            for (const auto& node : selectedEntity->renderComp->nodes)
-            {
-                if (!node.mesh) continue;
-                glm::mat4 model = selectedEntity->transform.GetModelMatrix() * node.localTransform;
-                // Amber/Orange outline - industry standard selection color (Unity, Blender)
-                RenderMeshOutline(*node.mesh, model, glm::vec3(1.0f, 0.6f, 0.1f), 2.0f);
-            }
-            glEnable(GL_DEPTH_TEST);
+            RenderDebugPass(opaqueEntities);
+            RenderDebugPass(transparentEntities);
+        }
+
+        if (selectedEntity)
+        {
+            RenderSelectionHighlight(selectedEntity, sceneFBO.Width(), sceneFBO.Height());
         }
     }
     else
@@ -810,9 +811,6 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     if (doOutline)
         RenderMeshOutline(mesh, model, outlineCol, bloomFactor);
 
-    if (doNormals)
-        RenderMeshNormals(mesh, model);
-
     // cleanup texture slots
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -876,4 +874,92 @@ void Renderer::SubmitSkybox(const Mesh &mesh,
     glCullFace(GL_BACK);
     glDepthFunc(GL_LESS);
     glActiveTexture(GL_TEXTURE0);
+}
+
+void Renderer::RenderDebugPass(const std::vector<std::shared_ptr<Entity>>& entities)
+{
+    if (!showNormals || !normalShader) return;
+
+    // Debug visualizations (like vertex normals) are rendered after post-processing
+    // so they are not blurred or color-graded. 
+    // We disable depth testing so debugging lines are always visible through 
+    // solid geometry, making it easier to spot lighting/normal issues.
+    glDisable(GL_DEPTH_TEST);
+
+    for (const auto& e : entities)
+    {
+        if (!e || !e->renderComp) continue;
+        
+        for (const auto& node : e->renderComp->nodes)
+        {
+            if (!node.mesh) continue;
+            glm::mat4 model = e->transform.GetModelMatrix() * node.localTransform;
+            RenderMeshNormals(*node.mesh, model);
+        }
+    }
+
+    glEnable(GL_DEPTH_TEST);
+}
+
+void Renderer::RenderSelectionHighlight(std::shared_ptr<Entity> selectedEntity, int width, int height)
+{
+    if (!selectedEntity || !selectedEntity->renderComp || !outlineShader) return;
+
+    // We render selection highlights directly to the default framebuffer (screen)
+    // after all post-processing. This ensures the outline remains crisp and 
+    // unaffected by Bloom or HDR tonemapping.
+    glViewport(0, 0, width, height);
+    glEnable(GL_STENCIL_TEST);
+    
+    // Ensure stencil writing is enabled so we can clear it
+    glStencilMask(0xFF);
+    glClear(GL_STENCIL_BUFFER_BIT);
+
+    // Pass 1: Create a mask of the object in the stencil buffer.
+    // We don't want to actually see this pass, so we disable color and depth writes.
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);
+    glStencilMask(0xFF);
+    glDepthMask(GL_FALSE);
+    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+    outlineShader->use();
+    for (const auto& node : selectedEntity->renderComp->nodes)
+    {
+        if (!node.mesh) continue;
+        glm::mat4 model = selectedEntity->transform.GetModelMatrix() * node.localTransform;
+        outlineShader->setMat4("model", model);
+        outlineShader->setMat4("view", viewMatrix);
+        outlineShader->setMat4("projection", projMatrix);
+        node.mesh->DrawSimple();
+    }
+
+    // Pass 2: Draw the actual outline.
+    // We re-enable color writes and set the stencil test to only pass where the 
+    // stencil value is NOT 1 (i.e., the area surrounding the object silhouette).
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+    glStencilMask(0x00); // Disable writing to stencil while drawing the outline
+    
+    // Disable depth testing to create an "X-Ray" effect, allowing the selection
+    // to be visible even if the object is behind other geometry.
+    glDisable(GL_DEPTH_TEST); 
+
+    for (const auto& node : selectedEntity->renderComp->nodes)
+    {
+        if (!node.mesh) continue;
+        glm::mat4 model = selectedEntity->transform.GetModelMatrix() * node.localTransform;
+        // Scale the model up slightly to create the border thickness
+        glm::mat4 outlineModel = glm::scale(model, glm::vec3(1.03f));
+        
+        outlineShader->setMat4("model", outlineModel);
+        outlineShader->setVec3("color", glm::vec3(1.0f, 0.6f, 0.1f)); // Industry standard Orange
+        outlineShader->setFloat("bloomFactor", 0.0f);
+        node.mesh->DrawSimple();
+    }
+
+    // Standard cleanup: restore state for next frame's rendering passes
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+    glStencilMask(0xFF);
+    glDisable(GL_STENCIL_TEST);
 }
