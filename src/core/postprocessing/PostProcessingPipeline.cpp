@@ -33,6 +33,13 @@ PostProcessingPipeline::PostProcessingPipeline(unsigned int w, unsigned int h)
         "shaders/common/simpleTexture.vs", "shaders/postprocessing/blur.fs");
     ResourceManager::LoadShader("post_hdr_combine", 
         "shaders/common/simpleTexture.vs", "shaders/postprocessing/hdr_combine.fs");
+
+    // Pre-create standard effects (Disabled by default)
+    AddInversion()->enabled = false;
+    AddGrayscale()->enabled = false;
+    AddSharpen(1.0f)->enabled = false;
+    // Gamma and ToneMapping are often enabled by default in scenes, 
+    // but here we just ensure they are available.
 }
 
 void PostProcessingPipeline::EnsureQuad()
@@ -104,7 +111,7 @@ GLuint PostProcessingPipeline::Apply(GLuint inputTex, GLuint brightnessTex)
     {
         // run the blur loop using pingpong buffers
         // this leaves the result in one of the pingpong buffers
-        GLuint blurredTex = PerformBlur(brightnessTex, 10);
+        GLuint blurredTex = PerformBlur(brightnessTex, bloomIterations);
 
         // we must copy 'blurredTex' into 'bloomBuffer' because the very next loop
         // will overwrite the pingpong buffers.
@@ -221,37 +228,49 @@ std::shared_ptr<PostEffect> PostProcessingPipeline::AddGrayscale()
 
 std::shared_ptr<PostEffect> PostProcessingPipeline::AddSharpen(float strength)
 {
-    auto e = AddEffectFromShader("post_sharpen", [strength](Shader& s) {
-        s.setFloat("strength", strength);
-        });
-    if (e) e->name = "Sharpen";
+    auto e = AddEffectFromShader("post_sharpen");
+    if (e) {
+        e->name = "Sharpen";
+        e->intensity = strength;
+        e->uniformSetter = [e](Shader& s) {
+            s.setFloat("strength", e->intensity);
+        };
+    }
     return e;
 }
 
 std::shared_ptr<PostEffect> PostProcessingPipeline::AddGammaCorrection(float gammaVal)
 {
-    auto e = AddEffectFromShader("post_gamma", [gammaVal](Shader& s) {
-        s.setFloat("gamma", gammaVal);
-    });
-    if (e) e->name = "Gamma Correction";
+    auto e = AddEffectFromShader("post_gamma");
+    if (e) {
+        e->name = "Gamma Correction";
+        e->intensity = gammaVal;
+        e->uniformSetter = [e](Shader& s) {
+            s.setFloat("gamma", e->intensity);
+        };
+    }
     return e;
 }
 
 std::shared_ptr<PostEffect> PostProcessingPipeline::AddToneMapping(float exposure)
 {
-    auto e = AddEffectFromShader("post_hdr_combine", [this, exposure](Shader& s) {
-        s.setInt("scene", 0);
-        s.setFloat("exposure", exposure);
-        s.setInt("bloomEnabled", this->bloomEnabled);
-        
-        // if bloom is active, bind the blurred texture to Slot 1
-        if (this->bloomEnabled) {
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, this->blurredBloomTexture);
-            s.setInt("bloomBlur", 1);
-        }
-        glActiveTexture(GL_TEXTURE0);
-    });
-    if (e) e->name = "Tone Mapping";
+    auto e = AddEffectFromShader("post_hdr_combine");
+    if (e) {
+        e->name = "Tone Mapping";
+        e->intensity = exposure;
+        e->uniformSetter = [this, e](Shader& s) {
+            s.setInt("scene", 0);
+            s.setFloat("exposure", e->intensity);
+            s.setInt("bloomEnabled", this->bloomEnabled);
+            
+            // if bloom is active, bind the blurred texture to Slot 1
+            if (this->bloomEnabled) {
+                glActiveTexture(GL_TEXTURE1);
+                glBindTexture(GL_TEXTURE_2D, this->blurredBloomTexture);
+                s.setInt("bloomBlur", 1);
+            }
+            glActiveTexture(GL_TEXTURE0);
+        };
+    }
     return e;
 }

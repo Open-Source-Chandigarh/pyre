@@ -22,7 +22,7 @@ void GenericPostEffect::Apply(GLuint inputTexture, Framebuffer& output, GLuint q
     shader->use();
     shader->setInt("scene", 0); // convention: input bound to texture slot 0
 
-    if (setter) setter(*shader); // let caller set uniforms / bind extra textures
+    if (uniformSetter) uniformSetter(*shader); // let caller set uniforms / bind extra textures
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, inputTexture);

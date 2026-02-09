@@ -4,6 +4,10 @@
 
 #include <string>
 
+#include <functional>
+
+class Shader;
+
 class PostEffect
 {
 public:
@@ -14,4 +18,6 @@ public:
 
 	std::string name = "Generic Effect";
 	bool enabled = true;
+	float intensity = 1.0f;
+	std::function<void(Shader&)> uniformSetter;
 };
