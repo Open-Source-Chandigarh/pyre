@@ -99,6 +99,7 @@ std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& path, T
     std::shared_ptr<Texture> texture = std::make_shared<Texture>();
     texture->ID = tex;
     texture->type = type;
+    texture->path = path;
     texture->width = width;
     texture->height = height;
     texture->channels = nrChannels;
