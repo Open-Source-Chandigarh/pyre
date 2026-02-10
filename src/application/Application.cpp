@@ -392,25 +392,34 @@ void Application::Run()
                         
                         if (ImGui::BeginPopup("LoadTexturePopup"))
                         {
-                            static char keyBuf[64] = "material_diffuse";
-                            static char pathBuf[128] = "resources/textures/container2.png";
+                            static char pathBuf[128] = "resources/textures/container2.jpg";
                             static int typeIdx = 0;
                             const char* typeNames[] = { "Diffuse", "Specular", "Normal", "Displacement" };
                             
-                            ImGui::InputText("Slot (Key)", keyBuf, 64);
                             ImGui::InputText("File Path", pathBuf, 128);
                             ImGui::Combo("Type", &typeIdx, typeNames, 4);
                             
                             TextureType selectedType = TextureType::TEX_DIFFUSE;
-                            if (typeIdx == 1) selectedType = TextureType::TEX_SPECULAR;
-                            else if (typeIdx == 2) selectedType = TextureType::TEX_NORMAL;
-                            else if (typeIdx == 3) selectedType = TextureType::TEX_DISPLACEMENT;
+                            const char* keyName = "material_diffuse";
+
+                            if (typeIdx == 1) { 
+                                selectedType = TextureType::TEX_SPECULAR; 
+                                keyName = "material_specular";
+                            }
+                            else if (typeIdx == 2) { 
+                                selectedType = TextureType::TEX_NORMAL; 
+                                keyName = "material_normal";
+                            }
+                            else if (typeIdx == 3) { 
+                                selectedType = TextureType::TEX_DISPLACEMENT; 
+                                keyName = "material_displacement";
+                            }
                             
                             if (ImGui::Button("Load & Assign"))
                             {
                                 auto newTex = ResourceManager::LoadTexture(pathBuf, selectedType);
                                 if (newTex) {
-                                    mat->textures[keyBuf] = newTex;
+                                    mat->textures[keyName] = newTex;
                                     ImGui::CloseCurrentPopup();
                                 }
                             }
