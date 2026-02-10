@@ -97,6 +97,7 @@ static json SerializeMaterial(const std::shared_ptr<Material>& mat)
     }
     
     // Textures (save path + type so they can be reloaded)
+    // Always serialize textures array (even if empty) to handle removals correctly
     json texArray = json::array();
     for (const auto& [key, tex] : mat->textures)
     {
@@ -111,10 +112,7 @@ static json SerializeMaterial(const std::shared_ptr<Material>& mat)
         texJson["type"] = TextureTypeToString(tex->type);
         texArray.push_back(texJson);
     }
-    if (!texArray.empty())
-    {
-        j["textures"] = texArray;
-    }
+    j["textures"] = texArray; // Always include textures array to handle removals
     
     return j;
 }
@@ -152,6 +150,16 @@ static void DeserializeMaterial(std::shared_ptr<Material>& mat, const json& j)
     // Textures: reload from file paths
     if (j.contains("textures"))
     {
+        // Clear existing serializable textures to handle removals correctly
+        auto it = mat->textures.begin();
+        while (it != mat->textures.end())
+        {
+            if (it->second->type != TextureType::TEX_CUBEMAP && it->second->type != TextureType::TEX_ENVIRONMENT)
+                it = mat->textures.erase(it);
+            else
+                ++it;
+        }
+
         for (const auto& texJson : j["textures"])
         {
             if (!texJson.contains("key") || !texJson.contains("path") || !texJson.contains("type")) continue;
