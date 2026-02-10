@@ -67,6 +67,7 @@ void Application::Init()
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window->GetNative(), true);
     ImGui_ImplOpenGL3_Init("#version 420");
+    glfwSwapInterval(0);
 }
 
 void Application::ConfigureInput()

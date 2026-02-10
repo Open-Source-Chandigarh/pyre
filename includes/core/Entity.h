@@ -34,9 +34,12 @@ struct RenderComponent
     // the list of things to draw (backpack parts, or a single Cube)
     std::vector<ModelNode> nodes; 
 
-    // Global Material Override
-    // Properties here (e.g., "OutlineEnabled=true") will be mixed with the Mesh's Local Material.
-    // If this is null, the Mesh Local Material is used as is.
+    // low poly model to render shadow maps (this increases performance with no major drawbacks)
+    std::shared_ptr<Model> shadowProxyModel = nullptr;
+
+    // Material Override
+    // Properties here (e.g., "OutlineEnabled=true") will be mixed with the Mesh's Base Material.
+    // If this is null, the Mesh Base Material is used as is or if base material is null this is used instead.
     std::shared_ptr<Material> materialOverride; 
     
     std::shared_ptr<Shader> shader;
