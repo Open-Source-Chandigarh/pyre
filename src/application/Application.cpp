@@ -578,6 +578,9 @@ void Application::Run()
                     pl.diffuse = glm::vec3(1.0f);
                     pl.ambient = glm::vec3(0.1f);
                     pl.specular = glm::vec3(1.0f);
+                    pl.constant = 1.0f;
+                    pl.linear = 0.09f;
+                    pl.quadratic = 0.032f;
                     lm->AddPointLight(pl);
                 }
                 if (ImGui::IsItemHovered()) ImGui::SetTooltip("Spawn a new light in front of the camera");
