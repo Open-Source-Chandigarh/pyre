@@ -106,7 +106,7 @@ void Renderer::EnsurePointShadowBuffer()
 {
     if (!pointShadowFBO)
     {
-        pointShadowFBO = std::make_unique<Framebuffer>(2048, 2048, true, false, false, 8, true);
+        pointShadowFBO = std::make_unique<Framebuffer>(512, 512, true, false, false, 8, true);
         
         pointShadowShader = ResourceManager::LoadShader("pointShadow", 
             "shaders/shadows/pointDepth.vs", 
@@ -150,13 +150,18 @@ void Renderer::EndScene()
     // once we implement a 2d user interface system
 }
 
-void Renderer::DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverride)
+void Renderer::DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverride, bool isShadowPass)
 {
     if (!e->renderComp) return;
     std::shared_ptr<Shader> currentShader = (shaderOverride) ? shaderOverride : e->renderComp->shader;
     if (!currentShader) return;
+    std::vector<ModelNode>* nodesToDraw = &e->renderComp->nodes;
 
-    for (const auto &node : e->renderComp->nodes)
+    // if this is a shadow pass and we have a proxy, we use the proxy
+    if (isShadowPass && e->renderComp->shadowProxyModel)
+        nodesToDraw = &e->renderComp->shadowProxyModel->nodes;
+
+    for (const auto &node : *nodesToDraw)
     {
         if (!node.mesh) continue;
         // Get Base Material (from file)
@@ -181,14 +186,17 @@ void Renderer::DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverrid
 
         // Calculate Transform
         glm::mat4 nodeMatrix = e->transform.GetModelMatrix() * node.localTransform;
-        SubmitMesh(nodeMatrix, *node.mesh, currentShader, baseMat, overrideMat, e->renderComp->instanceCount);
+        if (isShadowPass)
+            SubmitMesh(nodeMatrix, *node.mesh, currentShader, nullptr, nullptr, e->renderComp->instanceCount);
+        else
+            SubmitMesh(nodeMatrix, *node.mesh, currentShader, baseMat, overrideMat, e->renderComp->instanceCount);
     }
 }
 
 void Renderer::RenderPass(const std::vector<std::shared_ptr<Entity>> &entities, 
                           const glm::mat4 &view, 
                           const glm::mat4 &proj,
-                          std::shared_ptr<Shader> shaderOverride)
+                          std::shared_ptr<Shader> shaderOverride, bool isShadowPass)
 {
     // we back up the main camera matrices because this pass might use alternative matrices
     // for examples: we want to add a mirror that will draw the scene from mirror's perspective which will have different view and proj matrices
@@ -205,7 +213,7 @@ void Renderer::RenderPass(const std::vector<std::shared_ptr<Entity>> &entities,
         if (shaderOverride && e->renderComp && e->renderComp->materialOverride && e->renderComp->materialOverride->isTransparent)
             continue;
 
-        DrawEntityInPass(e.get(), shaderOverride);
+        DrawEntityInPass(e.get(), shaderOverride, isShadowPass);
     }
 
     // restore the original camera state so subsequent passes don't render from the wrong perspective
@@ -410,7 +418,7 @@ void Renderer::RenderShadowMap(const std::vector<std::shared_ptr<Entity>> &opaqu
 
     // perform the actual draw calls for all opaque objects that should cast
     // pass identity matrices (geometry shader uses the ubo data)
-    RenderPass(opaqueEntities, glm::mat4(1.0f), glm::mat4(1.0f), depthShader);
+    RenderPass(opaqueEntities, glm::mat4(1.0f), glm::mat4(1.0f), depthShader, true);
 
     Framebuffer::Unbind();
     glCullFace(GL_BACK);
@@ -461,7 +469,7 @@ void Renderer::RenderPointShadows(const std::vector<std::shared_ptr<Entity>> &op
         for (const auto &e : opaqueEntities)
         {
             if (e->renderComp && e->renderComp->instanceCount > 100) continue; 
-            DrawEntityInPass(e.get(), pointShadowShader);
+            DrawEntityInPass(e.get(), pointShadowShader, true);
         }
     }
 
