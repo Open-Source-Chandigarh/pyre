@@ -341,10 +341,12 @@ void Application::Run()
                         ImGui::DragFloat("Bloom Factor", &mat->floats["bloomFactor"], 0.1f, 0.0f, 10.0f);
                     }
 
-                    // Texture Preview
+                    // Texture Preview & Management
                     if (ImGui::TreeNode("Textures"))
                     {
-                        for (const auto& [name, tex] : mat->textures)
+                        std::string keyToRemove; // Deferred removal to avoid iterator invalidation
+                        
+                        for (auto& [name, tex] : mat->textures)
                         {
                             if (!tex) continue;
                             if (tex->type == TextureType::TEX_CUBEMAP || tex->type == TextureType::TEX_ENVIRONMENT) continue;
@@ -352,7 +354,7 @@ void Application::Run()
                             ImGui::PushID(name.c_str());
                             
                             // Image Preview
-                            ImGui::Image((void*)(intptr_t)tex->ID, ImVec2(48, 48), ImVec2(0, 1), ImVec2(1, 0)); // Flip UVs for OpenGL
+                            ImGui::Image((void*)(intptr_t)tex->ID, ImVec2(48, 48), ImVec2(0, 1), ImVec2(1, 0));
                             
                             // Tooltip
                             if (ImGui::IsItemHovered()) {
@@ -366,10 +368,24 @@ void Application::Run()
                             ImGui::BeginGroup();
                             ImGui::TextColored(ImVec4(0.8f, 0.8f, 1.0f, 1.0f), "%s", name.c_str());
                             ImGui::TextDisabled("%s", tex->path.c_str());
+                            
+                            // Remove button
+                            if (ImGui::SmallButton("Remove"))
+                            {
+                                keyToRemove = name;
+                            }
+                            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Remove this texture from the material");
+                            
                             ImGui::EndGroup();
                             
                             ImGui::PopID();
                             ImGui::Separator();
+                        }
+                        
+                        // Deferred removal
+                        if (!keyToRemove.empty())
+                        {
+                            mat->textures.erase(keyToRemove);
                         }
 
                         // Add/Replace Texture Logic
@@ -379,14 +395,21 @@ void Application::Run()
                         {
                             static char keyBuf[64] = "material_diffuse";
                             static char pathBuf[128] = "resources/textures/container2.png";
+                            static int typeIdx = 0;
+                            const char* typeNames[] = { "Diffuse", "Specular", "Normal", "Displacement" };
                             
                             ImGui::InputText("Slot (Key)", keyBuf, 64);
                             ImGui::InputText("File Path", pathBuf, 128);
+                            ImGui::Combo("Type", &typeIdx, typeNames, 4);
+                            
+                            TextureType selectedType = TextureType::TEX_DIFFUSE;
+                            if (typeIdx == 1) selectedType = TextureType::TEX_SPECULAR;
+                            else if (typeIdx == 2) selectedType = TextureType::TEX_NORMAL;
+                            else if (typeIdx == 3) selectedType = TextureType::TEX_DISPLACEMENT;
                             
                             if (ImGui::Button("Load & Assign"))
                             {
-                                // Load via ResourceManager (using path as the resource name to ensure uniqueness)
-                                auto newTex = ResourceManager::LoadTexture(pathBuf, TextureType::TEX_DIFFUSE); // Defaulting to Diffuse for manual loads
+                                auto newTex = ResourceManager::LoadTexture(pathBuf, selectedType);
                                 if (newTex) {
                                     mat->textures[keyBuf] = newTex;
                                     ImGui::CloseCurrentPopup();
