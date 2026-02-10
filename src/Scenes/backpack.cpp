@@ -15,6 +15,7 @@ Backpack::~Backpack() {}
 void Backpack::Init(AppState &appState)
 {
     obj = std::make_shared<Model>("resources/models/backpack/backpack.obj");
+    auto shadowObj = std::make_shared<Model>("resources/models/backpack/backpackLowPoly.obj");
     if(!obj) return;
     std::cerr << "Backpack model mesh count: " << obj -> GetNodeCount() << "\n";
 
@@ -29,6 +30,7 @@ void Backpack::Init(AppState &appState)
     entities.clear();
     std::shared_ptr<Entity> e = Entity::Create("Backpack");
     e->AddModel(obj.get(), shader, overrideMat);
+    e->renderComp->shadowProxyModel = shadowObj;
     e->transform.position = glm::vec3(0.0f);
     e->transform.scale = glm::vec3(1.0f);
     entities.push_back(std::move(e));   

@@ -75,13 +75,13 @@ private:
     // render pass logic
 
     // helper to draw a single entity based on its components (mesh vs model)
-    void DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverride);
+    void DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverride, bool isShadowPass = false);
 
     // generic helper to draw a list of entities with a specific view/proj matrix
     void RenderPass(const std::vector<std::shared_ptr<Entity>> &entities, 
                     const glm::mat4 &view, 
                     const glm::mat4 &proj,
-                    std::shared_ptr<Shader> shaderOverride = nullptr);
+                    std::shared_ptr<Shader> shaderOverride = nullptr, bool isShadowPass = false);
 
     // scene organization helpers
 
