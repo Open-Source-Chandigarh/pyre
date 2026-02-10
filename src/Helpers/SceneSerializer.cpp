@@ -10,7 +10,35 @@
 #include <filesystem>
 #include <set>
 
+#include "core/ResourceManager.h"
+
 using json = nlohmann::json;
+
+// TextureType <-> string conversion for serialization
+static std::string TextureTypeToString(TextureType type)
+{
+    switch (type)
+    {
+        case TextureType::TEX_DIFFUSE:      return "diffuse";
+        case TextureType::TEX_SPECULAR:     return "specular";
+        case TextureType::TEX_NORMAL:       return "normal";
+        case TextureType::TEX_DISPLACEMENT: return "displacement";
+        case TextureType::TEX_CUBEMAP:      return "cubemap";
+        case TextureType::TEX_ENVIRONMENT:  return "environment";
+        default:                            return "other";
+    }
+}
+
+static TextureType StringToTextureType(const std::string& str)
+{
+    if (str == "diffuse")      return TextureType::TEX_DIFFUSE;
+    if (str == "specular")     return TextureType::TEX_SPECULAR;
+    if (str == "normal")       return TextureType::TEX_NORMAL;
+    if (str == "displacement") return TextureType::TEX_DISPLACEMENT;
+    if (str == "cubemap")      return TextureType::TEX_CUBEMAP;
+    if (str == "environment")  return TextureType::TEX_ENVIRONMENT;
+    return TextureType::Other;
+}
 
 // Helper: Convert glm::vec3 to JSON array
 static json Vec3ToJson(const glm::vec3& v)
@@ -68,6 +96,26 @@ static json SerializeMaterial(const std::shared_ptr<Material>& mat)
         j["bools"][key] = val;
     }
     
+    // Textures (save path + type so they can be reloaded)
+    json texArray = json::array();
+    for (const auto& [key, tex] : mat->textures)
+    {
+        if (!tex) continue;
+        // Skip cubemaps/environment maps (they are procedural, not file-based)
+        if (tex->type == TextureType::TEX_CUBEMAP || tex->type == TextureType::TEX_ENVIRONMENT) continue;
+        if (tex->path.empty()) continue; // Can't serialize without a path
+        
+        json texJson;
+        texJson["key"] = key;
+        texJson["path"] = tex->path;
+        texJson["type"] = TextureTypeToString(tex->type);
+        texArray.push_back(texJson);
+    }
+    if (!texArray.empty())
+    {
+        j["textures"] = texArray;
+    }
+    
     return j;
 }
 
@@ -98,6 +146,30 @@ static void DeserializeMaterial(std::shared_ptr<Material>& mat, const json& j)
         for (auto& [key, val] : j["bools"].items())
         {
             mat->bools[key] = val.get<bool>();
+        }
+    }
+    
+    // Textures: reload from file paths
+    if (j.contains("textures"))
+    {
+        for (const auto& texJson : j["textures"])
+        {
+            if (!texJson.contains("key") || !texJson.contains("path") || !texJson.contains("type")) continue;
+            
+            std::string key  = texJson["key"].get<std::string>();
+            std::string path = texJson["path"].get<std::string>();
+            TextureType type = StringToTextureType(texJson["type"].get<std::string>());
+            
+            auto tex = ResourceManager::LoadTexture(path, type);
+            if (tex)
+            {
+                mat->textures[key] = tex;
+                std::cout << "[SceneSerializer] Loaded texture: " << key << " <- " << path << "\n";
+            }
+            else
+            {
+                std::cerr << "[SceneSerializer] Failed to load texture: " << path << "\n";
+            }
         }
     }
 }
