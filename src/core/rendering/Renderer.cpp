@@ -431,9 +431,10 @@ void Renderer::RenderPointShadows(const std::vector<std::shared_ptr<Entity>> &op
     glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, pointShadowNear, pointShadowFar);
 
     int activeLights = std::min((int)lightManager.points.size(), 8);
-
+    int shadowLayerIndex = 0;
     for(int i = 0; i < activeLights; i++)
     {
+        if (!lightManager.points[i].enabled) continue;
         glm::vec3 pos = lightManager.points[i].position;
         PointShadowData uboData;
         uboData.lightPos = glm::vec4(pos, 1.0f); // .w is padding
@@ -454,7 +455,7 @@ void Renderer::RenderPointShadows(const std::vector<std::shared_ptr<Entity>> &op
 
         // Upload  Ubo
         pointShadowUBO->UploadData(&uboData, sizeof(PointShadowData));
-        pointShadowShader->setInt("lightIndex", i);
+        pointShadowShader->setInt("lightIndex", shadowLayerIndex);
 
         // optimization: filter out entities with massive instance counts (asteroids/grass)
         // to prevent geometry shader from a lot of calculations
@@ -463,6 +464,8 @@ void Renderer::RenderPointShadows(const std::vector<std::shared_ptr<Entity>> &op
             if (e->renderComp && e->renderComp->instanceCount > 100) continue; 
             DrawEntityInPass(e.get(), pointShadowShader);
         }
+
+        shadowLayerIndex++;
     }
 
     glEnable(GL_CULL_FACE);
