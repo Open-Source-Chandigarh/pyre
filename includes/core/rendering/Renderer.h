@@ -48,17 +48,22 @@ public:
 
     std::shared_ptr<Shader> outlineShader;
     std::shared_ptr<Shader> normalShader;
+    bool useDeferred = true;
 
     // Global Debug Toggles
     bool showNormals = false;
     bool forceOutlines = false;
+    int debugMode = 0;
 
     // Debug & Selection Rendering (Called after post-processing)
     void RenderDebugPass(const std::vector<std::shared_ptr<Entity>>& entities);
     void RenderSelectionHighlight(std::shared_ptr<Entity> selectedEntity, int width, int height);
+    void ResizeBuffers(unsigned int w, unsigned int h);
 
 private:
     // internal initialization helpers
+
+    void InitQuad();
     
     // calculates view and projection matrices based on camera state
     void SetupCameraGlobals(const Camera &camera, float aspectRatio);
@@ -68,6 +73,9 @@ private:
     
     // ensures internal shaders (outline, depth, normal) are loaded
     void LoadRequiredShaders();
+    
+    // ensure the gbuffer for geometry
+    void EnsureGBuffer();
     
     // creates the shadow framebuffer for dir lights if it doesn't exist yet
     void EnsureShadowBuffer();
@@ -86,11 +94,16 @@ private:
     // helper to draw a single entity based on its components (mesh vs model)
     void DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverride, bool isShadowPass = false);
 
+    void RenderQuad();
+    void RenderDebugGBuffer();
+
     // generic helper to draw a list of entities with a specific view/proj matrix
     void RenderPass(const std::vector<std::shared_ptr<Entity>> &entities, 
                     const glm::mat4 &view, 
                     const glm::mat4 &proj,
                     std::shared_ptr<Shader> shaderOverride = nullptr, bool isShadowPass = false);
+    
+    void RenderGeometryPass(const std::vector<std::shared_ptr<Entity>> &opaqueEntities);
 
     // scene organization helpers
 
@@ -170,6 +183,13 @@ private:
     float cameraFarPlane;
     float cameraNearPlane;
     std::unique_ptr<UniformBuffer> cameraUBO; // binding 0
+
+    // deferred shading
+    std::unique_ptr<Framebuffer> gBuffer; 
+    std::shared_ptr<Shader> gBufferShader;
+    std::shared_ptr<Shader> debugGBufferShader;
+    GLuint quadVAO = 0;
+    GLuint quadVBO = 0;
 
     // shadow mapping resources
 

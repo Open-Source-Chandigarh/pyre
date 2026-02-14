@@ -22,7 +22,10 @@ void Framebuffer::CreateResources()
 {
     // cleanup if existing 
     if (rbo) { glDeleteRenderbuffers(1, &rbo); rbo = 0; }
+    for (unsigned int t : colorTextures) glDeleteTextures(1, &t);
     colorTextures.clear();
+
+    for (unsigned int t : screenTextures) glDeleteTextures(1, &t);
     screenTextures.clear();
     if (fbo) { glDeleteFramebuffers(1, &fbo); fbo = 0; }
 

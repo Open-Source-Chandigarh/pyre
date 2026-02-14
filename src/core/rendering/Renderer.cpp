@@ -44,6 +44,66 @@ void Renderer::SetupCameraGlobals(const Camera &camera, float aspectRatio)
     cameraUBO -> UploadData(&camData, sizeof(CameraData));
 }
 
+void Renderer::InitQuad()
+{
+    if (quadVAO != 0) return;
+
+    float quadVertices[] = {
+        // Position (X, Y)    // UV (U, V)
+        -1.0f,  1.0f,         0.0f, 1.0f, // Top-Left
+        -1.0f, -1.0f,         0.0f, 0.0f, // Bottom-Left
+         1.0f,  1.0f,         1.0f, 1.0f, // Top-Right
+         1.0f, -1.0f,         1.0f, 0.0f, // Bottom-Right
+    };
+
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+    glBindVertexArray(0);
+}
+
+void Renderer::RenderQuad()
+{
+    if (quadVAO == 0) InitQuad();
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
+}
+
+void Renderer::RenderDebugGBuffer()
+{
+    if (!debugGBufferShader) {
+        debugGBufferShader = ResourceManager::LoadShader("debug_gbuffer", 
+            "shaders/deferred/lighting.vs", 
+            "shaders/deferred/debug_gbuffer.fs");
+    }
+
+    debugGBufferShader->use();
+    debugGBufferShader->setInt("displayMode", debugMode);
+
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_POSITION);
+    glBindTexture(GL_TEXTURE_2D, gBuffer->GetColorTexture(0));
+    
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_NORMAL);
+    glBindTexture(GL_TEXTURE_2D, gBuffer->GetColorTexture(1));
+    
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_ALBEDO);
+    glBindTexture(GL_TEXTURE_2D, gBuffer->GetColorTexture(2));
+
+    // Draw Screen Quad
+    RenderQuad();
+
+}
+
 void Renderer::ResetGlState()
 {
     // we need to enable depth testing so objects obscure each other correctly based on distance
@@ -100,6 +160,21 @@ void Renderer::EnsureShadowBuffer()
     }
 
     CreateShadowUBO();
+}
+
+void Renderer::ResizeBuffers(unsigned int w, unsigned int h)
+{
+    if (w == 0 || h == 0) return;
+
+    // create or resize g-buffer (non-multisampled, 3 color attachments)
+    if (gBuffer) gBuffer->Resize(w, h);
+    else gBuffer = std::make_unique<Framebuffer>(w, h, true, false, true, 1, false, 3);
+}
+
+void Renderer::EnsureGBuffer()
+{
+    // fallback if ResizeBuffers was not called yet
+    if (!gBuffer) ResizeBuffers(1920, 1080);
 }
 
 void Renderer::EnsurePointShadowBuffer()
@@ -182,7 +257,7 @@ void Renderer::DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverrid
             castShadows = overrideMat->GetBool("castShadows");
         else if (baseMat) 
             castShadows = baseMat->GetBool("castShadows", true);
-        if (shaderOverride && !castShadows) continue;
+        if (isShadowPass && !castShadows) continue;
 
         // Calculate Transform
         glm::mat4 nodeMatrix = e->transform.GetModelMatrix() * node.localTransform;
@@ -599,7 +674,19 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
     RenderPointShadows(opaqueEntities, lightManager);
 
     // execute the main rendering pass
-    if (!wireFrame)
+    if(useDeferred && !wireFrame)
+    {
+        RenderGeometryPass(opaqueEntities);
+        // debug pass 
+        if (debugMode > 0)
+        {
+            Framebuffer::Unbind(); 
+            glViewport(0, 0, sceneFBO.Width(), sceneFBO.Height());
+            RenderDebugGBuffer(); 
+            return;
+        }
+    }
+    else if (!wireFrame)
     {
         RenderLightingPass(opaqueEntities, transparentEntities, skyboxEntity, 
             lightManager, sceneFBO, postProcessor, clearColor);
@@ -819,6 +906,12 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     if (wireframe) 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
+    // restore cull state to prevent state leak like in debugging 2D quads
+    if (currentCull != CullMode::Back) {
+        glEnable(GL_CULL_FACE); 
+        glCullFace(GL_BACK); 
+    }
+
     if (doOutline)
         RenderMeshOutline(mesh, model, outlineCol, bloomFactor);
 
@@ -984,4 +1077,27 @@ void Renderer::RenderSelectionHighlight(std::shared_ptr<Entity> selectedEntity, 
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glEnable(GL_BLEND); // Restore blending for UI/transparent objects
+}
+
+void Renderer::RenderGeometryPass(const std::vector<std::shared_ptr<Entity>>& opaqueEntities)
+{
+    if (!gBufferShader) {
+        gBufferShader = ResourceManager::LoadShader("gbuffer", 
+            "shaders/deferred/gbuffer.vs", 
+            "shaders/deferred/gbuffer.fs");
+    }
+
+    if (!gBuffer) EnsureGBuffer();
+
+    gBuffer->Bind();
+
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    glDisable(GL_BLEND);
+
+    RenderPass(opaqueEntities, viewMatrix, projMatrix, gBufferShader);
+
+    glEnable(GL_BLEND);
+    Framebuffer::Unbind();
 }

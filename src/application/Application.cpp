@@ -159,6 +159,8 @@ void Application::Run()
     // Track resizing logic
     int lastW = window->Width();
     int lastH = window->Height();
+    if (appState->renderer) 
+        appState->renderer->ResizeBuffers(lastW, lastH);
 
     while (!window->ShouldClose())
     {
@@ -175,6 +177,7 @@ void Application::Run()
             appState->width = lastW;
             appState->height = lastH;
             for (auto& s : appState->scenes) s->OnResize(lastW, lastH);
+            if (appState->renderer) appState->renderer->ResizeBuffers(lastW, lastH);
         }
 
         Update(appState->deltaTime);
@@ -266,6 +269,22 @@ void Application::Run()
             }
 
             ImGui::PopID();
+        }
+
+        if (ImGui::CollapsingHeader("G-Buffer Debug"))
+        {
+            const char* debugModes[] = { 
+                "Final Lit", 
+                "Position", 
+                "Normals", 
+                "Albedo", 
+                "Roughness", 
+                "Metallic/Spec", 
+                "Linear Depth" 
+            };
+            
+            // Pass address of debugMode
+            ImGui::Combo("View Mode", &appState->renderer->debugMode, debugModes, IM_ARRAYSIZE(debugModes));
         }
         ImGui::End();
 
