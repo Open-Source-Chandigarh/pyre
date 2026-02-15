@@ -186,19 +186,37 @@ void Application::Run()
 
         Scene* currentScene = appState->scenes[appState->currentSceneIndex].get();
 
+        // Status toast state
+        static float toastTimer = 0.0f;
+        static std::string toastMsg;
+
         // Shortcuts
         if (ImGui::GetIO().KeyCtrl)
         {
             if (ImGui::IsKeyPressed(ImGuiKey_S))
             {
                 std::string filepath = "scenes/" + currentScene->Name() + ".json";
-                SceneSerializer::Serialize(currentScene, appState->lightManager.get(), filepath);
+                if (SceneSerializer::Serialize(currentScene, appState->lightManager.get(), filepath))
+                { toastMsg = "Scene saved!"; toastTimer = 2.0f; }
             }
             if (ImGui::IsKeyPressed(ImGuiKey_O))
             {
                 std::string filepath = "scenes/" + currentScene->Name() + ".json";
-                SceneSerializer::Deserialize(currentScene, appState->lightManager.get(), filepath);
+                if (SceneSerializer::Deserialize(currentScene, appState->lightManager.get(), filepath))
+                { toastMsg = "Scene loaded!"; toastTimer = 2.0f; }
             }
+        }
+
+        // Toast notification
+        if (toastTimer > 0.0f)
+        {
+            toastTimer -= appState->deltaTime;
+            float alpha = (toastTimer < 0.5f) ? toastTimer * 2.0f : 1.0f;
+            ImGui::SetNextWindowPos(ImVec2(appState->width * 0.5f, 40.0f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+            ImGui::SetNextWindowBgAlpha(alpha * 0.85f);
+            ImGui::Begin("##Toast", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs);
+            ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.5f, alpha), "%s", toastMsg.c_str());
+            ImGui::End();
         }
 
        // 1. Scene Hierarchy Panel (positioned on the right side)
@@ -210,24 +228,53 @@ void Application::Run()
         ImGui::SetNextWindowSize(ImVec2(panelWidth, panelHeight), ImGuiCond_Always);
         ImGui::Begin("Scene Hierarchy", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
         
-        static int selectedEntityIndex = -1;
         auto& sceneEntities = currentScene->GetEntities();
 
-        // Display scene name header
-        ImGui::TextColored(ImVec4(0.6f, 0.8f, 1.0f, 1.0f), "Scene: %s", currentScene->Name().c_str());
+        // Scene switcher combo
+        if (appState->scenes.size() > 1)
+        {
+            if (ImGui::BeginCombo("##SceneCombo", currentScene->Name().c_str()))
+            {
+                for (int s = 0; s < (int)appState->scenes.size(); s++)
+                {
+                    bool isCurrent = (s == appState->currentSceneIndex);
+                    if (ImGui::Selectable(appState->scenes[s]->Name().c_str(), isCurrent))
+                    {
+                        if (!isCurrent)
+                        {
+                            appState->currentSceneIndex = s;
+                            appState->selectedEntity = nullptr;
+                            appState->scenes[s]->OnActivate(*appState);
+                            appState->camera.SetDefault();
+                            currentScene = appState->scenes[s].get();
+                        }
+                    }
+                    if (isCurrent) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+        }
+        else
+        {
+            ImGui::TextColored(ImVec4(0.6f, 0.8f, 1.0f, 1.0f), "Scene: %s", currentScene->Name().c_str());
+        }
         
-        // Save/Load buttons (includes entities + lights)
+        // Save/Load buttons
         if (ImGui::Button("Save"))
         {
             std::string filepath = "scenes/" + currentScene->Name() + ".json";
-            SceneSerializer::Serialize(currentScene, appState->lightManager.get(), filepath);
+            if (SceneSerializer::Serialize(currentScene, appState->lightManager.get(), filepath))
+            { toastMsg = "Scene saved!"; toastTimer = 2.0f; }
         }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Ctrl+S");
         ImGui::SameLine();
         if (ImGui::Button("Load"))
         {
             std::string filepath = "scenes/" + currentScene->Name() + ".json";
-            SceneSerializer::Deserialize(currentScene, appState->lightManager.get(), filepath);
+            if (SceneSerializer::Deserialize(currentScene, appState->lightManager.get(), filepath))
+            { toastMsg = "Scene loaded!"; toastTimer = 2.0f; }
         }
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("Ctrl+O");
         ImGui::Separator();
 
         for (int i = 0; i < sceneEntities.size(); i++)
@@ -236,7 +283,7 @@ void Application::Run()
             Entity* entity = sceneEntities[i].get();
             std::string nameText = entity->name.empty() ? "Entity #" + std::to_string(i) : entity->name;
             
-            bool isSelected = (selectedEntityIndex == i);
+            bool isSelected = (appState->selectedEntity == sceneEntities[i]);
             
             // selection highlighting with background color
             if (isSelected) {
@@ -250,12 +297,10 @@ void Application::Run()
             {
                 if (isSelected)
                 {
-                    selectedEntityIndex = -1;
                     appState->selectedEntity = nullptr;
                 }
                 else
                 {
-                    selectedEntityIndex = i;
                     appState->selectedEntity = sceneEntities[i];
                 }
             }
@@ -276,9 +321,9 @@ void Application::Run()
         ImGui::SetNextWindowSize(ImVec2(panelWidth, inspectorHeight), ImGuiCond_Always);
         ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
         
-        if (selectedEntityIndex >= 0 && selectedEntityIndex < sceneEntities.size())
+        if (appState->selectedEntity)
         {
-            Entity* entity = sceneEntities[selectedEntityIndex].get();
+            Entity* entity = appState->selectedEntity.get();
             ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f), "%s", entity->name.c_str());
             ImGui::Separator();
             
@@ -325,9 +370,27 @@ void Application::Run()
                     if (ImGui::Checkbox("Wireframe", &wireframe)) mat->SetWireframe(wireframe);
                     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Render this specific object in wireframe mode");
 
+                    // Reflectivity
+                    if (mat->floats.find("material_reflectivity") == mat->floats.end())
+                        mat->floats["material_reflectivity"] = 0.0f;
+                    ImGui::SliderFloat("Reflectivity", &mat->floats["material_reflectivity"], 0.0f, 1.0f);
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Environment reflection strength (requires cubemap)");
+
                     bool shadows = mat->GetBool("castShadows", true);
                     if (ImGui::Checkbox("Cast Shadows", &shadows)) mat->SetShadows(shadows);
                     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Whether this object casts shadows onto other surfaces");
+
+                    // CullMode
+                    const char* cullModes[] = { "Back", "Front", "None (Double-Sided)" };
+                    int cullIdx = (mat->cullMode == CullMode::Back) ? 0 : (mat->cullMode == CullMode::Front) ? 1 : 2;
+                    if (ImGui::Combo("Cull Mode", &cullIdx, cullModes, 3))
+                    {
+                        mat->cullMode = (cullIdx == 0) ? CullMode::Back : (cullIdx == 1) ? CullMode::Front : CullMode::None;
+                    }
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Which faces to skip: Back (default), Front, or None (double-sided)");
+
+                    ImGui::Checkbox("Transparent", &mat->isTransparent);
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Mark material as transparent for correct render ordering");
 
                     // Outline / Bloom
                     bool outline = mat->GetBool("outlineEnabled");
@@ -528,8 +591,8 @@ void Application::Run()
 
         // 3. Global Settings Panel (positioned at top-left)
         ImGui::SetNextWindowPos(ImVec2(padding, padding), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(250, 200), ImGuiCond_Always);
-        ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::SetNextWindowSize(ImVec2(260, 0), ImGuiCond_Always);
+        ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
         
         if (ImGui::CollapsingHeader("Rendering", ImGuiTreeNodeFlags_DefaultOpen))
         {
@@ -545,10 +608,10 @@ void Application::Run()
                 ImGui::Checkbox("Show Vertex Normals", &renderer->showNormals);
                 if (ImGui::IsItemHovered()) ImGui::SetTooltip("Visualize surface normals as yellow lines (Bypasses post-processing)");
                 
-                ImGui::Checkbox("Force Outlines", &renderer->forceOutlines);
-                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Enable selection glow for all objects globally");
-
-                ImGui::Separator();
+                                ImGui::Checkbox("Force Outlines", &renderer->forceOutlines);
+                                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Enable selection glow for all objects globally");        
+                
+                                ImGui::Separator();
                 
                 // MSAA Toggle (Informational / Toggle bit)
                 static bool msaa = true;
@@ -559,6 +622,12 @@ void Application::Run()
                 }
                 if (ImGui::IsItemHovered()) ImGui::SetTooltip("Smooth jagged edges using hardware multisampling. (Applies to main scene FBO)");
             }
+        }
+
+        if (ImGui::CollapsingHeader("Scene"))
+        {
+            ImGui::ColorEdit3("Clear Color", &currentScene->clearColor.x);
+            if (ImGui::IsItemHovered()) ImGui::SetTooltip("Background color of the viewport");
         }
 
         if (ImGui::CollapsingHeader("Post-Processing", ImGuiTreeNodeFlags_DefaultOpen))
