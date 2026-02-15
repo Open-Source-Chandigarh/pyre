@@ -80,19 +80,22 @@ void LightManager::UploadLightsToGPU()
     data.numPointLights = pcount;
 
     // spot lights
-    int scount = std::min((int)spots.size(), GLSL_MAX_SPOT_LIGHTS);
-    data.numSpotLights = scount;
-    for (int i = 0; i < scount; ++i) 
+    int scount = 0;
+    for (int i = 0; i < spots.size() && scount < GLSL_MAX_SPOT_LIGHTS; ++i) 
     {
+        if (!spots[i].enabled) continue;
+
         const auto& s = spots[i];
-        data.spot_position[i] = glm::vec4(s.position, 0.0f);
-        data.spot_direction[i] = glm::vec4(s.direction, 0.0f);
-        data.spot_cutoffs[i] = glm::vec4(s.innerCutOff, s.outerCutOff, 0.0f, 0.0f);
-        data.spot_ambient[i] = glm::vec4(s.ambient, 0.0f);
-        data.spot_diffuse[i] = glm::vec4(s.diffuse, 0.0f);
-        data.spot_specular[i] = glm::vec4(s.specular, 0.0f);
-        data.spot_params[i] = glm::vec4(s.constant, s.linear, s.quadratic, 0.0f);
+        data.spot_position[scount] = glm::vec4(s.position, 0.0f);
+        data.spot_direction[scount] = glm::vec4(s.direction, 0.0f);
+        data.spot_cutoffs[scount] = glm::vec4(s.innerCutOff, s.outerCutOff, 0.0f, 0.0f);
+        data.spot_ambient[scount] = glm::vec4(s.ambient, 0.0f);
+        data.spot_diffuse[scount] = glm::vec4(s.diffuse, 0.0f);
+        data.spot_specular[scount] = glm::vec4(s.specular, 0.0f);
+        data.spot_params[scount] = glm::vec4(s.constant, s.linear, s.quadratic, 0.0f);
+        scount++;
     }
+    data.numSpotLights = scount;
 
     // upload to gpu using wrapper
     lightUBO -> UploadData(&data, sizeof(LightsData));
@@ -161,6 +164,17 @@ void LightManager::RenderDebugLights(
         glm::mat4 model = glm::translate(glm::mat4(1.0f), p.position);
         debugShader->setMat4("model", model);
         debugShader->setVec3("color", p.diffuse);
+        debugSphere->DrawSimple();
+    }
+
+    for (const auto& s : spots)
+    {
+        if (!s.enabled) continue;
+        glm::mat4 model = glm::translate(glm::mat4(1.0f), s.position);
+        // Slightly smaller for spots to differentiate
+        model = glm::scale(model, glm::vec3(0.6f));
+        debugShader->setMat4("model", model);
+        debugShader->setVec3("color", s.diffuse);
         debugSphere->DrawSimple();
     }
 }

@@ -70,7 +70,17 @@ struct Entity
         if (!renderComp) return nullptr;
         
         if (!renderComp->materialOverride) 
-            renderComp->materialOverride = std::make_shared<Material>();
+        {
+            // Clone the first mesh's material as a base if it exists
+            if (!renderComp->nodes.empty() && renderComp->nodes[0].mesh && renderComp->nodes[0].mesh->localMaterial)
+            {
+                renderComp->materialOverride = std::make_shared<Material>(*renderComp->nodes[0].mesh->localMaterial);
+            }
+            else
+            {
+                renderComp->materialOverride = std::make_shared<Material>();
+            }
+        }
         else if (renderComp->materialOverride.use_count() > 1)
         {
             auto newMat = std::make_shared<Material>(*renderComp->materialOverride);

@@ -23,19 +23,20 @@ struct PointLight
 
 struct SpotLight 
 {
-    glm::vec3 position;
-    glm::vec3 direction;
+    glm::vec3 position = glm::vec3(0.0f);
+    glm::vec3 direction = glm::vec3(0.0f, -1.0f, 0.0f);
 
-    float innerCutOff;
-    float outerCutOff;
+    float innerCutOff = 12.5f;
+    float outerCutOff = 15.0f;
 
-    glm::vec3 ambient;
-    glm::vec3 diffuse;
-    glm::vec3 specular;
+    glm::vec3 ambient = glm::vec3(0.0f);
+    glm::vec3 diffuse = glm::vec3(1.0f);
+    glm::vec3 specular = glm::vec3(1.0f);
 
-    float constant;
-    float linear;
-    float quadratic;
+    float constant = 1.0f;
+    float linear = 0.09f;
+    float quadratic = 0.032f;
+    bool enabled = true;
 };
 
 class LightManager {
