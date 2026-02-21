@@ -343,38 +343,39 @@ void Application::Run()
             // Render Component (Material Editing)
             if (entity->renderComp && ImGui::CollapsingHeader("Material", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                Material* mat = entity->GetUniqueMaterial().get();
+                Material* mat = nullptr;
+                if (entity->renderComp->materialOverride) {
+                    mat = entity->renderComp->materialOverride.get();
+                } else if (!entity->renderComp->nodes.empty() && entity->renderComp->nodes[0].mesh) {
+                    mat = entity->renderComp->nodes[0].mesh->localMaterial.get();
+                }
+
                 if (mat)
                 {
-                    // Initialize properties with sensible defaults if they don't exist
-                    // (operator[] would create black/zero values otherwise)
-                    if (mat->floats.find("material_shininess") == mat->floats.end())
-                        mat->floats["material_shininess"] = 32.0f;
-                    if (mat->vec3s.find("material_diffuseColor") == mat->vec3s.end())
-                        mat->vec3s["material_diffuseColor"] = glm::vec3(1.0f); // White (neutral)
-                    if (mat->vec3s.find("material_specularColor") == mat->vec3s.end())
-                        mat->vec3s["material_specularColor"] = glm::vec3(1.0f); // White (neutral)
+                    // Local helper lambdas to simplify property editing
+                    auto EditFloat = [&](const char* label, const char* key, float def, float min, float max, const char* tooltip, bool isSlider = false) {
+                        float v = mat->GetFloat(key, def);
+                        bool changed = isSlider ? ImGui::SliderFloat(label, &v, min, max) : ImGui::DragFloat(label, &v, 1.0f, min, max);
+                        if (changed) mat->floats[key] = v;
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip(tooltip);
+                    };
+
+                    auto EditColor = [&](const char* label, const char* key, glm::vec3 def, const char* tooltip) {
+                        glm::vec3 v = mat->GetVec3(key, def);
+                        if (ImGui::ColorEdit3(label, &v.x)) mat->vec3s[key] = v;
+                        if (ImGui::IsItemHovered()) ImGui::SetTooltip(tooltip);
+                    };
 
                     // Standard Properties
-                    ImGui::DragFloat("Shininess", &mat->floats["material_shininess"], 1.0f, 1.0f, 256.0f);
-                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Specular exponent: Higher = smaller, sharper highlights");
-                    
-                    ImGui::ColorEdit3("Diffuse", &mat->vec3s["material_diffuseColor"].x);
-                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Base color of the material");
-                    
-                    ImGui::ColorEdit3("Specular", &mat->vec3s["material_specularColor"].x);
-                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Color of specular reflections");
-                    
+                    EditFloat("Shininess", "material_shininess", 32.0f, 1.0f, 256.0f, "Specular exponent: Higher = smaller, sharper highlights");
+                    EditColor("Diffuse", "material_diffuseColor", glm::vec3(1.0f), "Base color of the material");
+                    EditColor("Specular", "material_specularColor", glm::vec3(0.0f), "Color of specular reflections");
+                    EditFloat("Reflectivity", "material_reflectivity", 0.0f, 0.0f, 1.0f, "Environment reflection strength (requires cubemap)", true);
+
                     // Toggles
                     bool wireframe = mat->GetBool("wireframe");
                     if (ImGui::Checkbox("Wireframe", &wireframe)) mat->SetWireframe(wireframe);
                     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Render this specific object in wireframe mode");
-
-                    // Reflectivity
-                    if (mat->floats.find("material_reflectivity") == mat->floats.end())
-                        mat->floats["material_reflectivity"] = 0.0f;
-                    ImGui::SliderFloat("Reflectivity", &mat->floats["material_reflectivity"], 0.0f, 1.0f);
-                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Environment reflection strength (requires cubemap)");
 
                     bool shadows = mat->GetBool("castShadows", true);
                     if (ImGui::Checkbox("Cast Shadows", &shadows)) mat->SetShadows(shadows);
@@ -602,16 +603,10 @@ void Application::Run()
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Global toggle for wireframe rendering");
 
-            Renderer* renderer = appState->renderer.get();
+                        Renderer* renderer = appState->renderer.get();
             if (renderer)
             {
-                ImGui::Checkbox("Show Vertex Normals", &renderer->showNormals);
-                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Visualize surface normals as yellow lines (Bypasses post-processing)");
-                
-                                ImGui::Checkbox("Force Outlines", &renderer->forceOutlines);
-                                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Enable selection glow for all objects globally");        
-                
-                                ImGui::Separator();
+                ImGui::Separator();
                 
                 // MSAA Toggle (Informational / Toggle bit)
                 static bool msaa = true;

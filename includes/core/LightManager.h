@@ -10,33 +10,33 @@ class Renderer;
 
 struct PointLight 
 {
-    glm::vec3 position = glm::vec3(0.0f);
-    glm::vec3 ambient = glm::vec3(0.05f);
-    glm::vec3 diffuse = glm::vec3(0.8f);
-    glm::vec3 specular = glm::vec3(1.0f);
+    bool enabled = true;
+    glm::vec3 position;
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
     float constant = 1.0f;
     float linear = 0.09f;
     float quadratic = 0.032f;
-    bool enabled = true;
     unsigned int depthMap = 0;
 };
 
 struct SpotLight 
 {
-    glm::vec3 position = glm::vec3(0.0f);
-    glm::vec3 direction = glm::vec3(0.0f, -1.0f, 0.0f);
-
-    float innerCutOff = 12.5f;
-    float outerCutOff = 15.0f;
-
-    glm::vec3 ambient = glm::vec3(0.0f);
-    glm::vec3 diffuse = glm::vec3(1.0f);
-    glm::vec3 specular = glm::vec3(1.0f);
-
-    float constant = 1.0f;
-    float linear = 0.09f;
-    float quadratic = 0.032f;
     bool enabled = true;
+    glm::vec3 position;
+    glm::vec3 direction;
+
+    float innerCutOff;
+    float outerCutOff;
+
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+
+    float constant;
+    float linear;
+    float quadratic;
 };
 
 class LightManager {
@@ -54,7 +54,7 @@ public:
     void ClearSpotLights();
     glm::vec3 GetDirectionalLightDir() { return dir; }
     
-    // Directional Light accessors
+    // Getters for Editor
     glm::vec3& GetDirLightDirection() { return dir; }
     glm::vec3& GetDirLightAmbient() { return dirAmbient; }
     glm::vec3& GetDirLightDiffuse() { return dirDiffuse; }
