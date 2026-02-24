@@ -187,9 +187,9 @@ void Renderer::DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverrid
         // Calculate Transform
         glm::mat4 nodeMatrix = e->transform.GetModelMatrix() * node.localTransform;
         if (isShadowPass)
-            SubmitMesh(nodeMatrix, *node.mesh, currentShader, nullptr, nullptr, e->renderComp->instanceCount);
+            SubmitMesh(nodeMatrix, *node.mesh, currentShader, nullptr, nullptr, e->renderComp->instanceCount, true);
         else
-            SubmitMesh(nodeMatrix, *node.mesh, currentShader, baseMat, overrideMat, e->renderComp->instanceCount);
+            SubmitMesh(nodeMatrix, *node.mesh, currentShader, baseMat, overrideMat, e->renderComp->instanceCount, false);
     }
 }
 
@@ -735,7 +735,8 @@ void Renderer::SubmitMesh(const glm::mat4& model,
                           const std::shared_ptr<Shader>& shader, 
                           const std::shared_ptr<Material>& baseMat,
                           const std::shared_ptr<Material>& overrideMat,
-                          int instanceCount)
+                          int instanceCount,
+                          bool isShadowPass)
 {
     if (!shader) return;
 
@@ -765,15 +766,17 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     glm::vec3 outlineCol(1.0f);
     float bloomFactor = 0.0f;
 
-    if (overrideMat && overrideMat->bools.count("outlineEnabled")) {
-        doOutline = overrideMat->GetBool("outlineEnabled");
-        outlineCol = overrideMat->GetVec3("outlineColor");
-        bloomFactor = overrideMat->GetFloat("bloomFactor");
-    } 
-    else if (activeBase->GetBool("outlineEnabled")) {
-        doOutline = true;
-        outlineCol = activeBase->GetVec3("outlineColor");
-        bloomFactor = activeBase->GetFloat("bloomFactor");
+    if (!isShadowPass) {
+        if (overrideMat && overrideMat->bools.count("outlineEnabled")) {
+            doOutline = overrideMat->GetBool("outlineEnabled");
+            outlineCol = overrideMat->GetVec3("outlineColor");
+            bloomFactor = overrideMat->GetFloat("bloomFactor");
+        } 
+        else if (activeBase->GetBool("outlineEnabled")) {
+            doOutline = true;
+            outlineCol = activeBase->GetVec3("outlineColor");
+            bloomFactor = activeBase->GetFloat("bloomFactor");
+        }
     }
 
     // Culling
