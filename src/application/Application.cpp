@@ -344,12 +344,7 @@ void Application::Run()
             // Render Component (Material Editing)
             if (entity->renderComp && ImGui::CollapsingHeader("Material", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                Material* mat = nullptr;
-                if (entity->renderComp->materialOverride) {
-                    mat = entity->renderComp->materialOverride.get();
-                } else if (!entity->renderComp->nodes.empty() && entity->renderComp->nodes[0].mesh) {
-                    mat = entity->renderComp->nodes[0].mesh->localMaterial.get();
-                }
+                Material* mat = entity->GetUniqueMaterial().get();
 
                 if (mat)
                 {
