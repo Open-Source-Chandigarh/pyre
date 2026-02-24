@@ -55,9 +55,7 @@ public:
     bool forceOutlines = false;
     int debugMode = 0;
 
-    // Debug & Selection Rendering (Called after post-processing)
     void RenderDebugPass(const std::vector<std::shared_ptr<Entity>>& entities);
-    void RenderSelectionHighlight(std::shared_ptr<Entity> selectedEntity, int width, int height);
     void ResizeBuffers(unsigned int w, unsigned int h);
 
 private:
@@ -104,6 +102,13 @@ private:
                     std::shared_ptr<Shader> shaderOverride = nullptr, bool isShadowPass = false);
     
     void RenderGeometryPass(const std::vector<std::shared_ptr<Entity>> &opaqueEntities);
+
+    void RenderDeferredLightingPass(LightManager &lightManager, Framebuffer &sceneFBO, 
+                                    std::shared_ptr<Entity> skybox);
+
+    void RenderOutlinePass(const std::vector<std::shared_ptr<Entity>> &entities);
+
+    void CopyDepthBuffer(Framebuffer &source, Framebuffer &dest);
 
     // scene organization helpers
 
@@ -188,6 +193,7 @@ private:
     std::unique_ptr<Framebuffer> gBuffer; 
     std::shared_ptr<Shader> gBufferShader;
     std::shared_ptr<Shader> debugGBufferShader;
+    std::shared_ptr<Shader> deferredLightingShader;
     GLuint quadVAO = 0;
     GLuint quadVBO = 0;
 

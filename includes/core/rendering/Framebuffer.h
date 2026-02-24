@@ -37,6 +37,8 @@ public:
         }
         else return GetColorTexture(index);
     }
+
+	GLuint GetID() { return fbo; }
 	
 private:
 	

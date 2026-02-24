@@ -9,7 +9,9 @@ in mat3 TBN;
 in vec3 Normal;
 in float LinearDepth;
 
+#include "../includes/globalUbos.glsl"
 #include "../includes/materialCommon.glsl"
+#include "../includes/lightingCommon.glsl"
 
 void main()
 {
@@ -18,32 +20,51 @@ void main()
     // store linear depth in alpha for generic post processing (ssao)
     gPosition.a = LinearDepth;
 
+    vec3 V = normalize(vec3(viewPos) - FragPos); // viewDir in world space
+
+    // Parallax Mapping
+    vec2 uv = TexCoords;
+
+    if(material_displacement_present == 1)
+    {
+        mat3 InvTBN = transpose(TBN); // since TBN is orthagonal it's transpose is equal to it's inverse
+        // view dir in tangent space
+        vec3 TangentViewDir = InvTBN * V;
+
+        uv = ParallaxMapping(uv, TangentViewDir);
+
+        if(uv.x > 1.0 || uv.y > 1.0 || uv.x < 0.0 || uv.y < 0.0)
+            discard;
+    }
+
     vec3 N = normalize(Normal);
     if (material_normal_present == 1)
     {
-        vec3 mapNormal = texture(material_normal, TexCoords).rgb;
+        vec3 mapNormal = texture(material_normal, uv).rgb;
         mapNormal = mapNormal * 2.0 - 1.0;
         N = normalize(TBN * mapNormal);
     }
     gNormal.rgb = N;
 
     float shininess = GetShininess();
-    float roughness = clamp(1.0 - (shininess / 100.0), 0.05, 1.0);
+    float roughness = clamp(1.0 - (shininess / 256.0), 0.05, 1.0);
     gNormal.a = roughness;
 
     vec3 albedo = material_diffuseColor;
     if (material_diffuse_present == 1)
     {
-        vec4 texColor = texture(material_diffuse, TexCoords);
+        vec4 texColor = texture(material_diffuse, uv);
         if(texColor.a < 0.1) discard; 
         albedo = texColor.rgb;
     }
     gAlbedo.rgb = albedo;
 
-    float metallic = 0.0;
-    if (material_specular_present == 1)
-    {
-        metallic = texture(material_specular, TexCoords).r;
-    }
-    gAlbedo.a = metallic;
+    float specIntensity = 0.0;
+
+    specIntensity = GetSpecularColor(uv).r;
+
+    if (material_skybox_present == 1) // inverse sign to let lighting pass know that we want env mapping
+        gAlbedo.a = -max(specIntensity, 0.001); 
+    else
+        gAlbedo.a = max(specIntensity, 0.001);
 }

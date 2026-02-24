@@ -571,6 +571,8 @@ void Application::Run()
                 ImGui::Checkbox("Force Outlines", &renderer->forceOutlines);
                 if (ImGui::IsItemHovered()) ImGui::SetTooltip("Enable selection glow for all objects globally");
 
+                ImGui::Checkbox("Use deferred", &renderer->useDeferred);
+
                 ImGui::Separator();
                 
                 // MSAA Toggle (Informational / Toggle bit)

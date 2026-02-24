@@ -1,4 +1,5 @@
 #version 420 core
+#include "../includes/globalUbos.glsl"
 
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
@@ -12,8 +13,6 @@ out float LinearDepth;
 out mat3 TBN;
 out vec3 Normal;
 
-uniform mat4 view;
-uniform mat4 projection;
 uniform mat4 model;
 uniform bool isInstanced;
 
@@ -35,5 +34,5 @@ void main()
     vec3 B = cross(N, T);
     TBN = mat3(T, B, N);
 
-    gl_Position = projection * view * worldPos;
+    gl_Position = proj * view * worldPos;
 }

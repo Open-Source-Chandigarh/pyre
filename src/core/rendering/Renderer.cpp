@@ -17,6 +17,7 @@ Renderer::Renderer()
     defaultMat->floats["material_shininess"] = 32.0f;
     defaultMat->floats["material_reflectivity"] = 0.0f;
     defaultMat->vec3s["material_diffuseColor"] = glm::vec3(1.0f);
+    defaultMat->vec3s["material_specularColor"] = glm::vec3(1.0f);
 }
 
 void Renderer::SetupCameraGlobals(const Camera &camera, float aspectRatio)
@@ -611,13 +612,6 @@ void Renderer::RenderLightingPass(const std::vector<std::shared_ptr<Entity>> &op
     // 4. draw transparent geometry last so they blend correctly over everything else
     RenderPass(transparent, viewMatrix, projMatrix, nullptr);
 
-    // 5. finally resolve any msaa and run the post-processing pipeline
-    sceneFBO.ResolveToScreen();
-    GLuint sceneTex = sceneFBO.GetIntermediateTexture(0);
-    GLuint brightTex = sceneFBO.GetIntermediateTexture(1);
-    GLuint processed = postProcessor.Apply(sceneTex, brightTex);
-    postProcessor.DrawToScreen(processed);
-
     glEnable(GL_DEPTH_TEST); 
 }
 
@@ -685,26 +679,63 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
             RenderDebugGBuffer(); 
             return;
         }
-    }
-    else if (!wireFrame)
-    {
-        RenderLightingPass(opaqueEntities, transparentEntities, skyboxEntity, 
-            lightManager, sceneFBO, postProcessor, clearColor);
 
-        // --- Post-Render Debug & Selection ---
-        // These are rendered directly to the screen after post-processing
-        // to avoid distortions from Bloom, HDR, or Gamma correction.
-        
+        sceneFBO.Bind();
+        const float clearCol[] = { clearColor.r, clearColor.g, clearColor.b, 1.0f };
+        const float zeroClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        glClearBufferfv(GL_COLOR, 0, clearCol);
+        glClearBufferfv(GL_COLOR, 1, zeroClearColor); // clear bright buffer
+
+        RenderDeferredLightingPass(lightManager, sceneFBO, skyboxEntity);
+
+        CopyDepthBuffer(*gBuffer, sceneFBO);
+        sceneFBO.Bind();
+        if (skyboxEntity)
+        {
+            GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
+            glDrawBuffers(1, drawBuffers);
+            SubmitSkybox(*skyboxEntity->skyboxComp->mesh, 
+                         skyboxEntity->skyboxComp->shader,
+                         skyboxEntity->skyboxComp->material);
+            GLenum bothBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 }; 
+            glDrawBuffers(2, bothBuffers);
+        }
+
+        lightManager.RenderDebugLights(viewMatrix, projMatrix);
+        RenderOutlinePass(opaqueEntities);
+        RenderPass(transparentEntities, viewMatrix, projMatrix, nullptr);
+        RenderOutlinePass(transparentEntities);
+
         if (showNormals)
         {
             RenderDebugPass(opaqueEntities);
             RenderDebugPass(transparentEntities);
         }
 
-        if (selectedEntity)
+        sceneFBO.ResolveToScreen();
+        GLuint sceneTex = sceneFBO.GetIntermediateTexture(0);
+        GLuint brightTex = sceneFBO.GetIntermediateTexture(1);
+        GLuint processed = postProcessor.Apply(sceneTex, brightTex);
+        postProcessor.DrawToScreen(processed);
+    }
+    else if (!wireFrame)
+    {
+        RenderLightingPass(opaqueEntities, transparentEntities, skyboxEntity, 
+            lightManager, sceneFBO, postProcessor, clearColor);
+
+        RenderOutlinePass(opaqueEntities);
+        RenderOutlinePass(transparentEntities);
+        if (showNormals)
         {
-            RenderSelectionHighlight(selectedEntity, sceneFBO.Width(), sceneFBO.Height());
+            RenderDebugPass(opaqueEntities);
+            RenderDebugPass(transparentEntities);
         }
+
+        sceneFBO.ResolveToScreen();
+        GLuint sceneTex = sceneFBO.GetIntermediateTexture(0);
+        GLuint brightTex = sceneFBO.GetIntermediateTexture(1);
+        GLuint processed = postProcessor.Apply(sceneTex, brightTex);
+        postProcessor.DrawToScreen(processed);
     }
     else
     {
@@ -912,12 +943,58 @@ void Renderer::SubmitMesh(const glm::mat4& model,
         glCullFace(GL_BACK); 
     }
 
-    if (doOutline)
-        RenderMeshOutline(mesh, model, outlineCol, bloomFactor);
-
     // cleanup texture slots
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void Renderer::RenderOutlinePass(const std::vector<std::shared_ptr<Entity>> &entities)
+{
+    for (const auto& e : entities)
+    {
+        if (!e || !e->renderComp) continue;
+        
+        glm::mat4 entityModelMatrix = e->transform.GetModelMatrix();
+        std::shared_ptr<Material> overrideMat = e->renderComp->materialOverride;
+
+        for (const auto &node : e->renderComp->nodes)
+        {
+            if (!node.mesh) continue;
+            
+            std::shared_ptr<Material> baseMat = node.mesh->localMaterial;
+            const Material* activeBase = baseMat ? baseMat.get() : defaultMat.get();
+
+            // check if we should draw outline
+            bool doOutline = forceOutlines;
+            glm::vec3 outlineCol(1.0f);
+            float bloomFactor = 0.0f;
+
+            // check override material First
+            if (overrideMat && overrideMat->bools.count("outlineEnabled")) 
+            {
+                if (overrideMat->GetBool("outlineEnabled")) doOutline = true;
+                
+                // only grab colors if this specific material enabled the outline
+                if (doOutline) {
+                    outlineCol = overrideMat->GetVec3("outlineColor");
+                    bloomFactor = overrideMat->GetFloat("bloomFactor");
+                }
+            } 
+            // fallback to Base Material
+            else if (activeBase->GetBool("outlineEnabled")) 
+            {
+                doOutline = true;
+                outlineCol = activeBase->GetVec3("outlineColor");
+                bloomFactor = activeBase->GetFloat("bloomFactor");
+            }
+
+            if (doOutline) 
+            {
+                glm::mat4 nodeMatrix = entityModelMatrix * node.localTransform;
+                RenderMeshOutline(*node.mesh, nodeMatrix, outlineCol, bloomFactor);
+            }
+        }
+    }
 }
 
 void Renderer::SubmitSkybox(const Mesh &mesh, 
@@ -984,12 +1061,6 @@ void Renderer::RenderDebugPass(const std::vector<std::shared_ptr<Entity>>& entit
 {
     if (!showNormals || !normalShader) return;
 
-    // Debug visualizations (like vertex normals) are rendered after post-processing
-    // so they are not blurred or color-graded. 
-    // We disable depth testing so debugging lines are always visible through 
-    // solid geometry, making it easier to spot lighting/normal issues.
-    glDisable(GL_DEPTH_TEST);
-
     for (const auto& e : entities)
     {
         if (!e || !e->renderComp) continue;
@@ -1001,82 +1072,6 @@ void Renderer::RenderDebugPass(const std::vector<std::shared_ptr<Entity>>& entit
             RenderMeshNormals(*node.mesh, model);
         }
     }
-
-    glEnable(GL_DEPTH_TEST);
-}
-
-void Renderer::RenderSelectionHighlight(std::shared_ptr<Entity> selectedEntity, int width, int height)
-{
-    if (!selectedEntity || !selectedEntity->renderComp || !outlineShader) return;
-
-    // We render selection highlights directly to the default framebuffer (screen)
-    // after all post-processing. This ensures the outline remains crisp and 
-    // unaffected by Bloom or HDR tonemapping.
-    glViewport(0, 0, width, height);
-    glEnable(GL_STENCIL_TEST);
-    
-    // Ensure stencil writing is enabled so we can clear it
-    glStencilMask(0xFF);
-    glClear(GL_STENCIL_BUFFER_BIT);
-
-    // Pass 1: Create a mask of the object in the stencil buffer.
-    // The default framebuffer's depth buffer is empty (scene was in FBO), so we disable depth test.
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE); // Always write 1 on draw
-    glStencilMask(0xFF);
-    glDisable(GL_DEPTH_TEST); // Critical: default FB depth is empty
-    glDepthMask(GL_FALSE);
-    glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    glDisable(GL_CULL_FACE);
-
-    outlineShader->use();
-    outlineShader->setFloat("outlineWidth", 0.0f); // No extrusion for mask pass
-    
-    for (const auto& node : selectedEntity->renderComp->nodes)
-    {
-        if (!node.mesh) continue;
-        glm::mat4 model = selectedEntity->transform.GetModelMatrix() * node.localTransform;
-        outlineShader->setMat4("model", model);
-        outlineShader->setMat4("view", viewMatrix);
-        outlineShader->setMat4("projection", projMatrix);
-        node.mesh->DrawSimple();
-    }
-
-    // Pass 2: Draw the actual outline.
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-    glStencilMask(0x00); 
-    
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND); // Prevent outline from blending with scene 
-
-    for (const auto& node : selectedEntity->renderComp->nodes)
-    {
-        if (!node.mesh) continue;
-        glm::mat4 model = selectedEntity->transform.GetModelMatrix() * node.localTransform;
-        
-        outlineShader->setMat4("model", model); // Use original model matrix
-        outlineShader->setVec3("color", glm::vec3(1.0f, 0.6f, 0.1f)); // Industry standard Orange
-        outlineShader->setFloat("bloomFactor", 0.0f);
-        
-        // Extrude along normals in shader instead of scaling matrix
-        // This prevents position drift for offset sub-meshes
-        outlineShader->setFloat("outlineWidth", 0.05f); 
-        
-        node.mesh->DrawSimple();
-    }
-    
-    // Reset outline width for other users of this shader
-    outlineShader->setFloat("outlineWidth", 0.0f); 
-
-    // Standard cleanup: restore state for next frame's rendering passes
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(GL_TRUE);
-    glStencilMask(0xFF);
-    glDisable(GL_STENCIL_TEST);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glEnable(GL_BLEND); // Restore blending for UI/transparent objects
 }
 
 void Renderer::RenderGeometryPass(const std::vector<std::shared_ptr<Entity>>& opaqueEntities)
@@ -1100,4 +1095,56 @@ void Renderer::RenderGeometryPass(const std::vector<std::shared_ptr<Entity>>& op
 
     glEnable(GL_BLEND);
     Framebuffer::Unbind();
+}
+
+void Renderer::RenderDeferredLightingPass(LightManager &lightManager, Framebuffer &sceneFBO, std::shared_ptr<Entity> skybox)
+{
+    if (!deferredLightingShader) {
+        deferredLightingShader = ResourceManager::LoadShader("deferred_lighting", 
+            "shaders/deferred/lighting.vs", 
+            "shaders/deferred/lighting.fs");
+    }
+
+    deferredLightingShader->use();
+
+    deferredLightingShader->setInt("shadowMap", Bindings::TEX_SLOT_CSM_SHADOW);
+    deferredLightingShader->setInt("pointShadowMap", Bindings::TEX_SLOT_POINT_SHADOW);
+    deferredLightingShader->setFloat("pointShadowFarPlane", pointShadowFar);
+
+    // 1. Bind G-Buffer Textures
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_POSITION);
+    glBindTexture(GL_TEXTURE_2D, gBuffer->GetColorTexture(0));
+    
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_NORMAL);
+    glBindTexture(GL_TEXTURE_2D, gBuffer->GetColorTexture(1));
+    
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_ALBEDO);
+    glBindTexture(GL_TEXTURE_2D, gBuffer->GetColorTexture(2));
+
+    // 2. Bind Global textures (Shadows + Skybox)
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_CSM_SHADOW);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, shadowFBO->GetDepthTexture());
+
+    if (skybox && skybox->skyboxComp) {
+        auto it = skybox->skyboxComp->material->textures.find("skybox");
+        if (it != skybox->skyboxComp->material->textures.end()) {
+            deferredLightingShader->setInt("skyboxTexture", Bindings::TEX_SLOT_SKYBOX);
+            glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_SKYBOX);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, it->second->ID);
+        }
+    }
+
+    // 3. Draw full screen quad to resolve lighting
+    RenderQuad();
+}
+
+void Renderer::CopyDepthBuffer(Framebuffer &source, Framebuffer &dest)
+{
+    // Blit the depth from the G-Buffer to the Scene FBO
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, source.GetID());
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dest.GetID());
+    glBlitFramebuffer(0, 0, source.Width(), source.Height(), 
+                      0, 0, dest.Width(), dest.Height(), 
+                      GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
