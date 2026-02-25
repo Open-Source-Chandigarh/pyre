@@ -34,7 +34,7 @@ vec3 GetDiffuseColor(vec2 uv)
 vec3 GetSpecularColor(vec2 uv) 
 {
     // we stored metallic/spec intensity in the alpha channel of albedo
-    return vec3(texture(gAlbedoSpec, uv).a);
+    return vec3(abs(texture(gAlbedoSpec, uv).a));
 }
 
 float GetShininess() {
@@ -49,7 +49,7 @@ void main()
 {
     // get base data from gBuffer geometry pass
     vec3 fragPos = texture(gPosition, TexCoords).rgb;
-    vec3 normal = texture(gNormal, TexCoords).rgb;
+    vec3 normal = normalize(texture(gNormal, TexCoords).rgb);
     float depth = texture(gPosition, TexCoords).a;
     float reflectivity = texture(gAlbedoSpec, TexCoords).a;
 

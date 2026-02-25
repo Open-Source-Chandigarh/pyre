@@ -47,7 +47,7 @@ void main()
     gNormal.rgb = N;
 
     float shininess = GetShininess();
-    float roughness = clamp(1.0 - (shininess / 256.0), 0.05, 1.0);
+    float roughness = clamp(1.0 - (shininess / 256.0), 0.0, 1.0);
     gNormal.a = roughness;
 
     vec3 albedo = material_diffuseColor;
