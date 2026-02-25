@@ -73,16 +73,11 @@ void InputManager::HandleScroll(double xoffset, double yoffset) {
 }
 
 void InputManager::HandleMouseButton(int button, int action, int mods) {
-    // Right Mouse Button: Hold to look
-    if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-        if (action == GLFW_PRESS) {
-            // Only capture if we are NOT clicking on an ImGui window
-            if (!ImGui::GetIO().WantCaptureMouse) {
-                SetMouseCaptured(true);
-            }
-        } else if (action == GLFW_RELEASE) {
-            // Always release if the button is let go
-            SetMouseCaptured(false);
+    // Right Mouse Button: Toggle mouse capture for camera rotation
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+        // Only capture when not interacting with ImGui UI, or if already captured
+        if (!ImGui::GetIO().WantCaptureMouse || mouseCaptured) {
+            SetMouseCaptured(!mouseCaptured);
         }
     }
 }
