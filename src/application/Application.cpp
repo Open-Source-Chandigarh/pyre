@@ -97,7 +97,7 @@ void Application::ConfigureInput()
     input->BindScroll([app](double y) {
         app->camera.ProcessMouseScroll((float)y);
     });
-    // Note: Mouse capture now uses RMB hold-to-look (handled in InputManager)
+    // Note: Mouse capture now uses RMB toggle-to-look (handled in InputManager)
 
     // scene switching
     auto SwitchScene = [app, winPtr](int offset) {
