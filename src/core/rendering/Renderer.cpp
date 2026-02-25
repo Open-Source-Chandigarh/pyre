@@ -284,10 +284,20 @@ void Renderer::RenderPass(const std::vector<std::shared_ptr<Entity>> &entities,
 
     for (auto &e : entities)
     {
-        // we skip transparent objects during shadow mapping because semi-transparent shadows are complex
+        if (!e->renderComp) continue;
+
+        std::shared_ptr<Material> overMat = e->renderComp->materialOverride;
+        std::shared_ptr<Material> baseMat = e->renderComp->nodes.empty() ? nullptr : e->renderComp->nodes[0].mesh->localMaterial;
+
+        bool isTransparent = overMat ? overMat->isTransparent : (baseMat ? baseMat->isTransparent : false);
+        bool forceForward = overMat ? overMat->GetBool("forceForward") : (baseMat ? baseMat->GetBool("forceForward") : false);
+
+        // we skip transparent objects during shadow mapping (and gbuffer passes) because semi-transparent shadows are complex
         // and usually require specific stochastic techniques not implemented here
-        if (shaderOverride && e->renderComp && e->renderComp->materialOverride && e->renderComp->materialOverride->isTransparent)
-            continue;
+        if (shaderOverride && isTransparent) continue;
+
+        // skip objects using a custom shader other than blinphong/pbr in the gBuffer these will be rendered later using forward pass
+        if (shaderOverride == gBufferShader && forceForward) continue;
 
         DrawEntityInPass(e.get(), shaderOverride, isShadowPass);
     }
@@ -690,6 +700,21 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
 
         CopyDepthBuffer(*gBuffer, sceneFBO);
         sceneFBO.Bind();
+        // draw the objects we skipped in the G-Buffer using their own custom shaders
+        for (auto &e : opaqueEntities) 
+        {
+            if (!e || !e->renderComp) continue;
+            bool forceFwd = false;
+
+            if (e->renderComp->materialOverride) 
+                forceFwd = e->renderComp->materialOverride->GetBool("forceForward");
+
+            else if (!e->renderComp->nodes.empty() && e->renderComp->nodes[0].mesh->localMaterial)
+                forceFwd = e->renderComp->nodes[0].mesh->localMaterial->GetBool("forceForward");
+
+            if (forceFwd) 
+                DrawEntityInPass(e.get(), nullptr, false); 
+        }
         if (skyboxEntity)
         {
             GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
@@ -744,7 +769,7 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
     }
 }
 
-std::vector<glm::vec4> Renderer::GetFrustumCornersWorldSpace(const glm::mat4& proj, const glm::mat4& view)
+std::vector<glm::vec4> Renderer::GetFrustumCornersWorldSpace(const glm::mat4 &proj, const glm::mat4 &view)
 {
     // to find where the camera is looking in world space, we invert the view-projection matrix
     const auto inv = glm::inverse(proj * view);

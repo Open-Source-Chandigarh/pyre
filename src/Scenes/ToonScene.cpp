@@ -30,6 +30,7 @@ void ToonScene::Init(AppState &appState)
         std::shared_ptr<Material> mat = std::make_shared<Material>();
         mat -> vec3s["material_diffuseColor"] = glm::vec3(0.9f, 0.2f, 0.1f);
         mat -> floats["material_shininess"] = 32.0f;
+        mat -> bools["forceForward"] = true;
         mat -> SetOutline(true, glm::vec3(0.0f, 0.0f, 0.0f));
 
         std::shared_ptr<Entity> e = Entity::Create("Toon Cube");
@@ -44,6 +45,7 @@ void ToonScene::Init(AppState &appState)
         std::shared_ptr<Material> mat = std::make_shared<Material>();
         mat -> vec3s["material_diffuseColor"] = glm::vec3(1.5f, 1.5f, 0.0f);
         mat -> floats["material_shininess"] = 32.0f;
+        mat -> bools["forceForward"] = true;
         mat -> SetOutline(true, glm::vec3(0.0f, 0.0f, 0.0f));
 
         std::shared_ptr<Entity> e = Entity::Create("Toon Sphere");
@@ -59,6 +61,7 @@ void ToonScene::Init(AppState &appState)
         std::shared_ptr<Material> mat = std::make_shared<Material>();
         mat -> vec3s["material_diffuseColor"] = glm::vec3(0.1f, 0.2f, 0.8f);
         mat -> floats["material_shininess"] = 32.0f;
+        mat -> bools["forceForward"] = true;
         mat -> SetOutline(true, glm::vec3(0.0f, 0.0f, 0.0f));
 
         std::shared_ptr<Entity> e = Entity::Create("Toon Torus");
