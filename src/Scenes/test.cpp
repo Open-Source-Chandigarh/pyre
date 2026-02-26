@@ -86,7 +86,7 @@ void Test::Init(AppState &appState)
     // cubeMat -> showNormals = true;
     // cubeMat -> outlineEnabled = true;
 
-    float spacing = 1.02f;
+    float spacing = 1.1f;
     float height = 1.1f;
     int base = 2;
 

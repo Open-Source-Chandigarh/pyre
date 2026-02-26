@@ -123,15 +123,23 @@ static json SerializeMaterial(const std::shared_ptr<Material>& mat)
     json texArray = json::array();
     for (const auto& [key, tex] : mat->textures)
     {
-        if (!tex) continue;
-        // Skip cubemaps/environment maps (they are procedural, not file-based)
-        if (tex->type == TextureType::TEX_CUBEMAP || tex->type == TextureType::TEX_ENVIRONMENT) continue;
-        if (tex->path.empty()) continue; // Can't serialize without a path
-        
         json texJson;
         texJson["key"] = key;
-        texJson["path"] = tex->path;
-        texJson["type"] = TextureTypeToString(tex->type);
+
+        if (!tex)
+        {
+            texJson["path"] = "";
+            texJson["type"] = "none";
+        }
+        else
+        {
+            // Skip cubemaps/environment maps (they are procedural, not file-based)
+            if (tex->type == TextureType::TEX_CUBEMAP || tex->type == TextureType::TEX_ENVIRONMENT) continue;
+            if (tex->path.empty()) continue; // Can't serialize without a path
+            
+            texJson["path"] = tex->path;
+            texJson["type"] = TextureTypeToString(tex->type);
+        }
         texArray.push_back(texJson);
     }
     j["textures"] = texArray; // Always include textures array to handle removals
@@ -196,6 +204,13 @@ static void DeserializeMaterial(std::shared_ptr<Material>& mat, const json& j)
             
             std::string key  = texJson["key"].get<std::string>();
             std::string path = texJson["path"].get<std::string>();
+            
+            if (path.empty())
+            {
+                mat->textures[key] = nullptr;
+                continue;
+            }
+
             TextureType type = StringToTextureType(texJson["type"].get<std::string>());
             
             auto tex = ResourceManager::LoadTexture(path, type);

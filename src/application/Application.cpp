@@ -391,13 +391,27 @@ void Application::Run()
 
                     // Outline / Bloom
                     bool outline = mat->GetBool("outlineEnabled");
-                    if (ImGui::Checkbox("Outline / Glow", &outline)) mat->bools["outlineEnabled"] = outline;
+                    if (ImGui::Checkbox("Outline / Glow", &outline)) { 
+                        mat->SetOutline(outline, mat->GetVec3("outlineColor", glm::vec3(1.0f)), mat->GetFloat("bloomFactor", 0.0f), mat->GetFloat("outlineThickness", 0.05f));
+                    }
                     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Enable bloom outline effect for this object");
                     
                     if (outline)
                     {
-                        ImGui::ColorEdit3("Glow Color", &mat->vec3s["outlineColor"].x);
-                        ImGui::DragFloat("Bloom Factor", &mat->floats["bloomFactor"], 0.1f, 0.0f, 10.0f);
+                        glm::vec3 gc = mat->GetVec3("outlineColor", glm::vec3(1.0f));
+                        if (ImGui::ColorEdit3("Glow Color", &gc.x)) { 
+                            mat->SetOutline(outline, gc, mat->GetFloat("bloomFactor", 0.0f), mat->GetFloat("outlineThickness", 0.05f)); 
+                        }
+                        
+                        float bf = mat->GetFloat("bloomFactor", 0.0f);
+                        if (ImGui::DragFloat("Bloom Factor", &bf, 0.1f, 0.0f, 10.0f)) { 
+                            mat->SetOutline(outline, mat->GetVec3("outlineColor", glm::vec3(1.0f)), bf, mat->GetFloat("outlineThickness", 0.05f)); 
+                        }
+                        
+                        float ot = mat->GetFloat("outlineThickness", 0.05f);
+                        if (ImGui::DragFloat("Outline Thickness", &ot, 0.005f, 0.0f, 0.5f)) { 
+                            mat->SetOutline(outline, mat->GetVec3("outlineColor", glm::vec3(1.0f)), mat->GetFloat("bloomFactor", 0.0f), ot); 
+                        }
                     }
 
                     // Texture Preview & Management
@@ -441,10 +455,9 @@ void Application::Run()
                             ImGui::Separator();
                         }
                         
-                        // Deferred removal
                         if (!keyToRemove.empty())
                         {
-                            mat->textures.erase(keyToRemove);
+                            mat->textures[keyToRemove] = nullptr;
                         }
 
                         // Add/Replace Texture Logic

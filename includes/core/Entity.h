@@ -89,6 +89,19 @@ struct Entity
             auto newMat = std::make_shared<Material>(*renderComp->materialOverride);
             renderComp->materialOverride = newMat;
         }
+
+        // pull base mesh textures into override so they show up in the editor
+        if (!renderComp->nodes.empty() && renderComp->nodes[0].mesh && renderComp->nodes[0].mesh->localMaterial)
+        {
+            auto baseMat = renderComp->nodes[0].mesh->localMaterial;
+            for (const auto& [key, tex] : baseMat->textures)
+            {
+                if (renderComp->materialOverride->textures.find(key) == renderComp->materialOverride->textures.end())
+                {
+                    renderComp->materialOverride->textures[key] = tex;
+                }
+            }
+        }
         
         return renderComp->materialOverride;
     }
