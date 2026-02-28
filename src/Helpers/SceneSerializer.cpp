@@ -71,6 +71,24 @@ static void DeserializeTransform(Transform& t, const json& j)
     if (j.contains("scale"))    t.scale    = JsonToVec3(j["scale"], glm::vec3(1.0f));
 }
 
+// CullMode <-> string conversion
+static std::string CullModeToString(CullMode mode)
+{
+    switch (mode)
+    {
+        case CullMode::Front: return "front";
+        case CullMode::None:  return "none";
+        default:              return "back";
+    }
+}
+
+static CullMode StringToCullMode(const std::string& str)
+{
+    if (str == "front") return CullMode::Front;
+    if (str == "none")  return CullMode::None;
+    return CullMode::Back;
+}
+
 // Serialize MaterialOverride (only the editable properties)
 static json SerializeMaterial(const std::shared_ptr<Material>& mat)
 {
@@ -96,20 +114,32 @@ static json SerializeMaterial(const std::shared_ptr<Material>& mat)
         j["bools"][key] = val;
     }
     
+    // CullMode and transparency
+    j["cullMode"] = CullModeToString(mat->cullMode);
+    j["isTransparent"] = mat->isTransparent;
+    
     // Textures (save path + type so they can be reloaded)
     // Always serialize textures array (even if empty) to handle removals correctly
     json texArray = json::array();
     for (const auto& [key, tex] : mat->textures)
     {
-        if (!tex) continue;
-        // Skip cubemaps/environment maps (they are procedural, not file-based)
-        if (tex->type == TextureType::TEX_CUBEMAP || tex->type == TextureType::TEX_ENVIRONMENT) continue;
-        if (tex->path.empty()) continue; // Can't serialize without a path
-        
         json texJson;
         texJson["key"] = key;
-        texJson["path"] = tex->path;
-        texJson["type"] = TextureTypeToString(tex->type);
+
+        if (!tex)
+        {
+            texJson["path"] = "";
+            texJson["type"] = "none";
+        }
+        else
+        {
+            // Skip cubemaps/environment maps (they are procedural, not file-based)
+            if (tex->type == TextureType::TEX_CUBEMAP || tex->type == TextureType::TEX_ENVIRONMENT) continue;
+            if (tex->path.empty()) continue; // Can't serialize without a path
+            
+            texJson["path"] = tex->path;
+            texJson["type"] = TextureTypeToString(tex->type);
+        }
         texArray.push_back(texJson);
     }
     j["textures"] = texArray; // Always include textures array to handle removals
@@ -147,14 +177,22 @@ static void DeserializeMaterial(std::shared_ptr<Material>& mat, const json& j)
         }
     }
     
+    // CullMode and transparency
+    if (j.contains("cullMode"))
+        mat->cullMode = StringToCullMode(j["cullMode"].get<std::string>());
+    if (j.contains("isTransparent"))
+        mat->isTransparent = j["isTransparent"].get<bool>();
+    
     // Textures: reload from file paths
     if (j.contains("textures"))
     {
         // Clear existing serializable textures to handle removals correctly
+        // Guard against null texture pointers to prevent crash
         auto it = mat->textures.begin();
         while (it != mat->textures.end())
         {
-            if (it->second->type != TextureType::TEX_CUBEMAP && it->second->type != TextureType::TEX_ENVIRONMENT)
+            if (!it->second || 
+                (it->second->type != TextureType::TEX_CUBEMAP && it->second->type != TextureType::TEX_ENVIRONMENT))
                 it = mat->textures.erase(it);
             else
                 ++it;
@@ -166,6 +204,13 @@ static void DeserializeMaterial(std::shared_ptr<Material>& mat, const json& j)
             
             std::string key  = texJson["key"].get<std::string>();
             std::string path = texJson["path"].get<std::string>();
+            
+            if (path.empty())
+            {
+                mat->textures[key] = nullptr;
+                continue;
+            }
+
             TextureType type = StringToTextureType(texJson["type"].get<std::string>());
             
             auto tex = ResourceManager::LoadTexture(path, type);
@@ -206,131 +251,11 @@ static void DeserializeEntity(std::shared_ptr<Entity>& e, const json& j)
     
     if (j.contains("materialOverride") && e->renderComp)
     {
+        // Ensure entity has a unique material before deserializing properties into it
+        // This prevents state leaks across shared materials (e.g. all cubes getting outlines)
+        e->GetUniqueMaterial(); 
         DeserializeMaterial(e->renderComp->materialOverride, j["materialOverride"]);
     }
-}
-
-bool SceneSerializer::Serialize(Scene* scene, const std::string& filepath)
-{
-    if (!scene)
-    {
-        std::cerr << "[SceneSerializer] Error: Scene is null\n";
-        return false;
-    }
-    
-    json root;
-    root["version"] = VERSION;
-    
-    // Scene metadata
-    root["scene"]["name"] = scene->Name();
-    root["scene"]["clearColor"] = Vec3ToJson(scene->clearColor);
-    
-    // Entities
-    json entitiesArray = json::array();
-    for (const auto& e : scene->GetEntities())
-    {
-        if (!e) continue;
-        // Skip skybox entities (they're procedural, not serializable)
-        if (e->skyboxComp) continue;
-        
-        entitiesArray.push_back(SerializeEntity(e));
-    }
-    root["entities"] = entitiesArray;
-    
-    // Ensure directory exists
-    std::filesystem::path path(filepath);
-    if (path.has_parent_path())
-    {
-        std::filesystem::create_directories(path.parent_path());
-    }
-
-    // Write to file
-    std::ofstream file(filepath);
-    if (!file.is_open())
-    {
-        std::cerr << "[SceneSerializer] Error: Could not open file for writing: " << filepath << "\n";
-        return false;
-    }
-    
-    file << root.dump(2); // Pretty print with 2-space indent
-    file.close();
-    
-    std::cout << "[SceneSerializer] Scene saved to: " << filepath << "\n";
-    return true;
-}
-
-bool SceneSerializer::Deserialize(Scene* scene, const std::string& filepath)
-{
-    if (!scene)
-    {
-        std::cerr << "[SceneSerializer] Error: Scene is null\n";
-        return false;
-    }
-    
-    std::ifstream file(filepath);
-    if (!file.is_open())
-    {
-        std::cerr << "[SceneSerializer] Error: Could not open file for reading: " << filepath << "\n";
-        return false;
-    }
-    
-    json root;
-    try
-    {
-        file >> root;
-    }
-    catch (const json::parse_error& e)
-    {
-        std::cerr << "[SceneSerializer] JSON parse error: " << e.what() << "\n";
-        return false;
-    }
-    file.close();
-    
-    // Version check (for future compatibility)
-    if (root.contains("version"))
-    {
-        std::string ver = root["version"].get<std::string>();
-        if (ver != VERSION)
-        {
-            std::cout << "[SceneSerializer] Warning: File version " << ver 
-                      << " differs from current " << VERSION << "\n";
-        }
-    }
-    
-    // Load scene metadata
-    if (root.contains("scene"))
-    {
-        if (root["scene"].contains("clearColor"))
-        {
-            scene->clearColor = JsonToVec3(root["scene"]["clearColor"]);
-        }
-    }
-    
-    // Load entity data: Find existing or Create new
-    if (root.contains("entities"))
-    {
-        for (const auto& entityJson : root["entities"])
-        {
-            if (!entityJson.contains("name")) continue;
-            std::string name = entityJson["name"].get<std::string>();
-            
-            // 1. Try to find existing entity (for state restoration)
-            std::shared_ptr<Entity> entity = scene->FindEntityByName(name);
-            
-            // 2. If not found, CREATE it (for level loading)
-            if (!entity)
-            {
-                entity = scene->CreateEntity(name);
-                std::cout << "[SceneSerializer] Spawning new entity: " << name << "\n";
-            }
-            
-            // 3. Apply deserialized data
-            DeserializeEntity(entity, entityJson);
-        }
-    }
-    
-    std::cout << "[SceneSerializer] Scene loaded from: " << filepath << "\n";
-    return true;
 }
 
 // ============================================================================
@@ -420,6 +345,38 @@ static void DeserializePostProcessing(PostProcessingPipeline* pipeline, const js
     }
 }
 
+static json SerializeSpotLight(const SpotLight& sl)
+{
+    json j;
+    j["position"]    = Vec3ToJson(sl.position);
+    j["direction"]   = Vec3ToJson(sl.direction);
+    j["ambient"]     = Vec3ToJson(sl.ambient);
+    j["diffuse"]     = Vec3ToJson(sl.diffuse);
+    j["specular"]    = Vec3ToJson(sl.specular);
+    j["constant"]    = sl.constant;
+    j["linear"]      = sl.linear;
+    j["quadratic"]   = sl.quadratic;
+    j["innerCutOff"] = sl.innerCutOff;
+    j["outerCutOff"] = sl.outerCutOff;
+    j["enabled"]     = sl.enabled;
+    return j;
+}
+
+static void DeserializeSpotLight(SpotLight& sl, const json& j)
+{
+    if (j.contains("position"))    sl.position    = JsonToVec3(j["position"]);
+    if (j.contains("direction"))   sl.direction   = JsonToVec3(j["direction"]);
+    if (j.contains("ambient"))     sl.ambient     = JsonToVec3(j["ambient"]);
+    if (j.contains("diffuse"))     sl.diffuse     = JsonToVec3(j["diffuse"]);
+    if (j.contains("specular"))    sl.specular    = JsonToVec3(j["specular"]);
+    if (j.contains("constant"))    sl.constant    = j["constant"].get<float>();
+    if (j.contains("linear"))      sl.linear      = j["linear"].get<float>();
+    if (j.contains("quadratic"))   sl.quadratic   = j["quadratic"].get<float>();
+    if (j.contains("innerCutOff")) sl.innerCutOff = j["innerCutOff"].get<float>();
+    if (j.contains("outerCutOff")) sl.outerCutOff = j["outerCutOff"].get<float>();
+    if (j.contains("enabled"))     sl.enabled     = j["enabled"].get<bool>();
+}
+
 static json SerializeLights(LightManager* lm)
 {
     json j;
@@ -437,6 +394,14 @@ static json SerializeLights(LightManager* lm)
         pointsArray.push_back(SerializePointLight(pl));
     }
     j["points"] = pointsArray;
+    
+    // Spot Lights
+    json spotsArray = json::array();
+    for (const auto& sl : lm->spots)
+    {
+        spotsArray.push_back(SerializeSpotLight(sl));
+    }
+    j["spots"] = spotsArray;
     
     return j;
 }
@@ -461,13 +426,25 @@ static void DeserializeLights(LightManager* lm, const json& j)
         for (const auto& lightJson : j["points"])
         {
             PointLight pl;
-            // Set sensible defaults
             pl.constant = 1.0f;
             pl.linear = 0.09f;
             pl.quadratic = 0.032f;
             
             DeserializePointLight(pl, lightJson);
             lm->AddPointLight(pl); // 2. Add new light from JSON
+        }
+    }
+    
+    // Spot Lights - CLEAR & REBUILD
+    if (j.contains("spots"))
+    {
+        lm->ClearSpotLights();
+        
+        for (const auto& lightJson : j["spots"])
+        {
+            SpotLight sl;
+            DeserializeSpotLight(sl, lightJson);
+            lm->AddSpotLight(sl);
         }
     }
 }

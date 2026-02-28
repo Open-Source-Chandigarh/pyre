@@ -263,9 +263,9 @@ void Renderer::DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverrid
         // Calculate Transform
         glm::mat4 nodeMatrix = e->transform.GetModelMatrix() * node.localTransform;
         if (isShadowPass)
-            SubmitMesh(nodeMatrix, *node.mesh, currentShader, nullptr, nullptr, e->renderComp->instanceCount);
+            SubmitMesh(nodeMatrix, *node.mesh, currentShader, nullptr, nullptr, e->renderComp->instanceCount, true);
         else
-            SubmitMesh(nodeMatrix, *node.mesh, currentShader, baseMat, overrideMat, e->renderComp->instanceCount);
+            SubmitMesh(nodeMatrix, *node.mesh, currentShader, baseMat, overrideMat, e->renderComp->instanceCount, false);
     }
 }
 
@@ -285,19 +285,6 @@ void Renderer::RenderPass(const std::vector<std::shared_ptr<Entity>> &entities,
     for (auto &e : entities)
     {
         if (!e->renderComp) continue;
-
-        std::shared_ptr<Material> overMat = e->renderComp->materialOverride;
-        std::shared_ptr<Material> baseMat = e->renderComp->nodes.empty() ? nullptr : e->renderComp->nodes[0].mesh->localMaterial;
-
-        bool isTransparent = overMat ? overMat->isTransparent : (baseMat ? baseMat->isTransparent : false);
-        bool forceForward = overMat ? overMat->GetBool("forceForward") : (baseMat ? baseMat->GetBool("forceForward") : false);
-
-        // we skip transparent objects during shadow mapping (and gbuffer passes) because semi-transparent shadows are complex
-        // and usually require specific stochastic techniques not implemented here
-        if (shaderOverride && isTransparent) continue;
-
-        // skip objects using a custom shader other than blinphong/pbr in the gBuffer these will be rendered later using forward pass
-        if (shaderOverride == gBufferShader && forceForward) continue;
 
         DrawEntityInPass(e.get(), shaderOverride, isShadowPass);
     }
@@ -894,7 +881,8 @@ void Renderer::SubmitMesh(const glm::mat4& model,
                           const std::shared_ptr<Shader>& shader, 
                           const std::shared_ptr<Material>& baseMat,
                           const std::shared_ptr<Material>& overrideMat,
-                          int instanceCount)
+                          int instanceCount,
+                          bool isShadowPass)
 {
     if (!shader) return;
 
@@ -924,15 +912,17 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     glm::vec3 outlineCol(1.0f);
     float bloomFactor = 0.0f;
 
-    if (overrideMat && overrideMat->bools.count("outlineEnabled")) {
-        doOutline = overrideMat->GetBool("outlineEnabled");
-        outlineCol = overrideMat->GetVec3("outlineColor");
-        bloomFactor = overrideMat->GetFloat("bloomFactor");
-    } 
-    else if (activeBase->GetBool("outlineEnabled")) {
-        doOutline = true;
-        outlineCol = activeBase->GetVec3("outlineColor");
-        bloomFactor = activeBase->GetFloat("bloomFactor");
+    if (!isShadowPass) {
+        if (overrideMat && overrideMat->bools.count("outlineEnabled")) {
+            doOutline = overrideMat->GetBool("outlineEnabled");
+            outlineCol = overrideMat->GetVec3("outlineColor");
+            bloomFactor = overrideMat->GetFloat("bloomFactor");
+        } 
+        else if (activeBase->GetBool("outlineEnabled")) {
+            doOutline = true;
+            outlineCol = activeBase->GetVec3("outlineColor");
+            bloomFactor = activeBase->GetFloat("bloomFactor");
+        }
     }
 
     // Culling

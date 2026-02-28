@@ -17,14 +17,14 @@ vec3 sampleOffsetDirections[20] = vec3[]
    vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
 
-float CalcPointShadow(int lightIndex, vec3 fragPos, vec3 lightPos)
+float CalcPointShadow(int lightIndex, vec3 fragPos, vec3 lightPos, vec3 normal)
 {
     vec3 fragToLight = fragPos - lightPos;
     float currentDepth = length(fragToLight);
     
-    // We must manually bias the depth before comparison to prevent "Shadow Acne"
-    // 0.05 is a safe starting value for large scenes
-    float bias = 0.1; 
+    // dynamic bias based on surface angle to prevent shadow acne
+    vec3 lightDir = normalize(lightPos - fragPos);
+    float bias = max(0.5 * (1.0 - dot(normal, lightDir)), 0.1); 
     
     // Map the depth to [0, 1] range just like we did when rendering the shadow map
     float normalizedDepth = (currentDepth - bias) / pointShadowFarPlane;
@@ -227,7 +227,7 @@ vec3 CalcPointLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv)
     diffuse  *= attenuation;
     specular *= attenuation;
 
-    float shadow = CalcPointShadow(idx, fragPos, vec3(point_position[idx]));
+    float shadow = CalcPointShadow(idx, fragPos, vec3(point_position[idx]), normal);
 
     return ambient + (1.0 - shadow) * (diffuse + specular);
 }

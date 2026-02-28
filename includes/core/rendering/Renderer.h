@@ -38,7 +38,8 @@ public:
                     const std::shared_ptr<Shader> &shader, 
                     const std::shared_ptr<Material> &baseMat,
                     const std::shared_ptr<Material> &overrideMat,
-                    int instanceCount = 1);
+                    int instanceCount = 1,
+                    bool isShadowPass = false);
 
     void SubmitSkybox(const Mesh &mesh, 
                       const std::shared_ptr<Shader> &shader, 

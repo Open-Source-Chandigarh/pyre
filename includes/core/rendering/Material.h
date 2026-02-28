@@ -45,11 +45,12 @@ struct Material
         return (it != floats.end()) ? it->second : defaultVal;
     }
 
-    void SetOutline(bool enabled, glm::vec3 color = glm::vec3(1.0f), float bloomFactor = 0.0f) 
+    void SetOutline(bool enabled, glm::vec3 color = glm::vec3(1.0f), float bloomFactor = 0.0f, float outlineThickness = 0.05f) 
     {
         bools["outlineEnabled"] = enabled;
         vec3s["outlineColor"] = color;
-        floats["bloomFactor"] = bloomFactor; 
+        floats["bloomFactor"] = bloomFactor;
+        floats["outlineThickness"] = outlineThickness;
     }
 
     void SetShadows(bool enabled) 
@@ -88,7 +89,16 @@ struct Material
         {
             const std::string& uniformName = kv.first;
             std::shared_ptr<Texture> tex = kv.second;
-            if (!tex) continue;
+            if (!tex) 
+            {
+                // if this is an override and the texture was explicitly removed, disable it
+                if (isOverride)
+                {
+                    std::string flagName = uniformName + "_present";
+                    if (shader.hasUniform(flagName)) shader.setInt(flagName, 0);
+                }
+                continue;
+            }
 
             // determine slot based on type
             int slot = -1;
