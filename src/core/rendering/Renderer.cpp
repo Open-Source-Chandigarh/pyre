@@ -680,7 +680,7 @@ void Renderer::UploadMeshUniforms(const std::shared_ptr<Shader> &shader, const g
     if (shader->hasUniform("viewPos"))          shader->setVec3("viewPos", viewPosition);
 }
 
-void Renderer::RenderMeshOutline(const Mesh &mesh, const glm::mat4 &model, const glm::vec3 &color, float bloomFactor)
+void Renderer::RenderMeshOutline(const Mesh &mesh, const glm::mat4 &model, const glm::vec3 &color, float bloomFactor, float outlineThickness)
 {
     // if the shader failed to load earlier, we simply skip the effect to avoid crashing
     if (!outlineShader) return;
@@ -693,7 +693,7 @@ void Renderer::RenderMeshOutline(const Mesh &mesh, const glm::mat4 &model, const
     outlineShader->use();
     
     // we scale the model up slightly to create the thickness of the outline
-    glm::mat4 outlineModel = glm::scale(model, glm::vec3(1.03f)); 
+    glm::mat4 outlineModel = glm::scale(model, glm::vec3(1.0f + outlineThickness)); 
 
     outlineShader->setMat4("model", outlineModel);
     outlineShader->setMat4("view", viewMatrix);
@@ -765,19 +765,25 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     bool doOutline = false;
     glm::vec3 outlineCol(1.0f);
     float bloomFactor = 0.0f;
+    float outlineThickness = 0.05f;
 
     if (!isShadowPass) {
         if (overrideMat && overrideMat->bools.count("outlineEnabled")) {
             doOutline = overrideMat->GetBool("outlineEnabled");
             outlineCol = overrideMat->GetVec3("outlineColor");
             bloomFactor = overrideMat->GetFloat("bloomFactor");
+            outlineThickness = overrideMat->GetFloat("outlineThickness", 0.05f);
         } 
         else if (activeBase->GetBool("outlineEnabled")) {
             doOutline = true;
             outlineCol = activeBase->GetVec3("outlineColor");
             bloomFactor = activeBase->GetFloat("bloomFactor");
+            outlineThickness = activeBase->GetFloat("outlineThickness", 0.05f);
         }
     }
+
+    // Force outlines globally
+    if (forceOutlines && !isShadowPass) doOutline = true;
 
     // Culling
     CullMode currentCull = activeBase->cullMode;
@@ -803,7 +809,7 @@ void Renderer::SubmitMesh(const glm::mat4& model,
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
     if (doOutline)
-        RenderMeshOutline(mesh, model, outlineCol, bloomFactor);
+        RenderMeshOutline(mesh, model, outlineCol, bloomFactor, outlineThickness);
 
     if (doNormals)
         RenderMeshNormals(mesh, model);

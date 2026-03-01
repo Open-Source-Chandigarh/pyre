@@ -19,14 +19,14 @@ public:
     void Run();
 
 private:
-    // Core Subsystems
+    // core Subsystems
     std::unique_ptr<Window> window;
     std::unique_ptr<AppState> appState;
     InputMapper inputMapper;
 
-    // Internal Methods
-    void Init();
-    void ConfigureInput();
+    // internal Helpers
+    void Init();       // setup scenes, render defaults
+    void ConfigureInput(); // bind keys to AppState logic
     void Update(float dt);
     void Render();
 };

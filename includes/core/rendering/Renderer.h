@@ -48,6 +48,7 @@ public:
 
     std::shared_ptr<Shader> outlineShader;
     std::shared_ptr<Shader> normalShader;
+    bool forceOutlines = false;
 
 private:
     // internal initialization helpers
@@ -147,7 +148,7 @@ private:
     void UploadMeshUniforms(const std::shared_ptr<Shader> &shader, const glm::mat4 &model);
 
     // draws the slightly scaled outline mesh if enabled
-    void RenderMeshOutline(const Mesh &mesh, const glm::mat4 &model, const glm::vec3 &color, float bloomFactor);
+    void RenderMeshOutline(const Mesh &mesh, const glm::mat4 &model, const glm::vec3 &color, float bloomFactor, float outlineThickness);
 
     // draws debug lines for vertex normals if enabled
     void RenderMeshNormals(const Mesh &mesh, const glm::mat4 &model);
