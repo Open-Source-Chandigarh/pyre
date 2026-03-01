@@ -409,7 +409,7 @@ void Application::Run()
                         }
                         
                         float ot = mat->GetFloat("outlineThickness", 0.05f);
-                        if (ImGui::DragFloat("Outline Thickness", &ot, 0.005f, 0.0f, 0.5f)) { 
+                        if (ImGui::DragFloat("Outline Thickness", &ot, 0.005f, 0.0f, 5.0f)) { 
                             mat->SetOutline(outline, mat->GetVec3("outlineColor", glm::vec3(1.0f)), mat->GetFloat("bloomFactor", 0.0f), ot); 
                         }
                     }
@@ -615,11 +615,16 @@ void Application::Run()
             }
             if (ImGui::IsItemHovered()) ImGui::SetTooltip("Global toggle for wireframe rendering");
 
-                        Renderer* renderer = appState->renderer.get();
+            Renderer* renderer = appState->renderer.get();
             if (renderer)
             {
                 ImGui::Separator();
                 
+                ImGui::Checkbox("Force Outlines", &renderer->forceOutlines);
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Globally force outlines on all objects");
+                
+                ImGui::Separator();
+
                 // MSAA Toggle (Informational / Toggle bit)
                 static bool msaa = true;
                 if (ImGui::Checkbox("Anti-Aliasing (MSAA)", &msaa))

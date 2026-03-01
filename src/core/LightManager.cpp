@@ -65,35 +65,38 @@ void LightManager::UploadLightsToGPU()
     data.dir_specular = glm::vec4(dirSpec, 0.0f);
 
     // point lights
-    int pcount = std::min((int)points.size(), GLSL_MAX_POINT_LIGHTS);
-    data.numPointLights = pcount;
-    for (int i = 0; i < pcount; ++i) {
+    int pcount = 0;
+    for (size_t i = 0; i < points.size() && pcount < GLSL_MAX_POINT_LIGHTS; ++i) {
+        if (!points[i].enabled) continue;
+
         const auto& p = points[i];
-        data.point_position[i] = glm::vec4(p.position, 0.0f);
+        data.point_position[pcount] = glm::vec4(p.position, 0.0f);
+        data.point_ambient[pcount]  = glm::vec4(p.ambient, 0.0f);
+        data.point_diffuse[pcount]  = glm::vec4(p.diffuse, 0.0f);
+        data.point_specular[pcount] = glm::vec4(p.specular, 0.0f);
+        data.point_params[pcount]   = glm::vec4(p.constant, p.linear, p.quadratic, 0.0f);
         
-        glm::vec4 zero(0.0f);
-        data.point_ambient[i]  = p.enabled ? glm::vec4(p.ambient, 0.0f)  : zero;
-        data.point_diffuse[i]  = p.enabled ? glm::vec4(p.diffuse, 0.0f)  : zero;
-        data.point_specular[i] = p.enabled ? glm::vec4(p.specular, 0.0f) : zero;
-        data.point_params[i] = glm::vec4(p.constant, p.linear, p.quadratic, 0.0f);
+        pcount++;
     }
+    data.numPointLights = pcount;
 
     // spot lights
-    int scount = std::min((int)spots.size(), GLSL_MAX_SPOT_LIGHTS);
-    data.numSpotLights = scount;
-    for (int i = 0; i < scount; ++i) 
+    int scount = 0;
+    for (size_t i = 0; i < spots.size() && scount < GLSL_MAX_SPOT_LIGHTS; ++i) 
     {
-        const auto& s = spots[i];
-        data.spot_position[i] = glm::vec4(s.position, 0.0f);
-        data.spot_direction[i] = glm::vec4(s.direction, 0.0f);
-        data.spot_cutoffs[i] = glm::vec4(s.innerCutOff, s.outerCutOff, 0.0f, 0.0f);
+        if (!spots[i].enabled) continue;
         
-        glm::vec4 zero(0.0f);
-        data.spot_ambient[i]  = s.enabled ? glm::vec4(s.ambient, 0.0f)  : zero;
-        data.spot_diffuse[i]  = s.enabled ? glm::vec4(s.diffuse, 0.0f)  : zero;
-        data.spot_specular[i] = s.enabled ? glm::vec4(s.specular, 0.0f) : zero;
-        data.spot_params[i] = glm::vec4(s.constant, s.linear, s.quadratic, 0.0f);
+        const auto& s = spots[i];
+        data.spot_position[scount] = glm::vec4(s.position, 0.0f);
+        data.spot_direction[scount] = glm::vec4(s.direction, 0.0f);
+        data.spot_cutoffs[scount] = glm::vec4(s.innerCutOff, s.outerCutOff, 0.0f, 0.0f);
+        data.spot_ambient[scount]  = glm::vec4(s.ambient, 0.0f);
+        data.spot_diffuse[scount]  = glm::vec4(s.diffuse, 0.0f);
+        data.spot_specular[scount]  = glm::vec4(s.specular, 0.0f);
+        data.spot_params[scount] = glm::vec4(s.constant, s.linear, s.quadratic, 0.0f);
+        scount++;
     }
+    data.numSpotLights = scount;
 
     // upload to gpu using wrapper
     lightUBO -> UploadData(&data, sizeof(LightsData));
@@ -109,45 +112,47 @@ void LightManager::ApplyToShader(Shader& shader, Renderer& renderer,
     shader.setVec3("dirLight.diffuse", dirDiffuse);
     shader.setVec3("dirLight.specular", dirSpec);
 
-    // clamp sizes to shader capacity
-    int pointCount = static_cast<int>(std::min(points.size(), (size_t)GLSL_MAX_POINT_LIGHTS));
-    int spotCount = static_cast<int>(std::min(spots.size(), (size_t)GLSL_MAX_SPOT_LIGHTS));
-
-    shader.setInt("numPointLights", pointCount);
-    for (int i = 0; i < pointCount; ++i) 
+    int pcount = 0;
+    for (size_t i = 0; i < points.size() && pcount < GLSL_MAX_POINT_LIGHTS; ++i) 
     {
+        if (!points[i].enabled) continue;
+
         const auto& p = points[i];
-        std::string base = "pointLights[" + std::to_string(i) + "].";
+        std::string base = "pointLights[" + std::to_string(pcount) + "].";
         shader.setVec3((base + "position").c_str(), p.position);
         
-        glm::vec3 zero(0.0f);
-        shader.setVec3((base + "ambient").c_str(), p.enabled ? p.ambient : zero);
-        shader.setVec3((base + "diffuse").c_str(), p.enabled ? p.diffuse : zero);
-        shader.setVec3((base + "specular").c_str(), p.enabled ? p.specular : zero);
+        shader.setVec3((base + "ambient").c_str(), p.ambient);
+        shader.setVec3((base + "diffuse").c_str(), p.diffuse);
+        shader.setVec3((base + "specular").c_str(), p.specular);
         
         shader.setFloat((base + "constant").c_str(), p.constant);
         shader.setFloat((base + "linear").c_str(), p.linear);
         shader.setFloat((base + "quadratic").c_str(), p.quadratic);
+        pcount++;
     }
+    shader.setInt("numPointLights", pcount);
 
-    shader.setInt("numSpotLights", spotCount);
-    for (int i = 0; i < spotCount; ++i) {
+    int scount = 0;
+    for (size_t i = 0; i < spots.size() && scount < GLSL_MAX_SPOT_LIGHTS; ++i) {
+        if (!spots[i].enabled) continue;
+
         const auto& s = spots[i];
-        std::string base = "spotLights[" + std::to_string(i) + "]."; 
+        std::string base = "spotLights[" + std::to_string(scount) + "]."; 
         shader.setVec3((base + "position").c_str(), s.position);
         shader.setVec3((base + "direction").c_str(), s.direction);
         shader.setFloat((base + "innerCutOff").c_str(), s.innerCutOff);
         shader.setFloat((base + "outerCutOff").c_str(), s.outerCutOff);
         
-        glm::vec3 zero(0.0f);
-        shader.setVec3((base + "ambient").c_str(), s.enabled ? s.ambient : zero);
-        shader.setVec3((base + "diffuse").c_str(), s.enabled ? s.diffuse : zero);
-        shader.setVec3((base + "specular").c_str(), s.enabled ? s.specular : zero);
+        shader.setVec3((base + "ambient").c_str(), s.ambient);
+        shader.setVec3((base + "diffuse").c_str(), s.diffuse);
+        shader.setVec3((base + "specular").c_str(), s.specular);
 
         shader.setFloat((base + "constant").c_str(), s.constant);
         shader.setFloat((base + "linear").c_str(), s.linear);
         shader.setFloat((base + "quadratic").c_str(), s.quadratic);
+        scount++;
     }
+    shader.setInt("numSpotLights", scount);
 }
 
 void LightManager::RenderDebugLights(
