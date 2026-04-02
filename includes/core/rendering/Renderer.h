@@ -44,6 +44,9 @@ public:
                       const std::shared_ptr<Shader> &shader, 
                       const std::shared_ptr<Material> &mat);
 
+    // debug gbuffer
+    void RenderGBufferImGuiWindow();
+
     void EndScene();
 
     std::shared_ptr<Shader> outlineShader;
@@ -68,6 +71,8 @@ private:
     // creates the shadow framebuffer for point lights if it doesn't exist yet
     void EnsurePointShadowBuffer();
 
+    void EnsureGBuffer(unsigned int width, unsigned int height);
+
     // creates the uniform buffer for csm shadow matrices
     void CreateShadowUBO();
 
@@ -75,6 +80,9 @@ private:
     void CreatePointShadowUBO();
 
     // render pass logic
+
+    // render opaque objects to gbuffer
+    void RenderGeometryPass(const std::vector<std::shared_ptr<Entity>> &opaque);
 
     // helper to draw a single entity based on its components (mesh vs model)
     void DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverride, bool isShadowPass = false);
@@ -163,6 +171,10 @@ private:
     float cameraFarPlane;
     float cameraNearPlane;
     std::unique_ptr<UniformBuffer> cameraUBO; // binding 0
+
+    // g-buffer
+    std::unique_ptr<Framebuffer> gBufferFBO;
+    std::shared_ptr<Shader> gBufferShader;
 
     // shadow mapping resources
 

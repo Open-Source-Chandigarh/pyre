@@ -688,6 +688,10 @@ void Application::Run()
                 }
             }
         }
+
+        if (appState->renderer)
+            appState->renderer->RenderGBufferImGuiWindow();
+            
         ImGui::End();
 
         ImGui::Render();

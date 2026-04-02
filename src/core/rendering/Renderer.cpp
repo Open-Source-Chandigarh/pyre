@@ -11,6 +11,10 @@
 #include "core/rendering/Material.h"
 #include "core/Constants.h"
 
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
+
 Renderer::Renderer()
 {
     defaultMat = std::make_shared<Material>();
@@ -40,6 +44,8 @@ void Renderer::SetupCameraGlobals(const Camera &camera, float aspectRatio)
     camData.view = viewMatrix;
     camData.proj = projMatrix;
     camData.viewPos = viewPosition;
+    camData.nearPlane = cameraNearPlane;
+    camData.farPlane = cameraFarPlane;
 
     cameraUBO -> UploadData(&camData, sizeof(CameraData));
 }
@@ -85,6 +91,22 @@ void Renderer::LoadRequiredShaders()
             "shaders/common/normal.vs", 
             "shaders/common/normal.fs", 
             "shaders/common/normal.gs");
+    }
+}
+
+void Renderer::EnsureGBuffer(unsigned int width, unsigned int height)
+{
+    if (!gBufferFBO || gBufferFBO->Width() != width || gBufferFBO->Height() != height)
+    {
+        // 3 color attachments, 1 layer, not multisampled, not a cubemap
+        gBufferFBO = std::make_unique<Framebuffer>(width, height, true, false, true, 1, false, 3);
+    }
+
+    if (!gBufferShader)
+    {
+        gBufferShader = ResourceManager::LoadShader("gbuffer", 
+            "shaders/deferred/gbuffer.vs", 
+            "shaders/deferred/gbuffer.fs");
     }
 }
 
@@ -219,6 +241,18 @@ void Renderer::RenderPass(const std::vector<std::shared_ptr<Entity>> &entities,
     // restore the original camera state so subsequent passes don't render from the wrong perspective
     viewMatrix = oldView;
     projMatrix = oldProj;
+}
+
+void Renderer::RenderGeometryPass(const std::vector<std::shared_ptr<Entity>> &opaque)
+{
+    gBufferFBO->Bind();
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+    // render all opaque objects
+    RenderPass(opaque, viewMatrix, projMatrix, gBufferShader, false);
+    
+    Framebuffer::Unbind();
 }
 
 void Renderer::CategorizeEntities(const std::vector<std::shared_ptr<Entity>> &source,
@@ -584,6 +618,8 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
     std::vector<std::shared_ptr<Entity>> opaqueEntities;
     std::shared_ptr<Entity> skyboxEntity = nullptr;
 
+    EnsureGBuffer(sceneFBO.Width(), sceneFBO.Height());
+
     // organize all entities into their respective buckets for correct sorting
     CategorizeEntities(entities, opaqueEntities, transparentEntities, skyboxEntity);
 
@@ -597,6 +633,10 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
     // generate the shadow map texture for point lights
     RenderPointShadows(opaqueEntities, lightManager);
 
+    if (!wireFrame) {
+        RenderGeometryPass(opaqueEntities);
+    }
+
     // execute the main rendering pass
     if (!wireFrame)
     {
@@ -608,6 +648,33 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
         RenderWireframePass(opaqueEntities, transparentEntities, skyboxEntity, 
             lightManager, sceneFBO);
     }
+}
+
+void Renderer::RenderGBufferImGuiWindow()
+{
+    if (!gBufferFBO) return;
+
+    ImGui::Begin("G-Buffer Visualizer");
+
+    float contentWidth = ImGui::GetContentRegionAvail().x;
+    float aspect = (float)gBufferFBO->Height() / (float)gBufferFBO->Width();
+    ImVec2 texSize = ImVec2(contentWidth, contentWidth * aspect);
+    ImVec2 uv0 = ImVec2(0, 1);
+    ImVec2 uv1 = ImVec2(1, 0);
+
+    if (ImGui::CollapsingHeader("World Position (RGB) + Linear Depth (A)", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::Image((void*)gBufferFBO->GetColorTexture(0), texSize, uv0, uv1);
+    }
+
+    if (ImGui::CollapsingHeader("World Normal (RGB) + Shininess (A)", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::Image((void*)gBufferFBO->GetColorTexture(1), texSize, uv0, uv1);
+    }
+
+    if (ImGui::CollapsingHeader("Albedo (RGB) + Specular (A)", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::Image((void*)gBufferFBO->GetColorTexture(2), texSize, uv0, uv1);
+    }
+
+    ImGui::End();
 }
 
 std::vector<glm::vec4> Renderer::GetFrustumCornersWorldSpace(const glm::mat4& proj, const glm::mat4& view)
