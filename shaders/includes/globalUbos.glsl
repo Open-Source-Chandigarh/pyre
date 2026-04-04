@@ -4,9 +4,7 @@ layout(std140, binding = 0) uniform CameraData
     mat4 view;
     mat4 proj;
     vec3 viewPos;
-    float nearPlane;
-    float farPlane;
-    vec3 padding;
+    float padding;
 };
 
 // binding 1: lighting data (updates when lights change)
@@ -57,7 +55,7 @@ layout (std140, binding = 3) uniform PointShadowData
 {
     mat4 shadowMatrices[6]; // 384 bytes
     vec4 lightPos;          // 16 bytes
-    float pointFarPlane;         // 4 bytes
+    float farPlane;         // 4 bytes
     float _padPoint1;
     float _padPoint2;
     float _padPoint3;       // 12 bytes padding total

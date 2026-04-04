@@ -44,9 +44,6 @@ void Renderer::SetupCameraGlobals(const Camera &camera, float aspectRatio)
     camData.view = viewMatrix;
     camData.proj = projMatrix;
     camData.viewPos = viewPosition;
-    camData.nearPlane = cameraNearPlane;
-    camData.farPlane = cameraFarPlane;
-
     cameraUBO -> UploadData(&camData, sizeof(CameraData));
 }
 
@@ -172,6 +169,42 @@ void Renderer::EndScene()
     // once we implement a 2d user interface system
 }
 
+void Renderer::InitQuad()
+{
+    if (quadVAO != 0) return;
+
+    float quadVertices[] = {
+        // Position (X, Y)    // UV (U, V)
+        -1.0f,  1.0f,         0.0f, 1.0f, // Top-Left
+        -1.0f, -1.0f,         0.0f, 0.0f, // Bottom-Left
+         1.0f,  1.0f,         1.0f, 1.0f, // Top-Right
+         1.0f, -1.0f,         1.0f, 0.0f, // Bottom-Right
+    };
+
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+    glBindVertexArray(0);
+}
+
+
+void Renderer::RenderQuad()
+{
+    if (quadVAO == 0) InitQuad();
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
+}
+
 void Renderer::DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverride, bool isShadowPass)
 {
     if (!e->renderComp) return;
@@ -204,7 +237,7 @@ void Renderer::DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverrid
             castShadows = overrideMat->GetBool("castShadows");
         else if (baseMat) 
             castShadows = baseMat->GetBool("castShadows", true);
-        if (shaderOverride && !castShadows) continue;
+        if (isShadowPass && !castShadows) continue;
 
         // Calculate Transform
         glm::mat4 nodeMatrix = e->transform.GetModelMatrix() * node.localTransform;
@@ -230,9 +263,7 @@ void Renderer::RenderPass(const std::vector<std::shared_ptr<Entity>> &entities,
 
     for (auto &e : entities)
     {
-        // we skip transparent objects during shadow mapping because semi-transparent shadows are complex
-        // and usually require specific stochastic techniques not implemented here
-        if (shaderOverride && e->renderComp && e->renderComp->materialOverride && e->renderComp->materialOverride->isTransparent)
+        if (!e->renderComp)
             continue;
 
         DrawEntityInPass(e.get(), shaderOverride, isShadowPass);
@@ -246,13 +277,82 @@ void Renderer::RenderPass(const std::vector<std::shared_ptr<Entity>> &entities,
 void Renderer::RenderGeometryPass(const std::vector<std::shared_ptr<Entity>> &opaque)
 {
     gBufferFBO->Bind();
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
+    glDisable(GL_BLEND);
     // render all opaque objects
-    RenderPass(opaque, viewMatrix, projMatrix, gBufferShader, false);
-    
+    RenderPass(opaque, viewMatrix, projMatrix, gBufferShader);
+    glEnable(GL_BLEND);
     Framebuffer::Unbind();
+}
+
+void Renderer::RenderDeferredLightingPass(LightManager &lightManager, Framebuffer &sceneFBO, std::shared_ptr<Entity> skybox)
+{
+    if (!deferredLightingShader) {
+        deferredLightingShader = ResourceManager::LoadShader("deferredLighting", 
+            "shaders/deferred/lighting.vs", 
+            "shaders/deferred/lighting.fs");
+    }
+
+    deferredLightingShader->use();
+
+    // bind texture slots to the shader uniforms
+    deferredLightingShader->setInt("gPosition", Bindings::TEX_SLOT_GBUFFER_POSITION);
+    deferredLightingShader->setInt("gNormal", Bindings::TEX_SLOT_GBUFFER_NORMAL);
+    deferredLightingShader->setInt("gAlbedoSpec", Bindings::TEX_SLOT_GBUFFER_ALBEDO);
+    deferredLightingShader->setInt("shadowMap", Bindings::TEX_SLOT_CSM_SHADOW);
+    deferredLightingShader->setInt("pointShadowMap", Bindings::TEX_SLOT_POINT_SHADOW);
+    deferredLightingShader->setFloat("pointShadowFarPlane", pointShadowFar);
+
+    deferredLightingShader->setInt("skyboxTexture", 15);
+    if (skybox && skybox->skyboxComp && skybox->skyboxComp->material) {
+        auto it = skybox->skyboxComp->material->textures.find("skybox");
+        if (it != skybox->skyboxComp->material->textures.end()) {
+            glActiveTexture(GL_TEXTURE0 + 15);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, it->second->ID);
+        }
+    }
+
+    // bind g-buffer textures
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_POSITION);
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(0));
+    
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_NORMAL);
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(1));
+    
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_ALBEDO);
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(2));
+
+    // bind shadow maps
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_CSM_SHADOW);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, shadowFBO->GetDepthTexture());
+
+    if (pointShadowFBO) {
+        glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_POINT_SHADOW);
+        glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, pointShadowFBO->GetDepthTexture());
+    }
+
+    // disable depth testing (we are just drawing a flat 2D quad over the screen)
+    glDisable(GL_DEPTH_TEST);
+
+    // draw full screen quad to resolve all lighting
+    RenderQuad();
+
+    glEnable(GL_DEPTH_TEST);
+}
+
+void Renderer::CopyDepthBuffer(Framebuffer &source, Framebuffer &dest)
+{
+    // we are taking the depth data generated by the gBuffer pass and 
+    // copying it into the scene FBO so our forward rendered objects know what's in front of them
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, source.GetID());
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, dest.GetID());
+    
+    glBlitFramebuffer(0, 0, source.Width(), source.Height(), 
+                      0, 0, dest.Width(), dest.Height(), 
+                      GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, GL_NEAREST);
+                      
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Renderer::CategorizeEntities(const std::vector<std::shared_ptr<Entity>> &source,
@@ -635,13 +735,51 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
 
     if (!wireFrame) {
         RenderGeometryPass(opaqueEntities);
-    }
 
-    // execute the main rendering pass
-    if (!wireFrame)
-    {
-        RenderLightingPass(opaqueEntities, transparentEntities, skyboxEntity, 
-            lightManager, sceneFBO, postProcessor, clearColor);
+        sceneFBO.Bind();
+        const float clearCol[] = { clearColor.r, clearColor.g, clearColor.b, 1.0f };
+        const float zeroClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+        glClearBufferfv(GL_COLOR, 0, clearCol);
+        glClearBufferfv(GL_COLOR, 1, zeroClearColor); // clear bright buffer
+
+        RenderDeferredLightingPass(lightManager, sceneFBO, skyboxEntity);
+
+        CopyDepthBuffer(*gBufferFBO, sceneFBO);
+        sceneFBO.Bind();
+        // draw the objects we skipped in the G-Buffer using their own custom shaders
+        for (auto &e : opaqueEntities) 
+        {
+            if (!e || !e->renderComp) continue;
+            bool forceFwd = false;
+
+            if (e->renderComp->materialOverride) 
+                forceFwd = e->renderComp->materialOverride->GetBool("forceForward");
+
+            else if (!e->renderComp->nodes.empty() && e->renderComp->nodes[0].mesh->localMaterial)
+                forceFwd = e->renderComp->nodes[0].mesh->localMaterial->GetBool("forceForward");
+
+            if (forceFwd) 
+                DrawEntityInPass(e.get(), nullptr, false); 
+        }
+        if (skyboxEntity)
+        {
+            GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
+            glDrawBuffers(1, drawBuffers);
+            SubmitSkybox(*skyboxEntity->skyboxComp->mesh, 
+                         skyboxEntity->skyboxComp->shader,
+                         skyboxEntity->skyboxComp->material);
+            GLenum bothBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 }; 
+            glDrawBuffers(2, bothBuffers);
+        }
+
+        lightManager.RenderDebugLights(viewMatrix, projMatrix);
+        RenderPass(transparentEntities, viewMatrix, projMatrix, nullptr);
+
+        sceneFBO.ResolveToScreen();
+        GLuint sceneTex = sceneFBO.GetIntermediateTexture(0);
+        GLuint brightTex = sceneFBO.GetIntermediateTexture(1);
+        GLuint processed = postProcessor.Apply(sceneTex, brightTex);
+        postProcessor.DrawToScreen(processed);
     }
     else
     {
@@ -649,6 +787,7 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
             lightManager, sceneFBO);
     }
 }
+
 
 void Renderer::RenderGBufferImGuiWindow()
 {
@@ -880,6 +1019,11 @@ void Renderer::SubmitMesh(const glm::mat4& model,
 
     if (doNormals)
         RenderMeshNormals(mesh, model);
+
+    if (currentCull != CullMode::Back) {
+        glEnable(GL_CULL_FACE); 
+        glCullFace(GL_BACK); 
+    }
 
     // cleanup texture slots
     glActiveTexture(GL_TEXTURE0);

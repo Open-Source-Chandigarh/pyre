@@ -21,6 +21,7 @@ public:
 	}
 
 	GLuint GetDepthTexture() const { return depthTexture; }
+	GLuint GetID() const { return fbo; }
 	unsigned int Width() const { return width; }
 	unsigned int Height() const { return height; }
 

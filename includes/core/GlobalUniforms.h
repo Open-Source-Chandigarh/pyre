@@ -8,10 +8,7 @@ struct CameraData
     glm::mat4 view;       // 64 bytes
     glm::mat4 proj;       // 64 bytes
     glm::vec3 viewPos;    // 12 bytes
-    
-    float nearPlane;      // 4 bytes
-    float farPlane;       // 4 bytes
-    glm::vec3 padding;    // 12 bytes padding
+    float padding;        // 4 bytes (align to 16 bytes)
 };
 
 // binding point 1

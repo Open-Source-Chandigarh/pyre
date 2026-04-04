@@ -46,6 +46,7 @@ public:
 
     // debug gbuffer
     void RenderGBufferImGuiWindow();
+    void RenderQuad();
 
     void EndScene();
 
@@ -93,6 +94,8 @@ private:
                     const glm::mat4 &proj,
                     std::shared_ptr<Shader> shaderOverride = nullptr, bool isShadowPass = false);
 
+    void CopyDepthBuffer(Framebuffer &source, Framebuffer &dest);
+
     // scene organization helpers
 
     // sorts entities into opaque, transparent, and skybox buckets
@@ -128,7 +131,12 @@ private:
 
     // main lighting passes
 
-    // main pass that renders color, lighting, skybox, and transparent objects
+    
+    void RenderDeferredLightingPass(LightManager &lightManager, Framebuffer &sceneFBO, 
+                                    std::shared_ptr<Entity> skybox);
+
+
+    // forward pass that renders color, lighting, skybox, and transparent objects
     void RenderLightingPass(const std::vector<std::shared_ptr<Entity>> &opaque,
                             const std::vector<std::shared_ptr<Entity>> &transparent,
                             std::shared_ptr<Entity> skybox,
@@ -175,6 +183,10 @@ private:
     // g-buffer
     std::unique_ptr<Framebuffer> gBufferFBO;
     std::shared_ptr<Shader> gBufferShader;
+    std::shared_ptr<Shader> deferredLightingShader;
+    GLuint quadVAO = 0;
+    GLuint quadVBO = 0;
+    void InitQuad();
 
     // shadow mapping resources
 

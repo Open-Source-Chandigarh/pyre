@@ -71,7 +71,11 @@ void main()
         reflectionColor = texture(material_skybox, R).rgb;
     }
 
-    vec3 finalColor = mix(result, reflectionColor, material_reflectivity);
+    float reflectionMix = material_reflectivity;
+    if (material_specular_present == 1) {
+        reflectionMix = texture(material_specular, uv).r;
+    }
+    vec3 finalColor = mix(result, reflectionColor, material_skybox_present != 0 ? reflectionMix : 0.0);
 
     // Alpha from diffuse texture if present
     float alpha = 1.0;
