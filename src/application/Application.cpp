@@ -389,6 +389,10 @@ void Application::Run()
                     ImGui::Checkbox("Transparent", &mat->isTransparent);
                     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Mark material as transparent for correct render ordering");
 
+                    bool forceFwd = mat->GetBool("forceForward");
+                    if (ImGui::Checkbox("Force Forward Pass", &forceFwd)) mat->bools["forceForward"] = forceFwd;
+                    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Skip deferred pass and use forward rendering (for Toon/Custom shaders)");
+
                     // Outline / Bloom
                     bool outline = mat->GetBool("outlineEnabled");
                     if (ImGui::Checkbox("Outline / Glow", &outline)) { 
@@ -618,6 +622,11 @@ void Application::Run()
             Renderer* renderer = appState->renderer.get();
             if (renderer)
             {
+                ImGui::Separator();
+
+                ImGui::Checkbox("Deferred Rendering", &renderer->useDeferred);
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Toggle between Deferred and Forward rendering pipelines");
+                
                 ImGui::Separator();
                 
                 ImGui::Checkbox("Force Outlines", &renderer->forceOutlines);

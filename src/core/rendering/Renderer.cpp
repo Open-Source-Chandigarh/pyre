@@ -225,6 +225,15 @@ void Renderer::DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverrid
         // Get Override Material (from Entity settings)
         std::shared_ptr<Material> overrideMat = e->renderComp->materialOverride;
 
+        bool forceFwd = false;
+        if (overrideMat && overrideMat->bools.count("forceForward"))
+            forceFwd = overrideMat->GetBool("forceForward");
+        else if (baseMat)
+            forceFwd = baseMat->GetBool("forceForward");
+
+        // Skip forward only objects in the GBuffer pass
+        if (shaderOverride == gBufferShader && forceFwd) continue;
+
         // Transparency
         bool isTransparent = false;
         if (overrideMat && overrideMat->isTransparent) isTransparent = true;
@@ -734,52 +743,58 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
     RenderPointShadows(opaqueEntities, lightManager);
 
     if (!wireFrame) {
-        RenderGeometryPass(opaqueEntities);
+        if (useDeferred) {
+            RenderGeometryPass(opaqueEntities);
 
-        sceneFBO.Bind();
-        const float clearCol[] = { clearColor.r, clearColor.g, clearColor.b, 1.0f };
-        const float zeroClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-        glClearBufferfv(GL_COLOR, 0, clearCol);
-        glClearBufferfv(GL_COLOR, 1, zeroClearColor); // clear bright buffer
+            sceneFBO.Bind();
+            const float clearCol[] = { clearColor.r, clearColor.g, clearColor.b, 1.0f };
+            const float zeroClearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+            glClearBufferfv(GL_COLOR, 0, clearCol);
+            glClearBufferfv(GL_COLOR, 1, zeroClearColor); // clear bright buffer
 
-        RenderDeferredLightingPass(lightManager, sceneFBO, skyboxEntity);
+            RenderDeferredLightingPass(lightManager, sceneFBO, skyboxEntity);
 
-        CopyDepthBuffer(*gBufferFBO, sceneFBO);
-        sceneFBO.Bind();
-        // draw the objects we skipped in the G-Buffer using their own custom shaders
-        for (auto &e : opaqueEntities) 
-        {
-            if (!e || !e->renderComp) continue;
-            bool forceFwd = false;
+            CopyDepthBuffer(*gBufferFBO, sceneFBO);
+            sceneFBO.Bind();
 
-            if (e->renderComp->materialOverride) 
-                forceFwd = e->renderComp->materialOverride->GetBool("forceForward");
+            // draw the objects we skipped in the G-Buffer using their own custom shaders
+            for (auto &e : opaqueEntities) 
+            {
+                if (!e || !e->renderComp) continue;
+                bool forceFwd = false;
 
-            else if (!e->renderComp->nodes.empty() && e->renderComp->nodes[0].mesh->localMaterial)
-                forceFwd = e->renderComp->nodes[0].mesh->localMaterial->GetBool("forceForward");
+                if (e->renderComp->materialOverride) 
+                    forceFwd = e->renderComp->materialOverride->GetBool("forceForward");
+                else if (!e->renderComp->nodes.empty() && e->renderComp->nodes[0].mesh->localMaterial)
+                    forceFwd = e->renderComp->nodes[0].mesh->localMaterial->GetBool("forceForward");
 
-            if (forceFwd) 
-                DrawEntityInPass(e.get(), nullptr, false); 
+                if (forceFwd) 
+                    DrawEntityInPass(e.get(), nullptr, false); 
+            }
+            if (skyboxEntity)
+            {
+                GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
+                glDrawBuffers(1, drawBuffers);
+                SubmitSkybox(*skyboxEntity->skyboxComp->mesh, 
+                             skyboxEntity->skyboxComp->shader,
+                             skyboxEntity->skyboxComp->material);
+                GLenum bothBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 }; 
+                glDrawBuffers(2, bothBuffers);
+            }
+
+            lightManager.RenderDebugLights(viewMatrix, projMatrix);
+            RenderPass(transparentEntities, viewMatrix, projMatrix, nullptr);
+            
+            RenderOutlinesPass(opaqueEntities);
+
+            sceneFBO.ResolveToScreen();
+            GLuint sceneTex = sceneFBO.GetIntermediateTexture(0);
+            GLuint brightTex = sceneFBO.GetIntermediateTexture(1);
+            GLuint processed = postProcessor.Apply(sceneTex, brightTex);
+            postProcessor.DrawToScreen(processed);
+        } else {
+            RenderLightingPass(opaqueEntities, transparentEntities, skyboxEntity, lightManager, sceneFBO, postProcessor, clearColor);
         }
-        if (skyboxEntity)
-        {
-            GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
-            glDrawBuffers(1, drawBuffers);
-            SubmitSkybox(*skyboxEntity->skyboxComp->mesh, 
-                         skyboxEntity->skyboxComp->shader,
-                         skyboxEntity->skyboxComp->material);
-            GLenum bothBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 }; 
-            glDrawBuffers(2, bothBuffers);
-        }
-
-        lightManager.RenderDebugLights(viewMatrix, projMatrix);
-        RenderPass(transparentEntities, viewMatrix, projMatrix, nullptr);
-
-        sceneFBO.ResolveToScreen();
-        GLuint sceneTex = sceneFBO.GetIntermediateTexture(0);
-        GLuint brightTex = sceneFBO.GetIntermediateTexture(1);
-        GLuint processed = postProcessor.Apply(sceneTex, brightTex);
-        postProcessor.DrawToScreen(processed);
     }
     else
     {
@@ -936,6 +951,46 @@ void Renderer::RenderMeshNormals(const Mesh &mesh, const glm::mat4 &model)
     mesh.DrawSimple();
 }
 
+void Renderer::RenderOutlinesPass(const std::vector<std::shared_ptr<Entity>> &entities)
+{
+    if (!outlineShader) return;
+    for (auto &e : entities)
+    {
+        if (!e->renderComp) continue;
+        for (const auto &node : e->renderComp->nodes)
+        {
+            if (!node.mesh) continue;
+            std::shared_ptr<Material> baseMat = node.mesh->localMaterial;
+            std::shared_ptr<Material> overrideMat = e->renderComp->materialOverride;
+
+            bool doOutline = false;
+            glm::vec3 outlineCol(1.0f);
+            float bloomFactor = 0.0f;
+            float outlineThickness = 0.05f;
+
+            if (overrideMat && overrideMat->bools.count("outlineEnabled")) {
+                doOutline = overrideMat->GetBool("outlineEnabled");
+                outlineCol = overrideMat->GetVec3("outlineColor");
+                bloomFactor = overrideMat->GetFloat("bloomFactor");
+                outlineThickness = overrideMat->GetFloat("outlineThickness", 0.05f);
+            } 
+            else if (baseMat && baseMat->GetBool("outlineEnabled")) {
+                doOutline = true;
+                outlineCol = baseMat->GetVec3("outlineColor");
+                bloomFactor = baseMat->GetFloat("bloomFactor");
+                outlineThickness = baseMat->GetFloat("outlineThickness", 0.05f);
+            }
+
+            if (forceOutlines) doOutline = true;
+
+            if (doOutline) {
+                glm::mat4 nodeMatrix = e->transform.GetModelMatrix() * node.localTransform;
+                RenderMeshOutline(*node.mesh, nodeMatrix, outlineCol, bloomFactor, outlineThickness);
+            }
+        }
+    }
+}
+
 void Renderer::SubmitMesh(const glm::mat4& model, 
                           const Mesh& mesh, 
                           const std::shared_ptr<Shader>& shader, 
@@ -1014,7 +1069,7 @@ void Renderer::SubmitMesh(const glm::mat4& model,
     if (wireframe) 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-    if (doOutline)
+    if (doOutline && shader != gBufferShader)
         RenderMeshOutline(mesh, model, outlineCol, bloomFactor, outlineThickness);
 
     if (doNormals)

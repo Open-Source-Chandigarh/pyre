@@ -53,6 +53,7 @@ public:
     std::shared_ptr<Shader> outlineShader;
     std::shared_ptr<Shader> normalShader;
     bool forceOutlines = false;
+    bool useDeferred = false;
 
 private:
     // internal initialization helpers
@@ -106,6 +107,9 @@ private:
 
     // sorts transparent objects back-to-front for correct alpha blending
     void SortTransparentEntities(std::vector<std::shared_ptr<Entity>> &transparent, const glm::vec3 &camPos);
+    
+    // render outlines for deferred shading
+    void RenderOutlinesPass(const std::vector<std::shared_ptr<Entity>> &entities);
 
     // shadow calculation math
 
