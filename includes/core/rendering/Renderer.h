@@ -139,6 +139,7 @@ private:
     void RenderDeferredLightingPass(LightManager &lightManager, Framebuffer &sceneFBO, 
                                     std::shared_ptr<Entity> skybox);
 
+    void RenderLocalLightVolumes(LightManager &lightManager, Framebuffer &sceneFBO);
 
     // forward pass that renders color, lighting, skybox, and transparent objects
     void RenderLightingPass(const std::vector<std::shared_ptr<Entity>> &opaque,
@@ -188,6 +189,8 @@ private:
     std::unique_ptr<Framebuffer> gBufferFBO;
     std::shared_ptr<Shader> gBufferShader;
     std::shared_ptr<Shader> deferredLightingShader;
+    std::shared_ptr<Mesh> pointLightSphere;
+    std::shared_ptr<Shader> pointLightVolumeShader;
     GLuint quadVAO = 0;
     GLuint quadVBO = 0;
     void InitQuad();

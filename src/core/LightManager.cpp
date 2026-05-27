@@ -38,6 +38,49 @@ void LightManager::AddSpotLight(const SpotLight& sl)
     spots.push_back(sl);
 }
 
+float LightManager::CalculatePointLightRadius(const PointLight& light)
+{
+    // cutoff where the light becomes visually negligible
+    constexpr float threshold = 1.0f / 256.0f;
+    constexpr float invThreshold = 1.0f / threshold; // 256.0f
+
+    const float c = light.constant;
+    const float l = light.linear;
+    const float q = light.quadratic;
+
+    // solve: 1 / (c + l*d + q*d^2) = threshold
+    // q*d^2 + l*d + (c - invThreshold) = 0
+    if (q > 0.0f)
+    {
+        const float disc = l * l - 4.0f * q * (c - invThreshold);
+        if (disc < 0.0f)
+            return 1.0f;
+
+        const float root = (-l + std::sqrt(disc)) / (2.0f * q);
+        return std::max(root, 1.0f);
+    }
+
+    // linear fallback
+    if (l > 0.0f)
+    {
+        const float root = (invThreshold - c) / l;
+        return std::max(root, 1.0f);
+    }
+
+    // degenerate fallback
+    return 1.0f;
+}
+
+void LightManager::RecalculatePointLightRadiuses()
+{
+    for (auto& p : points)
+    {
+        if (!p.enabled)
+            continue;
+        p.radius = CalculatePointLightRadius(p);
+    }
+}
+
 void LightManager::ClearSpotLights()
 {
     spots.clear();
@@ -54,6 +97,8 @@ void LightManager::UploadLightsToGPU()
     {
         InitUBO();
     }
+
+    RecalculatePointLightRadiuses();
 
     // fill the struct on cpu
     LightsData data{};

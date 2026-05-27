@@ -61,11 +61,10 @@ void main()
 
     lightingResult += CalcDirLight(normal, fragPos, viewDir, TexCoords);
 
-    for (int i = 0; i < numPointLights; ++i)
-        lightingResult += CalcPointLight(i, normal, fragPos, viewDir, TexCoords);
-
-    for (int i = 0; i < numSpotLights; ++i)
+    for(int i = 0; i < numSpotLights; i++)
+    {
         lightingResult += CalcSpotLight(i, normal, fragPos, viewDir, TexCoords);
+    }
 
     vec3 reflectionColor = vec3(0.0);
     float rawReflectivity = texture(gAlbedoSpec, TexCoords).a;

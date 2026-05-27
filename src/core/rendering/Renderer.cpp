@@ -10,6 +10,7 @@
 #include "core/rendering/Framebuffer.h"
 #include "core/rendering/Material.h"
 #include "core/Constants.h"
+#include "core/rendering/geometry/GeometryFactory.h"
 
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
@@ -80,6 +81,20 @@ void Renderer::LoadRequiredShaders()
             "shaders/shadows/depth.vs", 
             "shaders/shadows/depth.fs",
             "shaders/shadows/depth.gs");
+    }
+
+    if (!pointLightSphere)
+    {
+        pointLightSphere = GeometryFactory::CreateSphere(1.0f, 32, 16);
+    }
+
+    if (!pointLightVolumeShader)
+    {
+        pointLightVolumeShader = ResourceManager::LoadShader(
+            "pointLightVolume",
+            "shaders/deferred/pointLightVolume.vs",
+            "shaders/deferred/pointLightVolume.fs"
+        );
     }
     
     if (!normalShader)
@@ -343,11 +358,75 @@ void Renderer::RenderDeferredLightingPass(LightManager &lightManager, Framebuffe
 
     // disable depth testing (we are just drawing a flat 2D quad over the screen)
     glDisable(GL_DEPTH_TEST);
-
+    glDisable(GL_BLEND);
     // draw full screen quad to resolve all lighting
     RenderQuad();
 
     glEnable(GL_DEPTH_TEST);
+}
+
+void Renderer::RenderLocalLightVolumes(LightManager &lightManager, Framebuffer &sceneFBO)
+{
+    sceneFBO.Bind();
+
+    // we only want to read depth, never write to it here
+    glDepthMask(GL_FALSE); 
+
+    glEnable(GL_BLEND);
+    glBlendEquation(GL_FUNC_ADD);
+    glBlendFunc(GL_ONE, GL_ONE);
+
+    glEnable(GL_CULL_FACE);
+    glFrontFace(GL_CW);
+    glCullFace(GL_FRONT); // cull the front faces this makes it impossible for the camera near plane to clip the light
+    glEnable(GL_DEPTH_CLAMP);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_GEQUAL); // only shade pixels that are equal or closer to camera than the back face of light distance from camera
+
+    pointLightVolumeShader->use();
+
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_POSITION);
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(0));
+
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_NORMAL);
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(1));
+
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_ALBEDO);
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(2));
+
+    if (pointShadowFBO) 
+    {
+        glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_POINT_SHADOW);
+        glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, pointShadowFBO->GetDepthTexture());
+        pointLightVolumeShader->setFloat("pointShadowFarPlane", pointShadowFar);
+        pointLightVolumeShader->setInt("pointShadowMap", Bindings::TEX_SLOT_POINT_SHADOW);
+    }
+
+    int shadowLayerIndex = 0; 
+
+    for (const auto& light : lightManager.points)
+    {
+        if (!light.enabled)
+            continue;
+
+        glm::mat4 model(1.0f);
+        model = glm::translate(model, light.position);
+        model = glm::scale(model, glm::vec3(light.radius));
+
+        pointLightVolumeShader->setMat4("model", model);
+        // pass the index so the shader knows which UBO array element and which shadow layer to use
+        pointLightVolumeShader->setInt("lightIndex", shadowLayerIndex);
+        pointLightSphere->DrawSimple();
+        
+        shadowLayerIndex++;
+    }
+
+    glDisable(GL_DEPTH_CLAMP);
+    glFrontFace(GL_CCW);
+    glDisable(GL_BLEND);
+    glDepthMask(GL_TRUE);
+    glCullFace(GL_BACK);
+    glDepthFunc(GL_LESS);
 }
 
 void Renderer::CopyDepthBuffer(Framebuffer &source, Framebuffer &dest)
@@ -757,6 +836,8 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
             CopyDepthBuffer(*gBufferFBO, sceneFBO);
             sceneFBO.Bind();
 
+            RenderLocalLightVolumes(lightManager, sceneFBO);
+
             // draw the objects we skipped in the G-Buffer using their own custom shaders
             for (auto &e : opaqueEntities) 
             {
@@ -783,8 +864,13 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
             }
 
             lightManager.RenderDebugLights(viewMatrix, projMatrix);
+            glEnable(GL_BLEND);
+            glBlendEquation(GL_FUNC_ADD);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
             RenderPass(transparentEntities, viewMatrix, projMatrix, nullptr);
-            
+            glDisable(GL_BLEND);
+
             RenderOutlinesPass(opaqueEntities);
 
             sceneFBO.ResolveToScreen();

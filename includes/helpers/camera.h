@@ -78,7 +78,7 @@ public:
     {
         Zoom = StartZoom; 
         Near = 0.1f;
-        Far = 100.0f;
+        Far = 500.0f;
     }
 
     void Reset()

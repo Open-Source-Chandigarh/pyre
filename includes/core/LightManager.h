@@ -18,6 +18,7 @@ struct PointLight
     float constant = 1.0f;
     float linear = 0.09f;
     float quadratic = 0.032f;
+    float radius = 1.0f; 
     unsigned int depthMap = 0;
 };
 
@@ -50,6 +51,8 @@ public:
 
     void AddPointLight(const PointLight& pl);
     void AddSpotLight(const SpotLight& sl);
+    float CalculatePointLightRadius(const PointLight& light);
+    void RecalculatePointLightRadiuses();
     void ClearPointLights();
     void ClearSpotLights();
     glm::vec3 GetDirectionalLightDir() { return dir; }
