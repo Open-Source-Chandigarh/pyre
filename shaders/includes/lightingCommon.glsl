@@ -166,7 +166,7 @@ float ShadowCalculation(vec3 fragPosWorldSpace, vec3 normal, vec3 lightDir)
     return shadow;
 }
 
-vec3 CalcDirLight(vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv)
+vec3 CalcDirLight(vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv, float ssao)
 {
     vec3 lightDir = normalize(-vec3(dir_direction));
     
@@ -185,7 +185,7 @@ vec3 CalcDirLight(vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv)
 
     // combine results
     // ambient light is always present
-    vec3 ambient  = vec3(dir_ambient) * diffuseColor;
+    vec3 ambient  = vec3(dir_ambient) * diffuseColor * ssao;
     vec3 diffuse  = vec3(dir_diffuse) * diff * diffuseColor;
     vec3 specular = vec3(dir_specular) * spec * specColor;
     

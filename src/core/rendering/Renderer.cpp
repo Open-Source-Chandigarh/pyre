@@ -22,6 +22,16 @@ Renderer::Renderer()
     defaultMat->floats["material_shininess"] = 32.0f;
     defaultMat->floats["material_reflectivity"] = 0.0f;
     defaultMat->vec3s["material_diffuseColor"] = glm::vec3(1.0f);
+    InitSSAO();
+}
+
+Renderer::~Renderer()
+{
+    // clean up raw vertex array/buffer objects
+    if (quadVAO != 0) glDeleteVertexArrays(1, &quadVAO);
+    if (quadVBO != 0) glDeleteBuffers(1, &quadVBO);
+    // clean up raw procedural textures
+    if (noiseTexture != 0) glDeleteTextures(1, &noiseTexture);
 }
 
 void Renderer::SetupCameraGlobals(const Camera &camera, float aspectRatio)
@@ -122,6 +132,53 @@ void Renderer::EnsureGBuffer(unsigned int width, unsigned int height)
     }
 }
 
+void Renderer::InitSSAO()
+{
+    std::uniform_real_distribution<float> randomFloats(-1.0, 1.0);
+    std::default_random_engine generator;
+
+    ssaoKernel.clear();
+
+    for (unsigned int i = 0; i < 64; i++) 
+    {
+        glm::vec3 sample(randomFloats(generator), randomFloats(generator), 
+            randomFloats(generator) * 0.5 + 0.5); // convert the z to 0.0 to 1.0 to make a hemisphere and not a sphere
+
+        sample = glm::normalize(sample); // normalize to convert the points from a sqaure to a hemisphere
+        sample *= randomFloats(generator) * 0.5 + 0.5; // multiple by a random float to move points from the boundaries to the inside of our hemisphere
+        
+        // accerlerating interpolation function to make sure we have more points closer to the surface origin
+        float scale = float(i) / 64.0; // this gives us an exponential curve
+        scale = glm::mix(0.1, 1.0, scale * scale); // lerp gives us smaller numbers to multiple with when scale is smaller (i is smaller)
+        sample *= scale;
+        ssaoKernel.push_back(sample);
+    }
+
+    std::vector<glm::vec3> randomNoise;
+    for (unsigned int i = 0; i < 16; i++)
+    {
+        glm::vec3 noise(
+            randomFloats(generator), // x between -1.0 and 1.0
+            randomFloats(generator), // y between -1.0 and 1.0
+            0.0f                     // z locked to 0.0 because we don't wana rotate sideways and tilt the hemisphere inside the surface point
+        );
+        randomNoise.push_back(noise);
+    }
+
+    glGenTextures(1, &noiseTexture);
+    glBindTexture(GL_TEXTURE_2D, noiseTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, 4, 4, 0, GL_RGB, GL_FLOAT, &randomNoise[0]);
+    // MAG and MIN filters MUST be GL_NEAREST
+    // with linear, the GPU will 
+    // blur the random numbers together, destroying the mathematical vectors
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // WRAP_S and WRAP_T MUST be GL_REPEAT to tile the 4x4 grid across the screen
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+}
+
 void Renderer::EnsureShadowBuffer()
 {
     // the shadow map framebuffer must exist before we try to render into it
@@ -134,6 +191,29 @@ void Renderer::EnsureShadowBuffer()
     }
 
     CreateShadowUBO();
+}
+
+void Renderer::EnsureSSAOBuffer(unsigned int width, unsigned int height)
+{
+    if (!ssaoFBO || ssaoFBO->Width() != width || ssaoFBO->Height() != height) 
+    {
+        ssaoFBO = std::make_unique<Framebuffer>(width, height, false, false, true, 1, false, 1);
+        ssaoBlurFBO = std::make_unique<Framebuffer>(width, height, false, false, true, 1, false, 1);
+    }
+
+    if (!ssaoShader) 
+    {
+        ssaoShader = ResourceManager::LoadShader("ssao", 
+            "shaders/common/simpleTexture.vs",
+            "shaders/postprocessing/ssao.fs");
+    }
+
+    if (!ssaoBlurShader) 
+    {
+        ssaoBlurShader = ResourceManager::LoadShader("ssaoBlur", 
+            "shaders/common/simpleTexture.vs", 
+            "shaders/postprocessing/ssaoBlur.fs");
+    }
 }
 
 void Renderer::EnsurePointShadowBuffer()
@@ -327,6 +407,7 @@ void Renderer::RenderDeferredLightingPass(LightManager &lightManager, Framebuffe
     deferredLightingShader->setInt("shadowMap", Bindings::TEX_SLOT_CSM_SHADOW);
     deferredLightingShader->setInt("pointShadowMap", Bindings::TEX_SLOT_POINT_SHADOW);
     deferredLightingShader->setFloat("pointShadowFarPlane", pointShadowFar);
+    deferredLightingShader->setInt("ssaoMap", 12);
 
     deferredLightingShader->setInt("skyboxTexture", 15);
     if (skybox && skybox->skyboxComp && skybox->skyboxComp->material) {
@@ -350,6 +431,10 @@ void Renderer::RenderDeferredLightingPass(LightManager &lightManager, Framebuffe
     // bind shadow maps
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_CSM_SHADOW);
     glBindTexture(GL_TEXTURE_2D_ARRAY, shadowFBO->GetDepthTexture());
+
+    // bind ssao map
+    glActiveTexture(GL_TEXTURE0 + 12);
+    glBindTexture(GL_TEXTURE_2D, ssaoBlurFBO->GetColorTexture(0));
 
     if (pointShadowFBO) {
         glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_POINT_SHADOW);
@@ -755,8 +840,14 @@ void Renderer::RenderLightingPass(const std::vector<std::shared_ptr<Entity>> &op
     // 3. draw debug visualizations for lights
     lightManager.RenderDebugLights(viewMatrix, projMatrix);
 
+    glEnable(GL_BLEND);
+    glBlendEquation(GL_FUNC_ADD);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     // 4. draw transparent geometry last so they blend correctly over everything else
     RenderPass(transparent, viewMatrix, projMatrix, nullptr);
+
+    glDisable(GL_BLEND);
 
     // 5. finally resolve any msaa and run the post-processing pipeline
     sceneFBO.ResolveToScreen();
@@ -824,6 +915,48 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
     if (!wireFrame) {
         if (useDeferred) {
             RenderGeometryPass(opaqueEntities);
+
+            EnsureSSAOBuffer(sceneFBO.Width(), sceneFBO.Height());
+
+            glDisable(GL_DEPTH_TEST);
+            glDisable(GL_BLEND);
+
+            ssaoFBO->Bind();
+            glViewport(0, 0, ssaoFBO->Width(), ssaoFBO->Height());
+            glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // Default to white (no shadow)
+            glClear(GL_COLOR_BUFFER_BIT);
+            ssaoShader->use();
+            // upload the 64 kernel points
+            for (unsigned int i = 0; i < 64; ++i) {
+                ssaoShader->setVec3("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
+            }
+            ssaoShader->setFloat("radius", ssaoRadius);
+
+            ssaoShader->setInt("gPosition", Bindings::TEX_SLOT_GBUFFER_POSITION);
+            glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_POSITION);
+            glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(0));
+
+            ssaoShader->setInt("gNormal", Bindings::TEX_SLOT_GBUFFER_NORMAL);
+            glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_NORMAL);
+            glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(1));
+
+            ssaoShader->setInt("texNoise", Bindings::TEX_SLOT_SSAO_NOISE);
+            glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_SSAO_NOISE);
+            glBindTexture(GL_TEXTURE_2D, noiseTexture);
+
+            RenderQuad();
+
+            ssaoBlurFBO->Bind();
+            glClear(GL_COLOR_BUFFER_BIT);
+            ssaoBlurShader->use();
+        
+            ssaoBlurShader->setInt("ssaoInput", 14);
+            glActiveTexture(GL_TEXTURE0 + 14);
+            glBindTexture(GL_TEXTURE_2D, ssaoFBO->GetColorTexture(0));
+        
+            RenderQuad();
+
+            glEnable(GL_DEPTH_TEST);
 
             sceneFBO.Bind();
             const float clearCol[] = { clearColor.r, clearColor.g, clearColor.b, 1.0f };

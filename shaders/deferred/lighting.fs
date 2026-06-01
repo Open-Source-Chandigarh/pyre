@@ -8,6 +8,7 @@ layout (binding = 5) uniform sampler2D gPosition;
 layout (binding = 6) uniform sampler2D gNormal;
 layout (binding = 7) uniform sampler2D gAlbedoSpec;
 layout (binding = 15) uniform samplerCube skyboxTexture;
+layout (binding = 12) uniform sampler2D ssaoMap;
 
 #include "../includes/globalUbos.glsl"
 // these are not used in deferred Lighting, but must exist 
@@ -52,14 +53,14 @@ void main()
     vec3 normal = normalize(texture(gNormal, TexCoords).rgb);
     float depth = texture(gPosition, TexCoords).a;
     float reflectivity = texture(gAlbedoSpec, TexCoords).a;
-
+    float ssao = texture(ssaoMap, TexCoords).r;
     if (depth <= 0.0 || depth > 200.0)
         discard; 
 
     vec3 viewDir = normalize(viewPos - fragPos);
     vec3 lightingResult = vec3(0.0);
 
-    lightingResult += CalcDirLight(normal, fragPos, viewDir, TexCoords);
+    lightingResult += CalcDirLight(normal, fragPos, viewDir, TexCoords, ssao);
 
     for(int i = 0; i < numSpotLights; i++)
     {
@@ -75,7 +76,7 @@ void main()
     {
         vec3 I = normalize(fragPos - viewPos);
         vec3 R = reflect(I, normal);
-        reflectionColor = texture(skyboxTexture, R).rgb;
+        reflectionColor = texture(skyboxTexture, R).rgb * ssao;
     }
 
     vec3 finalColor = mix(lightingResult, reflectionColor, (wantsEnvMap ? specIntensity : 0.0));

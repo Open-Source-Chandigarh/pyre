@@ -16,6 +16,7 @@ namespace Bindings
     constexpr int TEX_SLOT_GBUFFER_POSITION = 5;
     constexpr int TEX_SLOT_GBUFFER_NORMAL = 6;
     constexpr int TEX_SLOT_GBUFFER_ALBEDO = 7;
+    constexpr int TEX_SLOT_SSAO_NOISE = 8;
 
     constexpr int TEX_SLOT_CSM_SHADOW   = 10;
     constexpr int TEX_SLOT_POINT_SHADOW = 11;

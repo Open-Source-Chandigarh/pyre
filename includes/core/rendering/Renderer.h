@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include <vector>
+#include <random>
 #include "helpers/Shader.h"
 #include "core/LightManager.h"
 #include "core/rendering/Mesh.h"
@@ -17,6 +18,7 @@ class Renderer
 {
 public:
     Renderer();
+    ~Renderer();
 
     void BeginScene(const Camera &camera, 
                     LightManager &lightManager, 
@@ -54,6 +56,7 @@ public:
     std::shared_ptr<Shader> normalShader;
     bool forceOutlines = false;
     bool useDeferred = false;
+    float ssaoRadius = 0.5f;
 
 private:
     // internal initialization helpers
@@ -70,10 +73,14 @@ private:
     // creates the shadow framebuffer for dir lights if it doesn't exist yet
     void EnsureShadowBuffer();
 
+    void EnsureSSAOBuffer(unsigned int width, unsigned int height);
+
     // creates the shadow framebuffer for point lights if it doesn't exist yet
     void EnsurePointShadowBuffer();
 
     void EnsureGBuffer(unsigned int width, unsigned int height);
+
+    void InitSSAO();
 
     // creates the uniform buffer for csm shadow matrices
     void CreateShadowUBO();
@@ -174,6 +181,8 @@ private:
     // draws debug lines for vertex normals if enabled
     void RenderMeshNormals(const Mesh &mesh, const glm::mat4 &model);
 
+    void InitQuad();
+
     // member variables
     // The fallback material for objects that don't have one
     std::shared_ptr<Material> defaultMat;
@@ -193,7 +202,14 @@ private:
     std::shared_ptr<Shader> pointLightVolumeShader;
     GLuint quadVAO = 0;
     GLuint quadVBO = 0;
-    void InitQuad();
+
+    // ssao
+    GLuint noiseTexture = 0;
+    std::unique_ptr<Framebuffer> ssaoFBO;
+    std::unique_ptr<Framebuffer> ssaoBlurFBO;
+    std::shared_ptr<Shader> ssaoShader;
+    std::shared_ptr<Shader> ssaoBlurShader;
+    std::vector<glm::vec3> ssaoKernel;
 
     // shadow mapping resources
 
@@ -203,7 +219,7 @@ private:
     std::shared_ptr<Shader> depthShader;
     glm::mat4 lightSpaceMatrix;
     // 3 splits = 4 generic shadow maps (near, mid, far, veryFar)
-    std::vector<float> shadowCascadeLevels = { 10.0f, 50.0f, 200.0f };
+    std::vector<float> shadowCascadeLevels = { 10.0f, 25.0f, 50.0f };
     
     // spot light shadows (omni)
     std::unique_ptr<Framebuffer> pointShadowFBO;
