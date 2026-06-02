@@ -17,7 +17,6 @@ uniform sampler2D material_diffuse;
 uniform samplerCube material_skybox;
 uniform sampler2D material_specular;
 uniform sampler2D material_normal;
-uniform sampler2D material_displacement;
 
 uniform float material_shininess;
 uniform float material_reflectivity;
@@ -25,7 +24,6 @@ uniform int material_diffuse_present;
 uniform int material_specular_present;
 uniform int material_skybox_present;
 uniform int material_normal_present;
-uniform int material_displacement_present;
 
 vec3 GetDiffuseColor(vec2 uv) 
 {

@@ -31,7 +31,7 @@ void main()
     vec3 N = normalize(normalMatrix * aNormal);
     // gram-schmidt re-orthogonalization
     T = normalize(T - dot(T, N) * N);
-    vec3 B = cross(N, T);
+    vec3 B = cross(T, N);
     TBN = mat3(T, B, N);
 
     gl_Position = proj * view * worldPos;

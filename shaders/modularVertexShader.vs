@@ -44,7 +44,7 @@ void main()
     // Gram-Schmidt re-orthogonalization
     T = normalize(T - dot(T, N) * N);
 
-    vec3 B = cross(N, T);
+    vec3 B = cross(T, N);
     
     #ifdef HAS_GEOMETRY_SHADER
         vs_out.FragPos = worldPos;

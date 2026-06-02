@@ -367,7 +367,7 @@ void Application::Run()
                     EditColor("Diffuse", "material_diffuseColor", glm::vec3(1.0f), "Base color of the material");
                     EditColor("Specular", "material_specularColor", glm::vec3(0.0f), "Color of specular reflections");
                     EditFloat("Reflectivity", "material_reflectivity", 0.0f, 0.0f, 1.0f, "Environment reflection strength (requires cubemap)", true);
-
+                    EditFloat("Height Scale", "material_heightScale", 0.1f, 0.0f, 1.0f, "Parallax mapping displacement depth (requires displacement map)", true);
                     // Toggles
                     bool wireframe = mat->GetBool("wireframe");
                     if (ImGui::Checkbox("Wireframe", &wireframe)) mat->SetWireframe(wireframe);
