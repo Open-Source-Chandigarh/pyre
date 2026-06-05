@@ -1,44 +1,45 @@
-#include <iostream>
-#include <sstream>
 #include "core/LightManager.h"
 #include "core/Entity.h"
 #include "core/ResourceManager.h"
 #include "core/rendering/geometry/GeometryFactory.h"
+#include <iostream>
+#include <sstream>
 
 static constexpr int GLSL_MAX_POINT_LIGHTS = 8; // must match shader (#define MAX_POINT_LIGHTS 8)
-static constexpr int GLSL_MAX_SPOT_LIGHTS = 4; // must match shader (#define MAX_SPOT_LIGHTS 4)
+static constexpr int GLSL_MAX_SPOT_LIGHTS = 4;  // must match shader (#define MAX_SPOT_LIGHTS 4)
 
 LightManager::LightManager()
 {
     debugSphere = GeometryFactory::CreateSphere(0.2f, 4, 2);
-    debugShader = ResourceManager::LoadShader("unlit",
-        "shaders/common/singleColor.vs", "shaders/common/singleColor.fs");
+    debugShader =
+        ResourceManager::LoadShader("unlit", "shaders/common/singleColor.vs", "shaders/common/singleColor.fs");
 }
 
-void LightManager::SetDirectional(const glm::vec3& d,
-    const glm::vec3& ambient,
-    const glm::vec3& diffuse,
-    const glm::vec3& specular)
+void LightManager::SetDirectional(const glm::vec3 &d, const glm::vec3 &ambient, const glm::vec3 &diffuse,
+                                  const glm::vec3 &specular)
 {
-    dir = d; dirAmbient = ambient; dirDiffuse = diffuse; dirSpec = specular;
+    dir = d;
+    dirAmbient = ambient;
+    dirDiffuse = diffuse;
+    dirSpec = specular;
 }
 
-void LightManager::AddPointLight(const PointLight& pl)
+void LightManager::AddPointLight(const PointLight &pl)
 {
     points.push_back(pl);
 }
 
-void LightManager::ClearPointLights() 
+void LightManager::ClearPointLights()
 {
     points.clear();
 }
 
-void LightManager::AddSpotLight(const SpotLight& sl)
+void LightManager::AddSpotLight(const SpotLight &sl)
 {
     spots.push_back(sl);
 }
 
-float LightManager::CalculatePointLightRadius(const PointLight& light)
+float LightManager::CalculatePointLightRadius(const PointLight &light)
 {
     // cutoff where the light becomes visually negligible
     constexpr float threshold = 1.0f / 256.0f;
@@ -73,7 +74,7 @@ float LightManager::CalculatePointLightRadius(const PointLight& light)
 
 void LightManager::RecalculatePointLightRadiuses()
 {
-    for (auto& p : points)
+    for (auto &p : points)
     {
         if (!p.enabled)
             continue;
@@ -93,7 +94,7 @@ void LightManager::InitUBO()
 
 void LightManager::UploadLightsToGPU()
 {
-    if (!lightUBO) 
+    if (!lightUBO)
     {
         InitUBO();
     }
@@ -111,44 +112,46 @@ void LightManager::UploadLightsToGPU()
 
     // point lights
     int pcount = 0;
-    for (size_t i = 0; i < points.size() && pcount < GLSL_MAX_POINT_LIGHTS; ++i) {
-        if (!points[i].enabled) continue;
+    for (size_t i = 0; i < points.size() && pcount < GLSL_MAX_POINT_LIGHTS; ++i)
+    {
+        if (!points[i].enabled)
+            continue;
 
-        const auto& p = points[i];
+        const auto &p = points[i];
         data.point_position[pcount] = glm::vec4(p.position, 0.0f);
-        data.point_ambient[pcount]  = glm::vec4(p.ambient, 0.0f);
-        data.point_diffuse[pcount]  = glm::vec4(p.diffuse, 0.0f);
+        data.point_ambient[pcount] = glm::vec4(p.ambient, 0.0f);
+        data.point_diffuse[pcount] = glm::vec4(p.diffuse, 0.0f);
         data.point_specular[pcount] = glm::vec4(p.specular, 0.0f);
-        data.point_params[pcount]   = glm::vec4(p.constant, p.linear, p.quadratic, 0.0f);
-        
+        data.point_params[pcount] = glm::vec4(p.constant, p.linear, p.quadratic, 0.0f);
+
         pcount++;
     }
     data.numPointLights = pcount;
 
     // spot lights
     int scount = 0;
-    for (size_t i = 0; i < spots.size() && scount < GLSL_MAX_SPOT_LIGHTS; ++i) 
+    for (size_t i = 0; i < spots.size() && scount < GLSL_MAX_SPOT_LIGHTS; ++i)
     {
-        if (!spots[i].enabled) continue;
-        
-        const auto& s = spots[i];
+        if (!spots[i].enabled)
+            continue;
+
+        const auto &s = spots[i];
         data.spot_position[scount] = glm::vec4(s.position, 0.0f);
         data.spot_direction[scount] = glm::vec4(s.direction, 0.0f);
         data.spot_cutoffs[scount] = glm::vec4(s.innerCutOff, s.outerCutOff, 0.0f, 0.0f);
-        data.spot_ambient[scount]  = glm::vec4(s.ambient, 0.0f);
-        data.spot_diffuse[scount]  = glm::vec4(s.diffuse, 0.0f);
-        data.spot_specular[scount]  = glm::vec4(s.specular, 0.0f);
+        data.spot_ambient[scount] = glm::vec4(s.ambient, 0.0f);
+        data.spot_diffuse[scount] = glm::vec4(s.diffuse, 0.0f);
+        data.spot_specular[scount] = glm::vec4(s.specular, 0.0f);
         data.spot_params[scount] = glm::vec4(s.constant, s.linear, s.quadratic, 0.0f);
         scount++;
     }
     data.numSpotLights = scount;
 
     // upload to gpu using wrapper
-    lightUBO -> UploadData(&data, sizeof(LightsData));
+    lightUBO->UploadData(&data, sizeof(LightsData));
 }
 
-void LightManager::ApplyToShader(Shader& shader, Renderer& renderer,
-    const glm::mat4& view, const glm::mat4& proj) 
+void LightManager::ApplyToShader(Shader &shader, Renderer &renderer, const glm::mat4 &view, const glm::mat4 &proj)
 {
     shader.use();
 
@@ -158,18 +161,19 @@ void LightManager::ApplyToShader(Shader& shader, Renderer& renderer,
     shader.setVec3("dirLight.specular", dirSpec);
 
     int pcount = 0;
-    for (size_t i = 0; i < points.size() && pcount < GLSL_MAX_POINT_LIGHTS; ++i) 
+    for (size_t i = 0; i < points.size() && pcount < GLSL_MAX_POINT_LIGHTS; ++i)
     {
-        if (!points[i].enabled) continue;
+        if (!points[i].enabled)
+            continue;
 
-        const auto& p = points[i];
+        const auto &p = points[i];
         std::string base = "pointLights[" + std::to_string(pcount) + "].";
         shader.setVec3((base + "position").c_str(), p.position);
-        
+
         shader.setVec3((base + "ambient").c_str(), p.ambient);
         shader.setVec3((base + "diffuse").c_str(), p.diffuse);
         shader.setVec3((base + "specular").c_str(), p.specular);
-        
+
         shader.setFloat((base + "constant").c_str(), p.constant);
         shader.setFloat((base + "linear").c_str(), p.linear);
         shader.setFloat((base + "quadratic").c_str(), p.quadratic);
@@ -178,16 +182,18 @@ void LightManager::ApplyToShader(Shader& shader, Renderer& renderer,
     shader.setInt("numPointLights", pcount);
 
     int scount = 0;
-    for (size_t i = 0; i < spots.size() && scount < GLSL_MAX_SPOT_LIGHTS; ++i) {
-        if (!spots[i].enabled) continue;
+    for (size_t i = 0; i < spots.size() && scount < GLSL_MAX_SPOT_LIGHTS; ++i)
+    {
+        if (!spots[i].enabled)
+            continue;
 
-        const auto& s = spots[i];
-        std::string base = "spotLights[" + std::to_string(scount) + "]."; 
+        const auto &s = spots[i];
+        std::string base = "spotLights[" + std::to_string(scount) + "].";
         shader.setVec3((base + "position").c_str(), s.position);
         shader.setVec3((base + "direction").c_str(), s.direction);
         shader.setFloat((base + "innerCutOff").c_str(), s.innerCutOff);
         shader.setFloat((base + "outerCutOff").c_str(), s.outerCutOff);
-        
+
         shader.setVec3((base + "ambient").c_str(), s.ambient);
         shader.setVec3((base + "diffuse").c_str(), s.diffuse);
         shader.setVec3((base + "specular").c_str(), s.specular);
@@ -200,17 +206,18 @@ void LightManager::ApplyToShader(Shader& shader, Renderer& renderer,
     shader.setInt("numSpotLights", scount);
 }
 
-void LightManager::RenderDebugLights(
-    const glm::mat4& view, const glm::mat4& proj)
+void LightManager::RenderDebugLights(const glm::mat4 &view, const glm::mat4 &proj)
 {
-    if (!showDebugSpheres) return;
-    if (!debugShader) return;
+    if (!showDebugSpheres)
+        return;
+    if (!debugShader)
+        return;
 
     debugShader->use();
     debugShader->setMat4("view", view);
     debugShader->setMat4("projection", proj);
 
-    for (const auto& p : points)
+    for (const auto &p : points)
     {
         glm::mat4 model = glm::translate(glm::mat4(1.0f), p.position);
         debugShader->setMat4("model", model);

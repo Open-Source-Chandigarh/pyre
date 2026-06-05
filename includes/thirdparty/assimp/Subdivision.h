@@ -45,24 +45,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AI_SUBDISIVION_H_INC
 
 #ifdef __GNUC__
-#   pragma GCC system_header
+#pragma GCC system_header
 #endif
 
 #include <assimp/types.h>
 
 struct aiMesh;
 
-namespace Assimp {
+namespace Assimp
+{
 
 // ------------------------------------------------------------------------------
 /** Helper class to evaluate subdivision surfaces. Different algorithms
  *  are provided for choice. */
 // ------------------------------------------------------------------------------
-class ASSIMP_API Subdivider {
-public:
-
+class ASSIMP_API Subdivider
+{
+  public:
     /** Enumerates all supported subvidision algorithms */
-    enum Algorithm  {
+    enum Algorithm
+    {
         CATMULL_CLARKE = 0x1
     };
 
@@ -73,7 +75,7 @@ public:
      *
      *  @param algo Algorithm to be used for subdivision
      *  @return Subdivider instance. */
-    static Subdivider* Create (Algorithm algo);
+    static Subdivider *Create(Algorithm algo);
 
     // ---------------------------------------------------------------
     /** Subdivide a mesh using the selected algorithm
@@ -87,9 +89,7 @@ public:
      *    improve performance because it allows the optimization
      *    to reuse the existing mesh for intermediate results.
      *  @pre out!=mesh*/
-    virtual void Subdivide ( aiMesh* mesh,
-        aiMesh*& out, unsigned int num,
-        bool discard_input = false) = 0;
+    virtual void Subdivide(aiMesh *mesh, aiMesh *&out, unsigned int num, bool discard_input = false) = 0;
 
     // ---------------------------------------------------------------
     /** Subdivide multiple meshes using the selected algorithm. This
@@ -112,19 +112,12 @@ public:
      *    of reusing existing meshes for intermediate results.
      *  @param num Number of subdivisions to perform.
      *  @pre nmesh != 0, smesh and out may not overlap*/
-    virtual void Subdivide (
-        aiMesh** smesh,
-        size_t nmesh,
-        aiMesh** out,
-        unsigned int num,
-        bool discard_input = false) = 0;
-
+    virtual void Subdivide(aiMesh **smesh, size_t nmesh, aiMesh **out, unsigned int num,
+                           bool discard_input = false) = 0;
 };
 
 inline Subdivider::~Subdivider() = default;
 
 } // end namespace Assimp
 
-
 #endif // !!  AI_SUBDISIVION_H_INC
-

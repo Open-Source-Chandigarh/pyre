@@ -1,22 +1,23 @@
 #pragma once
-#include <thirdparty/glm/glm.hpp>
-#include <vector>
-#include <memory>
 #include "Scene.h"
+#include "application/appState.h"
+#include "core/Entity.h"
+#include "core/LightManager.h"
+#include "core/Window.h"
+#include "core/postprocessing/PostProcessingPipeline.h"
+#include "core/rendering/Framebuffer.h"
+#include "core/rendering/Mesh.h"
+#include "core/rendering/Model.h"
+#include "core/rendering/Renderer.h"
 #include "helpers/Shader.h"
 #include "helpers/camera.h"
-#include "core/Window.h"
-#include "application/appState.h"
-#include "core/rendering/Mesh.h"
-#include "core/rendering/Renderer.h"
-#include "core/LightManager.h"
-#include "core/Entity.h"
-#include "core/rendering/Model.h"
-#include "core/rendering/Framebuffer.h"
-#include "core/postprocessing/PostProcessingPipeline.h"
+#include <memory>
+#include <thirdparty/glm/glm.hpp>
+#include <vector>
 
-class Space : public Scene {
-public:
+class Space : public Scene
+{
+  public:
     Space();
     ~Space();
 
@@ -30,10 +31,12 @@ public:
     void OnActivate(AppState &appState) override;
 
     // Scene display name (helpful when switching scenes)
-    std::string Name() const override { return "Space Scene"; }
+    std::string Name() const override
+    {
+        return "Space Scene";
+    }
 
-
-private:
+  private:
     // The shader program for this scene
     std::shared_ptr<Shader> planetShader;
     std::shared_ptr<Shader> asteroidShader;

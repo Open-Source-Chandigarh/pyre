@@ -1,15 +1,15 @@
 #pragma once
-#include "scenes/scene.h"
-#include "core/Window.h"
-#include "core/LightManager.h"
-#include "core/rendering/Renderer.h"
 #include "core/Entity.h"
-#include "core/rendering/Framebuffer.h"
+#include "core/LightManager.h"
+#include "core/Window.h"
 #include "core/postprocessing/PostProcessingPipeline.h"
+#include "core/rendering/Framebuffer.h"
+#include "core/rendering/Renderer.h"
+#include "scenes/scene.h"
 
 class Test : public Scene
 {
-public:
+  public:
     Test();
     ~Test();
 
@@ -22,9 +22,12 @@ public:
     // Called when this scene is activated
     void OnActivate(AppState &appState) override;
 
-    virtual std::string Name() const { return "Test Scene"; };
+    virtual std::string Name() const
+    {
+        return "Test Scene";
+    };
 
-private:
+  private:
     std::shared_ptr<Shader> shader;
     std::shared_ptr<Mesh> cube;
     std::shared_ptr<Mesh> plane;

@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AI_STANDARD_SHAPES_H_INC
 
 #ifdef __GNUC__
-#   pragma GCC system_header
+#pragma GCC system_header
 #endif
 
 #include <assimp/vector3.h>
@@ -56,7 +56,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 struct aiMesh;
 
-namespace Assimp {
+namespace Assimp
+{
 
 // ---------------------------------------------------------------------------
 /** \brief Helper class to generate vertex buffers for standard geometric
@@ -65,11 +66,11 @@ namespace Assimp {
 class ASSIMP_API StandardShapes
 {
     // class cannot be instanced
-    StandardShapes() {}
+    StandardShapes()
+    {
+    }
 
-public:
-
-
+  public:
     // ----------------------------------------------------------------
     /** Generates a mesh from an array of vertex positions.
      *
@@ -77,18 +78,13 @@ public:
      *  @param numIndices Number of indices per primitive
      *  @return Output mesh
      */
-    static aiMesh* MakeMesh(const std::vector<aiVector3D>& positions,
-        unsigned int numIndices);
+    static aiMesh *MakeMesh(const std::vector<aiVector3D> &positions, unsigned int numIndices);
 
+    static aiMesh *MakeMesh(unsigned int (*GenerateFunc)(std::vector<aiVector3D> &));
 
-    static aiMesh* MakeMesh ( unsigned int (*GenerateFunc)
-        (std::vector<aiVector3D>&));
+    static aiMesh *MakeMesh(unsigned int (*GenerateFunc)(std::vector<aiVector3D> &, bool));
 
-    static aiMesh* MakeMesh ( unsigned int (*GenerateFunc)
-        (std::vector<aiVector3D>&, bool));
-
-    static aiMesh* MakeMesh ( unsigned int n,  void (*GenerateFunc)
-        (unsigned int,std::vector<aiVector3D>&));
+    static aiMesh *MakeMesh(unsigned int n, void (*GenerateFunc)(unsigned int, std::vector<aiVector3D> &));
 
     // ----------------------------------------------------------------
     /** @brief Generates a hexahedron (cube)
@@ -98,9 +94,7 @@ public:
      *  @param polygons If you pass true here quads will be returned
      *  @return Number of vertices per face
      */
-    static unsigned int MakeHexahedron(
-        std::vector<aiVector3D>& positions,
-        bool polygons = false);
+    static unsigned int MakeHexahedron(std::vector<aiVector3D> &positions, bool polygons = false);
 
     // ----------------------------------------------------------------
     /** @brief Generates an icosahedron
@@ -108,9 +102,7 @@ public:
      *  @param positions Receives output triangles.
      *  @return Number of vertices per face
      */
-    static unsigned int MakeIcosahedron(
-        std::vector<aiVector3D>& positions);
-
+    static unsigned int MakeIcosahedron(std::vector<aiVector3D> &positions);
 
     // ----------------------------------------------------------------
     /** @brief Generates a dodecahedron
@@ -119,10 +111,7 @@ public:
      *  @param polygons If you pass true here pentagons will be returned
      *  @return Number of vertices per face
      */
-    static unsigned int MakeDodecahedron(
-        std::vector<aiVector3D>& positions,
-        bool polygons = false);
-
+    static unsigned int MakeDodecahedron(std::vector<aiVector3D> &positions, bool polygons = false);
 
     // ----------------------------------------------------------------
     /** @brief Generates an octahedron
@@ -130,9 +119,7 @@ public:
      *  @param positions Receives output triangles.
      *  @return Number of vertices per face
      */
-    static unsigned int MakeOctahedron(
-        std::vector<aiVector3D>& positions);
-
+    static unsigned int MakeOctahedron(std::vector<aiVector3D> &positions);
 
     // ----------------------------------------------------------------
     /** @brief Generates a tetrahedron
@@ -140,10 +127,7 @@ public:
      *  @param positions Receives output triangles.
      *  @return Number of vertices per face
      */
-    static unsigned int MakeTetrahedron(
-        std::vector<aiVector3D>& positions);
-
-
+    static unsigned int MakeTetrahedron(std::vector<aiVector3D> &positions);
 
     // ----------------------------------------------------------------
     /** @brief Generates a sphere
@@ -151,9 +135,7 @@ public:
      *  @param tess Number of subdivions - 0 generates a octahedron
      *  @param positions Receives output triangles.
      */
-    static void MakeSphere(unsigned int tess,
-        std::vector<aiVector3D>& positions);
-
+    static void MakeSphere(unsigned int tess, std::vector<aiVector3D> &positions);
 
     // ----------------------------------------------------------------
     /** @brief Generates a cone or a cylinder, either open or closed.
@@ -181,10 +163,8 @@ public:
      *    no 'end caps'
      *  @param positions Receives output triangles
      */
-    static void MakeCone(ai_real height,ai_real radius1,
-        ai_real radius2,unsigned int tess,
-        std::vector<aiVector3D>& positions,bool bOpen= false);
-
+    static void MakeCone(ai_real height, ai_real radius1, ai_real radius2, unsigned int tess,
+                         std::vector<aiVector3D> &positions, bool bOpen = false);
 
     // ----------------------------------------------------------------
     /** @brief Generates a flat circle
@@ -196,10 +176,8 @@ public:
      *  @param tess Number of segments.
      *  @param positions Receives output triangles.
      */
-    static void MakeCircle(ai_real radius, unsigned int tess,
-        std::vector<aiVector3D>& positions);
-
+    static void MakeCircle(ai_real radius, unsigned int tess, std::vector<aiVector3D> &positions);
 };
-} // ! Assimp
+} // namespace Assimp
 
 #endif // !! AI_STANDARD_SHAPES_H_INC

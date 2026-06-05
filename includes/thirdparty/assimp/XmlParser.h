@@ -42,43 +42,46 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef INCLUDED_AI_IRRXML_WRAPPER
 #define INCLUDED_AI_IRRXML_WRAPPER
 
-#include <assimp/ai_assert.h>
-#include <assimp/StringUtils.h>
 #include <assimp/DefaultLogger.hpp>
+#include <assimp/StringUtils.h>
+#include <assimp/ai_assert.h>
 
 #include "BaseImporter.h"
 #include "IOStream.hpp"
 
-#include <pugixml.hpp>
 #include <istream>
+#include <pugixml.hpp>
 #include <utility>
 #include <vector>
 
-namespace Assimp {
+namespace Assimp
+{
 
 /// @brief  Will find a node by its name.
-struct find_node_by_name_predicate {
+struct find_node_by_name_predicate
+{
     /// @brief The default constructor.
     find_node_by_name_predicate() = default;
 
-
     std::string mName; ///< The name to find.
-    find_node_by_name_predicate(const std::string &name) :
-            mName(name) {
+    find_node_by_name_predicate(const std::string &name) : mName(name)
+    {
         // empty
     }
 
-    bool operator()(pugi::xml_node node) const {
+    bool operator()(pugi::xml_node node) const
+    {
         return node.name() == mName;
     }
 };
 
 /// @brief  Will convert an attribute to its int value.
 /// @tparam[in] TNodeType  The node type.
-template <class TNodeType>
-struct NodeConverter {
-public:
-    static int to_int(TNodeType &node, const char *attribName) {
+template <class TNodeType> struct NodeConverter
+{
+  public:
+    static int to_int(TNodeType &node, const char *attribName)
+    {
         ai_assert(nullptr != attribName);
         return node.attribute(attribName).to_int();
     }
@@ -102,9 +105,9 @@ using XmlAttribute = pugi::xml_attribute;
 /// }
 /// @endcode
 /// @tparam TNodeType
-template <class TNodeType>
-class TXmlParser {
-public:
+template <class TNodeType> class TXmlParser
+{
+  public:
     /// @brief The default class constructor.
     TXmlParser();
 
@@ -241,28 +244,28 @@ public:
     /// @return true, if the value can be read out.
     static inline bool getValueAsBool(XmlNode &node, bool &v);
 
-private:
+  private:
     pugi::xml_document *mDoc;
     TNodeType mCurrent;
     std::vector<char> mData;
 };
 
-template <class TNodeType>
-inline TXmlParser<TNodeType>::TXmlParser() :
-        mDoc(nullptr),
-        mData() {
+template <class TNodeType> inline TXmlParser<TNodeType>::TXmlParser() : mDoc(nullptr), mData()
+{
     // empty
 }
 
-template <class TNodeType>
-inline TXmlParser<TNodeType>::~TXmlParser() {
+template <class TNodeType> inline TXmlParser<TNodeType>::~TXmlParser()
+{
     clear();
 }
 
-template <class TNodeType>
-inline void TXmlParser<TNodeType>::clear() {
-    if (mData.empty()) {
-        if (mDoc) {
+template <class TNodeType> inline void TXmlParser<TNodeType>::clear()
+{
+    if (mData.empty())
+    {
+        if (mDoc)
+        {
             delete mDoc;
         }
         mDoc = nullptr;
@@ -274,37 +277,42 @@ inline void TXmlParser<TNodeType>::clear() {
     mDoc = nullptr;
 }
 
-template <class TNodeType>
-inline TNodeType *TXmlParser<TNodeType>::findNode(const std::string &name) {
-    if (name.empty()) {
+template <class TNodeType> inline TNodeType *TXmlParser<TNodeType>::findNode(const std::string &name)
+{
+    if (name.empty())
+    {
         return nullptr;
     }
 
-    if (nullptr == mDoc) {
+    if (nullptr == mDoc)
+    {
         return nullptr;
     }
 
     find_node_by_name_predicate predicate(name);
     mCurrent = mDoc->find_node(std::move(predicate));
-    if (mCurrent.empty()) {
+    if (mCurrent.empty())
+    {
         return nullptr;
     }
 
     return &mCurrent;
 }
 
-template <class TNodeType>
-bool TXmlParser<TNodeType>::hasNode(const std::string &name) {
+template <class TNodeType> bool TXmlParser<TNodeType>::hasNode(const std::string &name)
+{
     return nullptr != findNode(name);
 }
 
-template <class TNodeType>
-bool TXmlParser<TNodeType>::parse(IOStream *stream) {
-    if (hasRoot()) {
+template <class TNodeType> bool TXmlParser<TNodeType>::parse(IOStream *stream)
+{
+    if (hasRoot())
+    {
         clear();
     }
 
-    if (nullptr == stream) {
+    if (nullptr == stream)
+    {
         ASSIMP_LOG_DEBUG("Stream is nullptr.");
         return false;
     }
@@ -316,9 +324,10 @@ bool TXmlParser<TNodeType>::parse(IOStream *stream) {
 
     mDoc = new pugi::xml_document();
     // load_string assumes native encoding (aka always utf-8 per build options)
-    //pugi::xml_parse_result parse_result = mDoc->load_string(&mData[0], pugi::parse_full);
+    // pugi::xml_parse_result parse_result = mDoc->load_string(&mData[0], pugi::parse_full);
     pugi::xml_parse_result parse_result = mDoc->load_buffer(&mData[0], mData.size(), pugi::parse_full);
-    if (parse_result.status == pugi::status_ok) {
+    if (parse_result.status == pugi::status_ok)
+    {
         return true;
     }
 
@@ -327,14 +336,16 @@ bool TXmlParser<TNodeType>::parse(IOStream *stream) {
     return false;
 }
 
-template <class TNodeType>
-bool TXmlParser<TNodeType>::parse(std::istream &inStream) {
-    if (hasRoot()) {
+template <class TNodeType> bool TXmlParser<TNodeType>::parse(std::istream &inStream)
+{
+    if (hasRoot())
+    {
         clear();
     }
     mDoc = new pugi::xml_document();
     pugi::xml_parse_result parse_result = mDoc->load(inStream);
-    if (parse_result.status == pugi::status_ok) {
+    if (parse_result.status == pugi::status_ok)
+    {
         return true;
     }
 
@@ -343,51 +354,55 @@ bool TXmlParser<TNodeType>::parse(std::istream &inStream) {
     return false;
 }
 
-template <class TNodeType>
-bool TXmlParser<TNodeType>::hasRoot() const {
+template <class TNodeType> bool TXmlParser<TNodeType>::hasRoot() const
+{
     return nullptr != mDoc;
 }
 
-template <class TNodeType>
-pugi::xml_document *TXmlParser<TNodeType>::getDocument() const {
+template <class TNodeType> pugi::xml_document *TXmlParser<TNodeType>::getDocument() const
+{
     return mDoc;
 }
 
-template <class TNodeType>
-const TNodeType TXmlParser<TNodeType>::getRootNode() const {
+template <class TNodeType> const TNodeType TXmlParser<TNodeType>::getRootNode() const
+{
     static pugi::xml_node none;
-    if (nullptr == mDoc) {
+    if (nullptr == mDoc)
+    {
         return none;
     }
     return mDoc->root();
 }
 
-template <class TNodeType>
-TNodeType TXmlParser<TNodeType>::getRootNode() {
+template <class TNodeType> TNodeType TXmlParser<TNodeType>::getRootNode()
+{
     static pugi::xml_node none;
-    if (nullptr == mDoc) {
+    if (nullptr == mDoc)
+    {
         return none;
     }
 
     return mDoc->root();
 }
 
-template <class TNodeType>
-inline bool TXmlParser<TNodeType>::hasNode(XmlNode &node, const char *name) {
+template <class TNodeType> inline bool TXmlParser<TNodeType>::hasNode(XmlNode &node, const char *name)
+{
     pugi::xml_node child = node.find_child(find_node_by_name_predicate(name));
     return !child.empty();
 }
 
-template <class TNodeType>
-inline bool TXmlParser<TNodeType>::hasAttribute(XmlNode &xmlNode, const char *name) {
+template <class TNodeType> inline bool TXmlParser<TNodeType>::hasAttribute(XmlNode &xmlNode, const char *name)
+{
     pugi::xml_attribute attr = xmlNode.attribute(name);
     return !attr.empty();
 }
 
 template <class TNodeType>
-inline bool TXmlParser<TNodeType>::getUIntAttribute(XmlNode &xmlNode, const char *name, unsigned int &val) {
+inline bool TXmlParser<TNodeType>::getUIntAttribute(XmlNode &xmlNode, const char *name, unsigned int &val)
+{
     pugi::xml_attribute attr = xmlNode.attribute(name);
-    if (attr.empty()) {
+    if (attr.empty())
+    {
         return false;
     }
 
@@ -396,9 +411,11 @@ inline bool TXmlParser<TNodeType>::getUIntAttribute(XmlNode &xmlNode, const char
 }
 
 template <class TNodeType>
-inline bool TXmlParser<TNodeType>::getIntAttribute(XmlNode &xmlNode, const char *name, int &val) {
+inline bool TXmlParser<TNodeType>::getIntAttribute(XmlNode &xmlNode, const char *name, int &val)
+{
     pugi::xml_attribute attr = xmlNode.attribute(name);
-    if (attr.empty()) {
+    if (attr.empty())
+    {
         return false;
     }
 
@@ -407,9 +424,11 @@ inline bool TXmlParser<TNodeType>::getIntAttribute(XmlNode &xmlNode, const char 
 }
 
 template <class TNodeType>
-inline bool TXmlParser<TNodeType>::getRealAttribute(XmlNode &xmlNode, const char *name, ai_real &val) {
+inline bool TXmlParser<TNodeType>::getRealAttribute(XmlNode &xmlNode, const char *name, ai_real &val)
+{
     pugi::xml_attribute attr = xmlNode.attribute(name);
-    if (attr.empty()) {
+    if (attr.empty())
+    {
         return false;
     }
 #ifdef ASSIMP_DOUBLE_PRECISION
@@ -421,9 +440,11 @@ inline bool TXmlParser<TNodeType>::getRealAttribute(XmlNode &xmlNode, const char
 }
 
 template <class TNodeType>
-inline bool TXmlParser<TNodeType>::getFloatAttribute(XmlNode &xmlNode, const char *name, float &val) {
+inline bool TXmlParser<TNodeType>::getFloatAttribute(XmlNode &xmlNode, const char *name, float &val)
+{
     pugi::xml_attribute attr = xmlNode.attribute(name);
-    if (attr.empty()) {
+    if (attr.empty())
+    {
         return false;
     }
 
@@ -433,9 +454,11 @@ inline bool TXmlParser<TNodeType>::getFloatAttribute(XmlNode &xmlNode, const cha
 }
 
 template <class TNodeType>
-inline bool TXmlParser<TNodeType>::getDoubleAttribute(XmlNode &xmlNode, const char *name, double &val) {
+inline bool TXmlParser<TNodeType>::getDoubleAttribute(XmlNode &xmlNode, const char *name, double &val)
+{
     pugi::xml_attribute attr = xmlNode.attribute(name);
-    if (attr.empty()) {
+    if (attr.empty())
+    {
         return false;
     }
 
@@ -445,9 +468,11 @@ inline bool TXmlParser<TNodeType>::getDoubleAttribute(XmlNode &xmlNode, const ch
 }
 
 template <class TNodeType>
-inline bool TXmlParser<TNodeType>::getStdStrAttribute(XmlNode &xmlNode, const char *name, std::string &val) {
+inline bool TXmlParser<TNodeType>::getStdStrAttribute(XmlNode &xmlNode, const char *name, std::string &val)
+{
     pugi::xml_attribute attr = xmlNode.attribute(name);
-    if (attr.empty()) {
+    if (attr.empty())
+    {
         return false;
     }
 
@@ -457,9 +482,11 @@ inline bool TXmlParser<TNodeType>::getStdStrAttribute(XmlNode &xmlNode, const ch
 }
 
 template <class TNodeType>
-inline bool TXmlParser<TNodeType>::getBoolAttribute(XmlNode &xmlNode, const char *name, bool &val) {
+inline bool TXmlParser<TNodeType>::getBoolAttribute(XmlNode &xmlNode, const char *name, bool &val)
+{
     pugi::xml_attribute attr = xmlNode.attribute(name);
-    if (attr.empty()) {
+    if (attr.empty())
+    {
         return false;
     }
 
@@ -468,10 +495,11 @@ inline bool TXmlParser<TNodeType>::getBoolAttribute(XmlNode &xmlNode, const char
     return true;
 }
 
-template <class TNodeType>
-inline bool TXmlParser<TNodeType>::getValueAsString(XmlNode &node, std::string &text) {
+template <class TNodeType> inline bool TXmlParser<TNodeType>::getValueAsString(XmlNode &node, std::string &text)
+{
     text = std::string();
-    if (node.empty()) {
+    if (node.empty())
+    {
         return false;
     }
 
@@ -481,9 +509,10 @@ inline bool TXmlParser<TNodeType>::getValueAsString(XmlNode &node, std::string &
     return true;
 }
 
-template <class TNodeType>
-inline bool TXmlParser<TNodeType>::getValueAsReal(XmlNode& node, ai_real& v) {
-    if (node.empty()) {
+template <class TNodeType> inline bool TXmlParser<TNodeType>::getValueAsReal(XmlNode &node, ai_real &v)
+{
+    if (node.empty())
+    {
         return false;
     }
 
@@ -492,10 +521,10 @@ inline bool TXmlParser<TNodeType>::getValueAsReal(XmlNode& node, ai_real& v) {
     return true;
 }
 
-
-template <class TNodeType>
-inline bool TXmlParser<TNodeType>::getValueAsFloat(XmlNode &node, float &v) {
-    if (node.empty()) {
+template <class TNodeType> inline bool TXmlParser<TNodeType>::getValueAsFloat(XmlNode &node, float &v)
+{
+    if (node.empty())
+    {
         return false;
     }
 
@@ -504,9 +533,10 @@ inline bool TXmlParser<TNodeType>::getValueAsFloat(XmlNode &node, float &v) {
     return true;
 }
 
-template <class TNodeType>
-inline bool TXmlParser<TNodeType>::getValueAsInt(XmlNode &node, int &v) {
-    if (node.empty()) {
+template <class TNodeType> inline bool TXmlParser<TNodeType>::getValueAsInt(XmlNode &node, int &v)
+{
+    if (node.empty())
+    {
         return false;
     }
 
@@ -515,9 +545,10 @@ inline bool TXmlParser<TNodeType>::getValueAsInt(XmlNode &node, int &v) {
     return true;
 }
 
-template <class TNodeType>
-inline bool TXmlParser<TNodeType>::getValueAsBool(XmlNode &node, bool &v) {
-    if (node.empty()) {
+template <class TNodeType> inline bool TXmlParser<TNodeType>::getValueAsBool(XmlNode &node, bool &v)
+{
+    if (node.empty())
+    {
         return false;
     }
 
@@ -529,23 +560,26 @@ inline bool TXmlParser<TNodeType>::getValueAsBool(XmlNode &node, bool &v) {
 using XmlParser = TXmlParser<pugi::xml_node>;
 
 ///	@brief  This class declares an iterator to loop through all children of the root node.
-class XmlNodeIterator {
-public:
+class XmlNodeIterator
+{
+  public:
     /// @brief The iteration mode.
-    enum IterationMode {
+    enum IterationMode
+    {
         PreOrderMode, ///< Pre-ordering, get the values, continue the iteration.
         PostOrderMode ///< Post-ordering, continue the iteration, get the values.
     };
     ///	@brief  The class constructor
     /// @param  parent      [in] The xml parent to to iterate through.
     /// @param  mode        [in] The iteration mode.
-    explicit XmlNodeIterator(XmlNode &parent, IterationMode mode) :
-            mParent(parent),
-            mNodes(),
-            mIndex(0) {
-        if (mode == PreOrderMode) {
+    explicit XmlNodeIterator(XmlNode &parent, IterationMode mode) : mParent(parent), mNodes(), mIndex(0)
+    {
+        if (mode == PreOrderMode)
+        {
             collectChildrenPreOrder(parent);
-        } else {
+        }
+        else
+        {
             collectChildrenPostOrder(parent);
         }
     }
@@ -555,22 +589,28 @@ public:
 
     ///	@brief  Will iterate through all children in pre-order iteration.
     /// @param  node    [in] The nod to iterate through.
-    void collectChildrenPreOrder(XmlNode &node) {
-        if (node != mParent && node.type() == pugi::node_element) {
+    void collectChildrenPreOrder(XmlNode &node)
+    {
+        if (node != mParent && node.type() == pugi::node_element)
+        {
             mNodes.push_back(node);
         }
-        for (XmlNode currentNode : node.children()) {
+        for (XmlNode currentNode : node.children())
+        {
             collectChildrenPreOrder(currentNode);
         }
     }
 
     ///	@brief  Will iterate through all children in post-order iteration.
     /// @param  node    [in] The nod to iterate through.
-    void collectChildrenPostOrder(XmlNode &node) {
-        for (XmlNode currentNode = node.first_child(); currentNode; currentNode = currentNode.next_sibling()) {
+    void collectChildrenPostOrder(XmlNode &node)
+    {
+        for (XmlNode currentNode = node.first_child(); currentNode; currentNode = currentNode.next_sibling())
+        {
             collectChildrenPostOrder(currentNode);
         }
-        if (node != mParent) {
+        if (node != mParent)
+        {
             mNodes.push_back(node);
         }
     }
@@ -578,8 +618,10 @@ public:
     ///	@brief  Will iterate through all collected nodes.
     /// @param  next    The next node, if there is any.
     /// @return true, if there is a node left.
-    bool getNext(XmlNode &next) {
-        if (mIndex == mNodes.size()) {
+    bool getNext(XmlNode &next)
+    {
+        if (mIndex == mNodes.size())
+        {
             return false;
         }
 
@@ -591,19 +633,23 @@ public:
 
     ///	@brief  Will return the number of collected nodes.
     /// @return The number of collected nodes.
-    size_t size() const {
+    size_t size() const
+    {
         return mNodes.size();
     }
 
     ///	@brief  Returns true, if the node is empty.
     /// @return true, if the node is empty, false if not.
-    bool isEmpty() const {
+    bool isEmpty() const
+    {
         return mNodes.empty();
     }
 
     ///	@brief  Will clear all collected nodes.
-    void clear() {
-        if (mNodes.empty()) {
+    void clear()
+    {
+        if (mNodes.empty())
+        {
             return;
         }
 
@@ -611,7 +657,7 @@ public:
         mIndex = 0;
     }
 
-private:
+  private:
     XmlNode &mParent;
     std::vector<XmlNode> mNodes;
     size_t mIndex;

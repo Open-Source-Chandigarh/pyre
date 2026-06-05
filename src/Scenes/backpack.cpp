@@ -1,28 +1,32 @@
-#include <thirdparty/glad/glad.h>
-#include <thirdparty/stb_image.h>
-#include <iostream>
-#include <thirdparty/glm/gtc/matrix_transform.hpp>
-#include <thirdparty/glm/gtc/type_ptr.hpp>
 #include "scenes/backpack.h"
 #include "core/ResourceManager.h"
-#include "helpers/Utils.h"
-#include "core/rendering/Texture.h"
 #include "core/rendering/Material.h"
+#include "core/rendering/Texture.h"
+#include "helpers/Utils.h"
+#include <iostream>
+#include <thirdparty/glad/glad.h>
+#include <thirdparty/glm/gtc/matrix_transform.hpp>
+#include <thirdparty/glm/gtc/type_ptr.hpp>
+#include <thirdparty/stb_image.h>
 
-Backpack::Backpack() : rotationSpeed(50.0f), rotationAngle(0.0f) {}
-Backpack::~Backpack() {}
+Backpack::Backpack() : rotationSpeed(50.0f), rotationAngle(0.0f)
+{
+}
+Backpack::~Backpack()
+{
+}
 
 void Backpack::Init(AppState &appState)
 {
     obj = std::make_shared<Model>("resources/models/backpack/backpack.obj");
     auto shadowObj = std::make_shared<Model>("resources/models/backpack/backpackLowPoly.obj");
-    if(!obj) return;
-    std::cerr << "Backpack model mesh count: " << obj -> GetNodeCount() << "\n";
+    if (!obj)
+        return;
+    std::cerr << "Backpack model mesh count: " << obj->GetNodeCount() << "\n";
 
     // shaders
-    shader = ResourceManager::LoadShader("factory",
-        "shaders/modularVertexShader.vs",
-        "shaders/modularFragmentShader.fs");
+    shader =
+        ResourceManager::LoadShader("factory", "shaders/modularVertexShader.vs", "shaders/modularFragmentShader.fs");
 
     auto overrideMat = std::make_shared<Material>();
     overrideMat->SetOutline(true, glm::vec3(1.0f), 1.5f);
@@ -33,54 +37,58 @@ void Backpack::Init(AppState &appState)
     e->renderComp->shadowProxyModel = shadowObj;
     e->transform.position = glm::vec3(0.0f);
     e->transform.scale = glm::vec3(1.0f);
-    entities.push_back(std::move(e));   
+    entities.push_back(std::move(e));
 }
 
 void Backpack::OnActivate(AppState &appState)
 {
-    // Lights 
-    appState.lightManager -> ClearPointLights();
-    appState.lightManager -> ClearSpotLights();
+    // Lights
+    appState.lightManager->ClearPointLights();
+    appState.lightManager->ClearSpotLights();
 
-    appState.lightManager -> SetDirectional(
-        glm::vec3(-0.5f, -1.0f, -0.3f), glm::vec3(0.05f), glm::vec3(0.6f), glm::vec3(0.2f)
-    );
+    appState.lightManager->SetDirectional(glm::vec3(-0.5f, -1.0f, -0.3f), glm::vec3(0.05f), glm::vec3(0.6f),
+                                          glm::vec3(0.2f));
 
     PointLight p;
     p.position = glm::vec3(0.7f, 0.2f, 2.0f);
     p.ambient = glm::vec3(0.2f, 1.0f, 1.5f) * 0.1f;
     p.diffuse = glm::vec3(0.2f, 1.5f, 1.5f) * 0.8f;
     p.specular = glm::vec3(1.0f);
-    p.constant = 1.0f; p.linear = 0.09f; p.quadratic = 0.032f;
-    appState.lightManager -> AddPointLight(p);
+    p.constant = 1.0f;
+    p.linear = 0.09f;
+    p.quadratic = 0.032f;
+    appState.lightManager->AddPointLight(p);
 
     PointLight p2;
     p2.position = glm::vec3(2.3f, -3.3f, -4.0f);
     p2.ambient = glm::vec3(1.5f, 1.0f, 2.0f) * 0.1f;
     p2.diffuse = glm::vec3(2.0f, 1.5f, 2.0f) * 0.9f;
     p2.specular = glm::vec3(1.0f);
-    p2.constant = 1.0f; p2.linear = 0.09f; p2.quadratic = 0.032f;
-    appState.lightManager -> AddPointLight(p2);
+    p2.constant = 1.0f;
+    p2.linear = 0.09f;
+    p2.quadratic = 0.032f;
+    appState.lightManager->AddPointLight(p2);
 
     PointLight p3;
     p3.position = glm::vec3(-4.0f, 2.0f, -12.0f);
     p3.ambient = glm::vec3(1.0f, 5.0f, 0.6f) * 0.1f;
     p3.diffuse = glm::vec3(1.0f, 7.0f, 0.6f) * 0.8f;
     p3.specular = glm::vec3(1.0f);
-    p3.constant = 1.0f; p3.linear = 0.09f; p3.quadratic = 0.032f;
-    appState.lightManager -> AddPointLight(p3);
+    p3.constant = 1.0f;
+    p3.linear = 0.09f;
+    p3.quadratic = 0.032f;
+    appState.lightManager->AddPointLight(p3);
 }
 
-
-void Backpack::Update(AppState &appState) 
+void Backpack::Update(AppState &appState)
 {
     rotationAngle -= rotationSpeed * appState.deltaTime;
-    for (size_t i = 0; i < entities.size(); ++i) 
+    for (size_t i = 0; i < entities.size(); ++i)
     {
         float offset = 29.5f + 0.1f * sin(i);
-        entities[i] -> transform.rotation.y = rotationAngle + offset * float(i);
+        entities[i]->transform.rotation.y = rotationAngle + offset * float(i);
     }
-    if (!appState.lightManager->spots.empty()) 
+    if (!appState.lightManager->spots.empty())
     {
         appState.lightManager->spots[0].position = appState.camera.Position;
         appState.lightManager->spots[0].direction = appState.camera.Front;

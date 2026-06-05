@@ -1,18 +1,19 @@
+#include "core/ResourceManager.h"
 #include <iostream>
 #include <thirdparty/stb_image.h>
-#include "core/ResourceManager.h"
 
 std::map<std::string, std::shared_ptr<Shader>> ResourceManager::shaders;
 std::map<std::string, std::shared_ptr<Texture>> ResourceManager::textures;
 
-std::shared_ptr<Shader> ResourceManager::LoadShader(const std::string& name,
-    const std::string& vsPath, const std::string& fsPath, const std::string& gsPath)
+std::shared_ptr<Shader> ResourceManager::LoadShader(const std::string &name, const std::string &vsPath,
+                                                    const std::string &fsPath, const std::string &gsPath)
 {
     auto it = shaders.find(name);
-    if (it != shaders.end()) return it->second;
-    try 
-    { 
-        if(gsPath != "")
+    if (it != shaders.end())
+        return it->second;
+    try
+    {
+        if (gsPath != "")
         {
             auto s = std::make_shared<Shader>(vsPath.c_str(), fsPath.c_str(), gsPath.c_str());
             shaders[name] = s;
@@ -25,28 +26,31 @@ std::shared_ptr<Shader> ResourceManager::LoadShader(const std::string& name,
             return s;
         }
     }
-    catch (const std::exception& e) 
+    catch (const std::exception &e)
     {
         std::cerr << "ResourceManager::LoadShader failed: " << e.what() << "\n";
         return nullptr;
     }
 }
 
-std::shared_ptr<Shader> ResourceManager::GetShader(const std::string& name) 
+std::shared_ptr<Shader> ResourceManager::GetShader(const std::string &name)
 {
     auto it = shaders.find(name);
-    if (it == shaders.end()) return nullptr;
+    if (it == shaders.end())
+        return nullptr;
     return it->second;
 }
 
-std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& path, TextureType type)
+std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string &path, TextureType type)
 {
-    if (textures.count(path)) return textures[path];
+    if (textures.count(path))
+        return textures[path];
 
     int width, height, nrChannels;
     stbi_set_flip_vertically_on_load(true);
-    unsigned char* data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
-    if (!data) {
+    unsigned char *data = stbi_load(path.c_str(), &width, &height, &nrChannels, 0);
+    if (!data)
+    {
         std::cerr << "ResourceManager: Failed to load texture " << path << ". Using fallback.\n";
         return GetFallbackTexture();
     }
@@ -60,8 +64,8 @@ std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& path, T
     else if (nrChannels == 4)
         dataFormat = GL_RGBA;
 
-    // Determine the Internal Format 
-    // We only use sRGB for Diffuse textures 
+    // Determine the Internal Format
+    // We only use sRGB for Diffuse textures
     // Specular/Normal maps must remain linear
     GLenum internalFormat = dataFormat;
     if (type == TextureType::TEX_DIFFUSE)
@@ -78,10 +82,10 @@ std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& path, T
 
     glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, dataFormat, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
-    
+
     // Repeat for non-alpha textures, Clamp for others
-    if(dataFormat != GL_RGBA)
-    { 
+    if (dataFormat != GL_RGBA)
+    {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     }
@@ -90,7 +94,7 @@ std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& path, T
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     }
- 
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -108,12 +112,12 @@ std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string& path, T
     return texture;
 }
 
-std::shared_ptr<Texture> ResourceManager::LoadCubeMap(
-    std::vector<std::string> faces, std::string name)
+std::shared_ptr<Texture> ResourceManager::LoadCubeMap(std::vector<std::string> faces, std::string name)
 {
     std::string key = name.empty() ? combinePaths(faces) : name;
-    if (textures.count(key)) return textures[key];
-    
+    if (textures.count(key))
+        return textures[key];
+
     stbi_set_flip_vertically_on_load(false);
 
     unsigned int tex;
@@ -123,12 +127,12 @@ std::shared_ptr<Texture> ResourceManager::LoadCubeMap(
     int width, height, nrChannels;
     for (unsigned int i = 0; i < faces.size(); i++)
     {
-        unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
         if (data)
         {
             // Calculate Data Format
             GLenum dataFormat = (nrChannels == 1) ? GL_RED : (nrChannels == 3) ? GL_RGB : GL_RGBA;
-            
+
             // Calculate Internal Format
             GLenum internalFormat = dataFormat;
             if (dataFormat == GL_RGB)
@@ -136,9 +140,8 @@ std::shared_ptr<Texture> ResourceManager::LoadCubeMap(
             else if (dataFormat == GL_RGBA)
                 internalFormat = GL_SRGB_ALPHA;
 
-            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                0, internalFormat, width, height, 0, dataFormat, GL_UNSIGNED_BYTE, data
-            );
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, internalFormat, width, height, 0, dataFormat,
+                         GL_UNSIGNED_BYTE, data);
             stbi_image_free(data);
         }
         else
@@ -165,29 +168,28 @@ std::shared_ptr<Texture> ResourceManager::LoadCubeMap(
     return texture;
 }
 
-std::shared_ptr<Texture> ResourceManager::GetTexture(const std::string& path)
+std::shared_ptr<Texture> ResourceManager::GetTexture(const std::string &path)
 {
     auto it = textures.find(path);
-    if (it == textures.end()) return nullptr;
+    if (it == textures.end())
+        return nullptr;
     return it->second;
 }
 
 std::shared_ptr<Texture> ResourceManager::GetFallbackTexture()
 {
-    if (textures.count("fallback_checkerboard")) return textures["fallback_checkerboard"];
+    if (textures.count("fallback_checkerboard"))
+        return textures["fallback_checkerboard"];
 
     // Create a 2x2 magenta/black checkerboard texture
-    unsigned char data[] = {
-        255, 0, 255, 0, 0, 0,
-        0, 0, 0, 255, 0, 255
-    };
+    unsigned char data[] = {255, 0, 255, 0, 0, 0, 0, 0, 0, 255, 0, 255};
 
     unsigned int tex;
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -207,14 +209,14 @@ std::shared_ptr<Texture> ResourceManager::GetFallbackTexture()
 std::string ResourceManager::combinePaths(std::vector<std::string> paths)
 {
     std::string key = "";
-    for (auto&& s : paths)
+    for (auto &&s : paths)
     {
-        key += s + "#"; 
+        key += s + "#";
     }
     return key;
 }
 
-void ResourceManager::Clear() 
+void ResourceManager::Clear()
 {
     textures.clear();
     shaders.clear();

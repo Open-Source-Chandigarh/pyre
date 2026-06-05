@@ -12,18 +12,18 @@
 #define STR_HELP(x) #x
 #define STR(x) STR_HELP(x)
 
-#define VER_FILEVERSION             VER_MAJOR,VER_MINOR,VER_PATCH,VER_BUILD
+#define VER_FILEVERSION VER_MAJOR, VER_MINOR, VER_PATCH, VER_BUILD
 #if (GitVersion == 0)
-#define VER_FILEVERSION_STR         STR(VER_MAJOR) "." STR(VER_MINOR) "." STR(VER_PATCH) "." STR(VER_BUILD)
+#define VER_FILEVERSION_STR STR(VER_MAJOR) "." STR(VER_MINOR) "." STR(VER_PATCH) "." STR(VER_BUILD)
 #else
-#define VER_FILEVERSION_STR         STR(VER_MAJOR) "." STR(VER_MINOR) "." STR(VER_PATCH) "." STR(VER_BUILD) " (Commit 0)"
+#define VER_FILEVERSION_STR STR(VER_MAJOR) "." STR(VER_MINOR) "." STR(VER_PATCH) "." STR(VER_BUILD) " (Commit 0)"
 #endif
-#define VER_COPYRIGHT_STR           "\xA9 2006-2023"
+#define VER_COPYRIGHT_STR "\xA9 2006-2023"
 
-#ifdef  NDEBUG
-#define VER_ORIGINAL_FILENAME_STR   "assimp-vc143-mt.dll"
+#ifdef NDEBUG
+#define VER_ORIGINAL_FILENAME_STR "assimp-vc143-mt.dll"
 #else
-#define VER_ORIGINAL_FILENAME_STR   "assimp-vc143-mtd.dll"
+#define VER_ORIGINAL_FILENAME_STR "assimp-vc143-mtd.dll"
 #endif //  NDEBUG
 
 #endif // ASSIMP_REVISION_H_INC

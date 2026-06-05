@@ -1,22 +1,24 @@
 #pragma once
-#include <memory>
-#include <functional>
 #include "core/postprocessing/postEffect.h"
+#include <functional>
+#include <memory>
 
 class Shader; // forward
 
 class GenericPostEffect : public PostEffect
 {
-public:
+  public:
     // shader may be nullptr; Apply will be a no-op if shader missing
-    GenericPostEffect(std::shared_ptr<Shader> shader,
-        std::function<void(Shader&)> uniformSetter = {});
+    GenericPostEffect(std::shared_ptr<Shader> shader, std::function<void(Shader &)> uniformSetter = {});
 
-    void Apply(GLuint inputTexture, Framebuffer& output, GLuint quadVAO) override;
+    void Apply(GLuint inputTexture, Framebuffer &output, GLuint quadVAO) override;
 
-    std::shared_ptr<Shader> GetShader() { return shader; }
+    std::shared_ptr<Shader> GetShader()
+    {
+        return shader;
+    }
 
-private:
+  private:
     std::shared_ptr<Shader> shader;
-    std::function<void(Shader&)> setter;
+    std::function<void(Shader &)> setter;
 };

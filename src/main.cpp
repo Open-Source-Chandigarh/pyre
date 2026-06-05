@@ -1,15 +1,15 @@
-﻿#include <iostream>
-#include "application/Application.h"
-#include "scenes/factoryScene.h"
-#include "scenes/backpack.h"
+﻿#include "application/Application.h"
+#include "core/ResourceManager.h"
 #include "scenes/Space.h"
 #include "scenes/ToonScene.h"
+#include "scenes/backpack.h"
+#include "scenes/factoryScene.h"
 #include "scenes/test.h"
-#include "core/ResourceManager.h"
+#include <iostream>
 
 int main()
 {
-    try 
+    try
     {
         Application app("Pyre Engine", 800, 600);
 
@@ -18,10 +18,10 @@ int main()
         app.AddScene(new ToonScene());
         app.AddScene(new Space());
         app.AddScene(new Test());
-        
+
         app.Run();
     }
-    catch (const std::exception& e)
+    catch (const std::exception &e)
     {
         std::cerr << "ERROR: " << e.what() << std::endl;
         ResourceManager::Clear();

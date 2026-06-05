@@ -63,7 +63,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cstring>
 #include <string>
 
-namespace Assimp {
+namespace Assimp
+{
 
 // -------------------------------------------------------------------------------
 /** @brief itoa with a fixed base 10
@@ -76,12 +77,14 @@ namespace Assimp {
  * @param number Number to be written
  * @return Length of the output string, excluding the '\0'
  */
-inline unsigned int ASSIMP_itoa10(char *out, unsigned int max, int32_t number) {
+inline unsigned int ASSIMP_itoa10(char *out, unsigned int max, int32_t number)
+{
     ai_assert(nullptr != out);
 
     // write the unary minus to indicate we have a negative number
     unsigned int written = 1u;
-    if (number < 0 && written < max) {
+    if (number < 0 && written < max)
+    {
         *out++ = '-';
         ++written;
         number = -number;
@@ -90,10 +93,12 @@ inline unsigned int ASSIMP_itoa10(char *out, unsigned int max, int32_t number) {
     // We begin with the largest number that is not zero.
     int32_t cur = 1000000000; // 2147483648
     bool mustPrint = false;
-    while (written < max) {
+    while (written < max)
+    {
 
         const unsigned int digit = number / cur;
-        if (mustPrint || digit > 0 || 1 == cur) {
+        if (mustPrint || digit > 0 || 1 == cur)
+        {
             // print all future zero's from now
             mustPrint = true;
 
@@ -101,7 +106,8 @@ inline unsigned int ASSIMP_itoa10(char *out, unsigned int max, int32_t number) {
 
             ++written;
             number -= digit * cur;
-            if (1 == cur) {
+            if (1 == cur)
+            {
                 break;
             }
         }
@@ -118,8 +124,8 @@ inline unsigned int ASSIMP_itoa10(char *out, unsigned int max, int32_t number) {
  *  The compiler should choose this function if he or she is able to determine the
  *  size of the array automatically.
  */
-template <size_t length>
-inline unsigned int ASSIMP_itoa10(char (&out)[length], int32_t number) {
+template <size_t length> inline unsigned int ASSIMP_itoa10(char (&out)[length], int32_t number)
+{
     return ASSIMP_itoa10(out, length, number);
 }
 
@@ -134,7 +140,8 @@ inline unsigned int ASSIMP_itoa10(char (&out)[length], int32_t number) {
  *  @param s2 Second input string
  *  @return 0 if the given strings are identical
  */
-inline int ASSIMP_stricmp(const char *s1, const char *s2) {
+inline int ASSIMP_stricmp(const char *s1, const char *s2)
+{
     ai_assert(nullptr != s1);
     ai_assert(nullptr != s2);
 
@@ -143,9 +150,10 @@ inline int ASSIMP_stricmp(const char *s1, const char *s2) {
     return ::_stricmp(s1, s2);
 #else
     char c1, c2;
-    do {
-        c1 = tolower((unsigned char)*(s1++));
-        c2 = tolower((unsigned char)*(s2++));
+    do
+    {
+        c1 = tolower((unsigned char) *(s1++));
+        c2 = tolower((unsigned char) *(s2++));
     } while (c1 && (c1 == c2));
     return c1 - c2;
 #endif
@@ -158,8 +166,9 @@ inline int ASSIMP_stricmp(const char *s1, const char *s2) {
  *  @param b Second string
  *  @return 0 if a == b
  */
-inline int ASSIMP_stricmp(const std::string &a, const std::string &b) {
-    int i = (int)b.length() - (int)a.length();
+inline int ASSIMP_stricmp(const std::string &a, const std::string &b)
+{
+    int i = (int) b.length() - (int) a.length();
     return (i ? i : ASSIMP_stricmp(a.c_str(), b.c_str()));
 }
 
@@ -175,10 +184,12 @@ inline int ASSIMP_stricmp(const std::string &a, const std::string &b) {
  *  @param n Maximum number of characters to compare
  *  @return 0 if the given strings are identical
  */
-inline int ASSIMP_strincmp(const char *s1, const char *s2, unsigned int n) {
+inline int ASSIMP_strincmp(const char *s1, const char *s2, unsigned int n)
+{
     ai_assert(nullptr != s1);
     ai_assert(nullptr != s2);
-    if (!n) {
+    if (!n)
+    {
         return 0;
     }
 
@@ -193,10 +204,12 @@ inline int ASSIMP_strincmp(const char *s1, const char *s2, unsigned int n) {
 #else
     char c1, c2;
     unsigned int p = 0;
-    do {
-        if (p++ >= n) return 0;
-        c1 = tolower((unsigned char)*(s1++));
-        c2 = tolower((unsigned char)*(s2++));
+    do
+    {
+        if (p++ >= n)
+            return 0;
+        c1 = tolower((unsigned char) *(s1++));
+        c2 = tolower((unsigned char) *(s2++));
     } while (c1 && (c1 == c2));
 
     return c1 - c2;
@@ -208,9 +221,11 @@ inline int ASSIMP_strincmp(const char *s1, const char *s2, unsigned int n) {
  *
  * todo: move somewhere where it fits better in than here
  */
-inline unsigned int integer_pow(unsigned int base, unsigned int power) {
+inline unsigned int integer_pow(unsigned int base, unsigned int power)
+{
     unsigned int res = 1;
-    for (unsigned int i = 0; i < power; ++i) {
+    for (unsigned int i = 0; i < power; ++i)
+    {
         res *= base;
     }
 

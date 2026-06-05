@@ -1,6 +1,6 @@
 #pragma once
-#include <string>
 #include <memory>
+#include <string>
 
 class Scene;
 class LightManager;
@@ -11,7 +11,7 @@ class LightManager;
  */
 class SceneSerializer
 {
-public:
+  public:
     /**
      * @brief Serialize a scene's state to a JSON file.
      * @param scene The scene to serialize.
@@ -19,7 +19,7 @@ public:
      * @param filepath The destination file path.
      * @return true on success, false otherwise.
      */
-    static bool Serialize(Scene* scene, LightManager* lightManager, const std::string& filepath);
+    static bool Serialize(Scene *scene, LightManager *lightManager, const std::string &filepath);
 
     /**
      * @brief Deserialize a scene's state from a JSON file.
@@ -28,8 +28,8 @@ public:
      * @param filepath The source file path.
      * @return true on success, false otherwise.
      */
-    static bool Deserialize(Scene* scene, LightManager* lightManager, const std::string& filepath);
+    static bool Deserialize(Scene *scene, LightManager *lightManager, const std::string &filepath);
 
-private:
-    static constexpr const char* VERSION = "1.0";
+  private:
+    static constexpr const char *VERSION = "1.0";
 };

@@ -1,13 +1,13 @@
 #pragma once
-#include "scenes/scene.h"
-#include "core/Window.h"
-#include "core/LightManager.h"
-#include "core/rendering/Renderer.h"
 #include "core/Entity.h"
+#include "core/LightManager.h"
+#include "core/Window.h"
+#include "core/rendering/Renderer.h"
+#include "scenes/scene.h"
 
 class ToonScene : public Scene
 {
-public:
+  public:
     ToonScene();
     ~ToonScene();
 
@@ -20,9 +20,12 @@ public:
     // Called when this scene is activated
     void OnActivate(AppState &appState) override;
 
-    virtual std::string Name() const { return "Toon Scene"; };
+    virtual std::string Name() const
+    {
+        return "Toon Scene";
+    };
 
-private:
+  private:
     std::shared_ptr<Shader> toonShader;
     std::shared_ptr<Mesh> cube;
     std::shared_ptr<Mesh> sphere;

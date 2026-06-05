@@ -47,10 +47,11 @@ Based on CppCon 2016: Chandler Carruth "High Performance Code 201: Hybrid Data S
 #define AI_SMALLVECTOR_H_INC
 
 #ifdef __GNUC__
-#   pragma GCC system_header
+#pragma GCC system_header
 #endif
 
-namespace Assimp {
+namespace Assimp
+{
 
 // --------------------------------------------------------------------------------------------
 /// @brief Small vector with inplace storage.
@@ -59,28 +60,30 @@ namespace Assimp {
 /// When the growing gets bigger than this small cache a dynamic growing algorithm will be
 /// used.
 // --------------------------------------------------------------------------------------------
-template<typename T, unsigned int Capacity>
-class SmallVector {
-public:
+template <typename T, unsigned int Capacity> class SmallVector
+{
+  public:
     /// @brief  The default class constructor.
-    SmallVector() :
-            mStorage(mInplaceStorage),
-            mSize(0),
-            mCapacity(Capacity) {
+    SmallVector() : mStorage(mInplaceStorage), mSize(0), mCapacity(Capacity)
+    {
         // empty
     }
 
     /// @brief  The class destructor.
-    ~SmallVector() {
-        if (mStorage != mInplaceStorage) {
-            delete [] mStorage;
+    ~SmallVector()
+    {
+        if (mStorage != mInplaceStorage)
+        {
+            delete[] mStorage;
         }
     }
 
     /// @brief  Will push a new item. The capacity will grow in case of a too small capacity.
     /// @param  item    [in] The item to push at the end of the vector.
-    void push_back(const T& item) {
-        if (mSize < mCapacity) {
+    void push_back(const T &item)
+    {
+        if (mSize < mCapacity)
+        {
             mStorage[mSize++] = item;
             return;
         }
@@ -90,8 +93,10 @@ public:
 
     /// @brief  Will resize the vector.
     /// @param  newSize     [in] The new size.
-    void resize(size_t newSize) {
-        if (newSize > mCapacity) {
+    void resize(size_t newSize)
+    {
+        if (newSize > mCapacity)
+        {
             grow(newSize);
         }
         mSize = newSize;
@@ -99,61 +104,69 @@ public:
 
     /// @brief  Returns the current size of the vector.
     /// @return The current size.
-    size_t size() const {
+    size_t size() const
+    {
         return mSize;
     }
 
     /// @brief  Returns a pointer to the first item.
     /// @return The first item as a pointer.
-    T* begin() {
+    T *begin()
+    {
         return mStorage;
     }
 
     /// @brief  Returns a pointer to the end.
     /// @return The end as a pointer.
-    T* end() {
+    T *end()
+    {
         return &mStorage[mSize];
     }
 
     /// @brief  Returns a const pointer to the first item.
     /// @return The first item as a const pointer.
-    T* begin() const {
+    T *begin() const
+    {
         return mStorage;
     }
 
     /// @brief  Returns a const pointer to the end.
     /// @return The end as a const pointer.
-    T* end() const {
+    T *end() const
+    {
         return &mStorage[mSize];
     }
 
     SmallVector(const SmallVector &) = delete;
     SmallVector(SmallVector &&) = delete;
-    SmallVector &operator = (const SmallVector &) = delete;
-    SmallVector &operator = (SmallVector &&) = delete;
+    SmallVector &operator=(const SmallVector &) = delete;
+    SmallVector &operator=(SmallVector &&) = delete;
 
-private:
-    void grow( size_t newCapacity) {
-        T* oldStorage = mStorage;
-        T* newStorage = new T[newCapacity];
+  private:
+    void grow(size_t newCapacity)
+    {
+        T *oldStorage = mStorage;
+        T *newStorage = new T[newCapacity];
 
         std::memcpy(newStorage, oldStorage, mSize * sizeof(T));
 
         mStorage = newStorage;
         mCapacity = newCapacity;
 
-        if (oldStorage != mInplaceStorage) {
-            delete [] oldStorage;
+        if (oldStorage != mInplaceStorage)
+        {
+            delete[] oldStorage;
         }
     }
 
-    void push_back_and_grow(const T& item) {
+    void push_back_and_grow(const T &item)
+    {
         grow(mCapacity + Capacity);
 
         mStorage[mSize++] = item;
     }
 
-    T* mStorage;
+    T *mStorage;
     size_t mSize;
     size_t mCapacity;
     T mInplaceStorage[Capacity];

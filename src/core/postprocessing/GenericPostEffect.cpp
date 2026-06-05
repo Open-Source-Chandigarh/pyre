@@ -3,16 +3,16 @@
 #include "helpers/Shader.h"
 #include <thirdparty/glad/glad.h>
 
-GenericPostEffect::GenericPostEffect(std::shared_ptr<Shader> shader,
-    std::function<void(Shader&)> uniformSetter)
+GenericPostEffect::GenericPostEffect(std::shared_ptr<Shader> shader, std::function<void(Shader &)> uniformSetter)
 {
     this->shader = shader;
     setter = std::move(uniformSetter);
 }
 
-void GenericPostEffect::Apply(GLuint inputTexture, Framebuffer& output, GLuint quadVAO)
+void GenericPostEffect::Apply(GLuint inputTexture, Framebuffer &output, GLuint quadVAO)
 {
-    if (!shader) return;
+    if (!shader)
+        return;
 
     // Bind output FBO and prepare for a screen-space pass
     output.Bind();
@@ -22,7 +22,8 @@ void GenericPostEffect::Apply(GLuint inputTexture, Framebuffer& output, GLuint q
     shader->use();
     shader->setInt("scene", 0); // convention: input bound to texture slot 0
 
-    if (uniformSetter) uniformSetter(*shader); // let caller set uniforms / bind extra textures
+    if (uniformSetter)
+        uniformSetter(*shader); // let caller set uniforms / bind extra textures
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, inputTexture);

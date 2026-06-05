@@ -1,23 +1,22 @@
 #include "core/UniformBuffer.h"
 
-UniformBuffer::UniformBuffer(size_t size, unsigned int bindingPoint)
-    : bufferSize(size)
+UniformBuffer::UniformBuffer(size_t size, unsigned int bindingPoint) : bufferSize(size)
 {
     glGenBuffers(1, &uboID);
     glBindBuffer(GL_UNIFORM_BUFFER, uboID);
 
     // allocate memory on gpu (dynamic draw because we update it often)
     glBufferData(GL_UNIFORM_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
-    
+
     // bind the buffer to the specific binding point index (0, 1, 2, etc.)
     glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, uboID);
-    
+
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
 UniformBuffer::~UniformBuffer()
 {
-    if (uboID) 
+    if (uboID)
     {
         glDeleteBuffers(1, &uboID);
     }

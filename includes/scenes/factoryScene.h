@@ -1,22 +1,22 @@
 #pragma once
-#include <thirdparty/glm/glm.hpp>
-#include <vector>
 #include "Scene.h"
-#include "helpers/Shader.h"
-#include "helpers/camera.h"
-#include "core/Window.h"
 #include "application/appState.h"
+#include "core/Entity.h"
+#include "core/LightManager.h"
+#include "core/Window.h"
+#include "core/postprocessing/PostProcessingPipeline.h"
+#include "core/rendering/Framebuffer.h"
+#include "core/rendering/Material.h"
 #include "core/rendering/Mesh.h"
 #include "core/rendering/Renderer.h"
-#include "core/LightManager.h"
-#include "core/Entity.h"
-#include "core/rendering/Framebuffer.h"
-#include "core/postprocessing/PostProcessingPipeline.h"
-#include "core/rendering/Material.h"
+#include "helpers/Shader.h"
+#include "helpers/camera.h"
+#include <thirdparty/glm/glm.hpp>
+#include <vector>
 
-class FactoryScene : public Scene 
+class FactoryScene : public Scene
 {
-public:
+  public:
     FactoryScene();
     ~FactoryScene();
 
@@ -29,9 +29,12 @@ public:
     // Called when this scene is activated
     void OnActivate(AppState &appState) override;
 
-    std::string Name() const override { return "Factory Demo Scene"; }
+    std::string Name() const override
+    {
+        return "Factory Demo Scene";
+    }
 
-private:
+  private:
     std::shared_ptr<Texture> diffuseMap, specularMap;
     std::shared_ptr<Shader> shader;
     glm::vec3 cubePositions[10];

@@ -1,8 +1,8 @@
 #pragma once
+#include "helpers/Shader.h"
 #include <glad/glad.h>
 #include <string>
 #include <vector>
-#include "helpers/Shader.h"
 
 // Texture type
 enum class TextureType
@@ -11,7 +11,7 @@ enum class TextureType
     TEX_SPECULAR,
     TEX_NORMAL,
     TEX_DISPLACEMENT,
-    TEX_CUBEMAP, // generic Cubemap
+    TEX_CUBEMAP,     // generic Cubemap
     TEX_ENVIRONMENT, // specifically for Skybox/Reflections
     Other
 };
@@ -32,8 +32,10 @@ struct Texture
     Texture() = default;
 
     // ensure GL resource is freed when object is destroyed
-    ~Texture() {
-        if (ID != 0) {
+    ~Texture()
+    {
+        if (ID != 0)
+        {
             // glDeleteTextures must be called with a valid GL context.
             glDeleteTextures(1, &ID);
             ID = 0;
@@ -41,24 +43,27 @@ struct Texture
     }
 
     // non-copyable
-    Texture(const Texture&) = delete;
-    Texture& operator=(const Texture&) = delete;
+    Texture(const Texture &) = delete;
+    Texture &operator=(const Texture &) = delete;
 
     // movable
-    Texture(Texture&& other) noexcept {
+    Texture(Texture &&other) noexcept
+    {
         steal(other);
     }
-    Texture& operator=(Texture&& other) noexcept 
+    Texture &operator=(Texture &&other) noexcept
     {
-        if (this != &other) {
-            if (ID) glDeleteTextures(1, &ID);
+        if (this != &other)
+        {
+            if (ID)
+                glDeleteTextures(1, &ID);
             steal(other);
         }
         return *this;
     }
 
-private:
-    void steal(Texture& other) noexcept 
+  private:
+    void steal(Texture &other) noexcept
     {
         ID = other.ID;
         type = other.type;

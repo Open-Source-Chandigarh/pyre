@@ -1,13 +1,13 @@
 #pragma once
+#include "core/rendering/Material.h"
+#include "helpers/Shader.h"
+#include <cstddef>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
-#include <cstddef>
+#include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
-#include <iostream>
-#include "helpers/Shader.h"
-#include "core/rendering/Material.h"
 
 class Material;
 
@@ -22,8 +22,7 @@ struct Vertex
 
 class Mesh
 {
-public:
-
+  public:
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
     std::shared_ptr<Material> localMaterial;
@@ -37,15 +36,16 @@ public:
     Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::shared_ptr<Material> mat);
     Mesh() = default;
     ~Mesh();
-    Mesh(const Mesh&) = delete;
-    Mesh& operator=(const Mesh&) = delete;
-    Mesh(Mesh&& other) noexcept;
-    Mesh& operator=(Mesh&& other) noexcept;
+    Mesh(const Mesh &) = delete;
+    Mesh &operator=(const Mesh &) = delete;
+    Mesh(Mesh &&other) noexcept;
+    Mesh &operator=(Mesh &&other) noexcept;
 
     // Factories
-    static Mesh CreateFromData(const float* vertices, size_t bytes, int vertexCount);
-    static Mesh CreateFromIndexedData(const float* vertices, size_t vBytes, const unsigned int* indices, size_t iBytes, int iCount);
-    static Mesh CreatePositionsOnly(const float* vertices, size_t bytes, int vertexCount);
+    static Mesh CreateFromData(const float *vertices, size_t bytes, int vertexCount);
+    static Mesh CreateFromIndexedData(const float *vertices, size_t vBytes, const unsigned int *indices, size_t iBytes,
+                                      int iCount);
+    static Mesh CreatePositionsOnly(const float *vertices, size_t bytes, int vertexCount);
 
     // Drawing
     void Draw(Shader &shader) const;
@@ -53,7 +53,7 @@ public:
     void DrawInstanced(Shader &shader, int count) const;
     void SetupInstancing(const std::vector<glm::mat4> &models);
 
-private:
+  private:
     void setupMesh();
     void Destroy(); // Internal helper
 };

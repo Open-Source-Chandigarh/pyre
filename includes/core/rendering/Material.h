@@ -1,14 +1,14 @@
 #pragma once
+#include "core/Constants.h"
+#include "core/rendering/Texture.h"
+#include "helpers/Shader.h"
+#include <cstddef>
 #include <glad/glad.h>
 #include <glm/glm.hpp>
-#include <cstddef>
+#include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
-#include <iostream>
-#include "helpers/Shader.h"
-#include "core/rendering/Texture.h"
-#include "core/Constants.h" 
 
 enum class CullMode
 {
@@ -18,7 +18,7 @@ enum class CullMode
 };
 
 // Material : describes surface appearance and references textures
-struct Material 
+struct Material
 {
     std::unordered_map<std::string, std::shared_ptr<Texture>> textures;
     std::unordered_map<std::string, float> floats;
@@ -27,25 +27,26 @@ struct Material
     bool isTransparent = false;
     CullMode cullMode = CullMode::Back;
 
-    bool GetBool(const std::string &name, bool defaultVal = false) const 
+    bool GetBool(const std::string &name, bool defaultVal = false) const
     {
         auto it = bools.find(name);
         return (it != bools.end()) ? it->second : defaultVal;
     }
 
-    glm::vec3 GetVec3(const std::string &name, glm::vec3 defaultVal = glm::vec3(1.0f)) const 
+    glm::vec3 GetVec3(const std::string &name, glm::vec3 defaultVal = glm::vec3(1.0f)) const
     {
         auto it = vec3s.find(name);
         return (it != vec3s.end()) ? it->second : defaultVal;
     }
 
-    float GetFloat(const std::string &name, float defaultVal = 0.0f) const 
+    float GetFloat(const std::string &name, float defaultVal = 0.0f) const
     {
         auto it = floats.find(name);
         return (it != floats.end()) ? it->second : defaultVal;
     }
 
-    void SetOutline(bool enabled, glm::vec3 color = glm::vec3(1.0f), float bloomFactor = 0.0f, float outlineThickness = 0.05f) 
+    void SetOutline(bool enabled, glm::vec3 color = glm::vec3(1.0f), float bloomFactor = 0.0f,
+                    float outlineThickness = 0.05f)
     {
         bools["outlineEnabled"] = enabled;
         vec3s["outlineColor"] = color;
@@ -53,17 +54,17 @@ struct Material
         floats["outlineThickness"] = outlineThickness;
     }
 
-    void SetShadows(bool enabled) 
+    void SetShadows(bool enabled)
     {
         bools["castShadows"] = enabled;
     }
 
-    void SetWireframe(bool enabled) 
+    void SetWireframe(bool enabled)
     {
         bools["wireframe"] = enabled;
     }
 
-    void ApplyToShader(Shader& shader, bool isOverride = false) const
+    void ApplyToShader(Shader &shader, bool isOverride = false) const
     {
         shader.use();
 
@@ -75,27 +76,33 @@ struct Material
         shader.setInt("material_skybox", Bindings::TEX_SLOT_SKYBOX);
 
         // reset present flags to 0 if no override (default state)
-        if (!isOverride) 
+        if (!isOverride)
         {
-            if (shader.hasUniform("material_diffuse_present"))      shader.setInt("material_diffuse_present", 0);
-            if (shader.hasUniform("material_specular_present"))     shader.setInt("material_specular_present", 0);
-            if (shader.hasUniform("material_normal_present"))       shader.setInt("material_normal_present", 0);
-            if (shader.hasUniform("material_displacement_present")) shader.setInt("material_displacement_present", 0);
-            if (shader.hasUniform("material_skybox_present"))       shader.setInt("material_skybox_present", 0);
+            if (shader.hasUniform("material_diffuse_present"))
+                shader.setInt("material_diffuse_present", 0);
+            if (shader.hasUniform("material_specular_present"))
+                shader.setInt("material_specular_present", 0);
+            if (shader.hasUniform("material_normal_present"))
+                shader.setInt("material_normal_present", 0);
+            if (shader.hasUniform("material_displacement_present"))
+                shader.setInt("material_displacement_present", 0);
+            if (shader.hasUniform("material_skybox_present"))
+                shader.setInt("material_skybox_present", 0);
         }
 
         // iterate available textures and bind based on type
-        for (const auto& kv : textures)
+        for (const auto &kv : textures)
         {
-            const std::string& uniformName = kv.first;
+            const std::string &uniformName = kv.first;
             std::shared_ptr<Texture> tex = kv.second;
-            if (!tex) 
+            if (!tex)
             {
                 // if this is an override and the texture was explicitly removed, disable it
                 if (isOverride)
                 {
                     std::string flagName = uniformName + "_present";
-                    if (shader.hasUniform(flagName)) shader.setInt(flagName, 0);
+                    if (shader.hasUniform(flagName))
+                        shader.setInt(flagName, 0);
                 }
                 continue;
             }
@@ -104,32 +111,33 @@ struct Material
             int slot = -1;
             switch (tex->type)
             {
-                case TextureType::TEX_DIFFUSE:      
-                    slot = Bindings::TEX_SLOT_DIFFUSE; 
-                    break;
-                case TextureType::TEX_SPECULAR:     
-                    slot = Bindings::TEX_SLOT_SPECULAR; 
-                    break;
-                case TextureType::TEX_NORMAL:       
-                    slot = Bindings::TEX_SLOT_NORMAL; 
-                    break;
-                case TextureType::TEX_DISPLACEMENT: 
-                    slot = Bindings::TEX_SLOT_DISPLACEMENT; 
-                    break;
-                case TextureType::TEX_CUBEMAP:      
-                case TextureType::TEX_ENVIRONMENT:  
-                    slot = Bindings::TEX_SLOT_SKYBOX; 
-                    break;
-                default:                            
-                    slot = 0; 
-                    break;
+            case TextureType::TEX_DIFFUSE:
+                slot = Bindings::TEX_SLOT_DIFFUSE;
+                break;
+            case TextureType::TEX_SPECULAR:
+                slot = Bindings::TEX_SLOT_SPECULAR;
+                break;
+            case TextureType::TEX_NORMAL:
+                slot = Bindings::TEX_SLOT_NORMAL;
+                break;
+            case TextureType::TEX_DISPLACEMENT:
+                slot = Bindings::TEX_SLOT_DISPLACEMENT;
+                break;
+            case TextureType::TEX_CUBEMAP:
+            case TextureType::TEX_ENVIRONMENT:
+                slot = Bindings::TEX_SLOT_SKYBOX;
+                break;
+            default:
+                slot = 0;
+                break;
             }
 
             if (slot != -1)
             {
                 // bind texture
-                GLenum target = (tex->type == TextureType::TEX_CUBEMAP || tex->type == TextureType::TEX_ENVIRONMENT) 
-                                ? GL_TEXTURE_CUBE_MAP : GL_TEXTURE_2D;
+                GLenum target = (tex->type == TextureType::TEX_CUBEMAP || tex->type == TextureType::TEX_ENVIRONMENT)
+                                    ? GL_TEXTURE_CUBE_MAP
+                                    : GL_TEXTURE_2D;
 
                 glActiveTexture(GL_TEXTURE0 + slot);
                 glBindTexture(target, tex->ID);
@@ -139,14 +147,21 @@ struct Material
 
                 // if there is a matching "present" flag, enable it
                 std::string flagName = uniformName + "_present";
-                if (shader.hasUniform(flagName)) shader.setInt(flagName, 1);
+                if (shader.hasUniform(flagName))
+                    shader.setInt(flagName, 1);
             }
         }
 
         // apply uniforms
-        for (auto& kv : floats) if (shader.hasUniform(kv.first)) shader.setFloat(kv.first, kv.second);
-        for (auto& kv : vec3s)  if (shader.hasUniform(kv.first)) shader.setVec3(kv.first, kv.second);
-        for (auto& kv : bools)  if (shader.hasUniform(kv.first)) shader.setBool(kv.first, kv.second);
+        for (auto &kv : floats)
+            if (shader.hasUniform(kv.first))
+                shader.setFloat(kv.first, kv.second);
+        for (auto &kv : vec3s)
+            if (shader.hasUniform(kv.first))
+                shader.setVec3(kv.first, kv.second);
+        for (auto &kv : bools)
+            if (shader.hasUniform(kv.first))
+                shader.setBool(kv.first, kv.second);
 
         glActiveTexture(GL_TEXTURE0);
     }
