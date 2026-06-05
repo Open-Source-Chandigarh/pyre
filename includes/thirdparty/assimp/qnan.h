@@ -55,7 +55,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AI_QNAN_H_INCLUDED
 
 #ifdef __GNUC__
-#pragma GCC system_header
+#   pragma GCC system_header
 #endif
 
 #include <assimp/defs.h>
@@ -66,18 +66,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // ---------------------------------------------------------------------------
 /** Data structure to represent the bit pattern of a 32 Bit
  *         IEEE 754 floating-point number. */
-union _IEEESingle
-{
+union _IEEESingle {
     float Float;
     struct
     {
 #if (defined AI_BUILD_BIG_ENDIAN)
         uint32_t Sign : 1;
-        uint32_t Exp : 8;
+        uint32_t Exp  : 8;
         uint32_t Frac : 23;
 #else
         uint32_t Frac : 23;
-        uint32_t Exp : 8;
+        uint32_t Exp  : 8;
         uint32_t Sign : 1;
 #endif
     } IEEE;
@@ -86,18 +85,17 @@ union _IEEESingle
 // ---------------------------------------------------------------------------
 /** Data structure to represent the bit pattern of a 64 Bit
  *         IEEE 754 floating-point number. */
-union _IEEEDouble
-{
+union _IEEEDouble {
     double Double;
     struct
     {
 #if (defined AI_BUILD_BIG_ENDIAN)
         uint64_t Sign : 1;
-        uint64_t Exp : 11;
+        uint64_t Exp  : 11;
         uint64_t Frac : 52;
 #else
         uint64_t Frac : 52;
-        uint64_t Exp : 11;
+        uint64_t Exp  : 11;
         uint64_t Sign : 1;
 #endif
     } IEEE;
@@ -106,8 +104,7 @@ union _IEEEDouble
 // ---------------------------------------------------------------------------
 /** Check whether a given float is qNaN.
  *  @param in Input value */
-AI_FORCE_INLINE bool is_qnan(float in)
-{
+AI_FORCE_INLINE bool is_qnan(float in) {
     // the straightforward solution does not work:
     //   return (in != in);
     // compiler generates code like this
@@ -117,14 +114,14 @@ AI_FORCE_INLINE bool is_qnan(float in)
     // FIXME: Use <float> stuff instead? I think fpclassify needs C99
     _IEEESingle temp;
     memcpy(&temp, &in, sizeof(float));
-    return (temp.IEEE.Exp == (1u << 8) - 1 && temp.IEEE.Frac);
+    return (temp.IEEE.Exp == (1u << 8)-1 &&
+        temp.IEEE.Frac);
 }
 
 // ---------------------------------------------------------------------------
 /** Check whether a given double is qNaN.
  *  @param in Input value */
-AI_FORCE_INLINE bool is_qnan(double in)
-{
+AI_FORCE_INLINE bool is_qnan(double in) {
     // the straightforward solution does not work:
     //   return (in != in);
     // compiler generates code like this
@@ -134,7 +131,8 @@ AI_FORCE_INLINE bool is_qnan(double in)
     // FIXME: Use <float> stuff instead? I think fpclassify needs C99
     _IEEEDouble temp;
     memcpy(&temp, &in, sizeof(in));
-    return (temp.IEEE.Exp == (1u << 11) - 1 && temp.IEEE.Frac);
+    return (temp.IEEE.Exp == (1u << 11)-1 &&
+        temp.IEEE.Frac);
 }
 
 // ---------------------------------------------------------------------------
@@ -142,11 +140,10 @@ AI_FORCE_INLINE bool is_qnan(double in)
  *
  *  Denorms return false, they're treated like normal values.
  *  @param in Input value */
-AI_FORCE_INLINE bool is_special_float(float in)
-{
+AI_FORCE_INLINE bool is_special_float(float in) {
     _IEEESingle temp;
     memcpy(&temp, &in, sizeof(float));
-    return (temp.IEEE.Exp == (1u << 8) - 1);
+    return (temp.IEEE.Exp == (1u << 8)-1);
 }
 
 // ---------------------------------------------------------------------------
@@ -154,25 +151,23 @@ AI_FORCE_INLINE bool is_special_float(float in)
  *
  *  Denorms return false, they're treated like normal values.
  *  @param in Input value */
-AI_FORCE_INLINE bool is_special_float(double in)
-{
-    _IEEESingle temp;
+AI_FORCE_INLINE bool is_special_float(double in) {
+   _IEEESingle temp;
     memcpy(&temp, &in, sizeof(float));
-    return (temp.IEEE.Exp == (1u << 11) - 1);
+    return (temp.IEEE.Exp == (1u << 11)-1);
 }
 
 // ---------------------------------------------------------------------------
 /** Check whether a float is NOT qNaN.
  *  @param in Input value */
-template <class TReal> AI_FORCE_INLINE bool is_not_qnan(TReal in)
-{
+template<class TReal>
+AI_FORCE_INLINE bool is_not_qnan(TReal in) {
     return !is_qnan(in);
 }
 
 // ---------------------------------------------------------------------------
 /** @brief Get a fresh qnan.  */
-AI_FORCE_INLINE ai_real get_qnan()
-{
+AI_FORCE_INLINE ai_real get_qnan() {
     return std::numeric_limits<ai_real>::quiet_NaN();
 }
 

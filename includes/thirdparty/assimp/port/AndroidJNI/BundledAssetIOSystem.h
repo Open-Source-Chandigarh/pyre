@@ -50,69 +50,44 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assimp/DefaultIOSystem.h>
 #include <assimp/IOStream.hpp>
 
-namespace Assimp
-{
+namespace Assimp {
 
-class BundledAssetIOSystem : public Assimp::DefaultIOSystem
-{
+class BundledAssetIOSystem : public Assimp::DefaultIOSystem {
 
-  public:
-    AAssetManager *mApkAssetManager;
+public:
+    AAssetManager* mApkAssetManager;
 
-    BundledAssetIOSystem(JNIEnv *env, jobject assetManager)
-    {
-        mApkAssetManager = AAssetManager_fromJava(env, assetManager);
-    }
+    BundledAssetIOSystem(JNIEnv* env, jobject assetManager) { mApkAssetManager = AAssetManager_fromJava(env, assetManager); }
     ~BundledAssetIOSystem() {};
 
-    bool Exists(const char *pFile) const;
+    bool Exists( const char* pFile) const;
 
-    Assimp::IOStream *Open(const char *pFile, const char *pMode = "rb");
+    Assimp::IOStream* Open( const char* pFile, const char* pMode = "rb");
 
-    void Close(Assimp::IOStream *pFile);
+    void Close( Assimp::IOStream* pFile);
 
-  private:
-    class AssetIOStream : public Assimp::IOStream
-    {
-        AAsset *asset;
+private:
 
-      public:
-        AssetIOStream(AAsset *asset)
-        {
-            this->asset = asset;
-        };
-        ~AssetIOStream()
-        {
-            AAsset_close(asset);
-        }
+    class AssetIOStream : public Assimp::IOStream {
+        AAsset * asset;
 
-        size_t Read(void *pvBuffer, size_t pSize, size_t pCount)
-        {
-            return AAsset_read(asset, pvBuffer, pSize * pCount);
-        }
-        size_t Write(const void *pvBuffer, size_t pSize, size_t pCount)
-        {
-            return 0;
-        };
-        aiReturn Seek(size_t pOffset, aiOrigin pOrigin)
-        {
-            return (AAsset_seek(asset, pOffset, pOrigin) >= 0 ? aiReturn_SUCCESS : aiReturn_FAILURE);
-        }
-        size_t Tell() const
-        {
-            return (AAsset_getLength(asset) - AAsset_getRemainingLength(asset));
-        };
-        size_t FileSize() const
-        {
-            return AAsset_getLength(asset);
-        }
-        void Flush()
-        {
-        }
+    public:
+        AssetIOStream(AAsset *asset) { this->asset = asset; };
+        ~AssetIOStream() { AAsset_close(asset); }
+
+        size_t Read(void* pvBuffer, size_t pSize, size_t pCount) { return AAsset_read(asset, pvBuffer, pSize * pCount);}
+        size_t Write(const void* pvBuffer, size_t pSize, size_t pCount) { return 0; };
+        aiReturn Seek(size_t pOffset, aiOrigin pOrigin) { return (AAsset_seek(asset, pOffset, pOrigin) >= 0 ? aiReturn_SUCCESS : aiReturn_FAILURE); }
+        size_t Tell() const { return(AAsset_getLength(asset) - AAsset_getRemainingLength(asset)); };
+        size_t FileSize() const  { return  AAsset_getLength(asset); }
+        void Flush() { }
     };
+
 };
 
-} // namespace Assimp
 
-#endif // AI_BUNDLEDASSETIOSYSTEM_H_INC
+} //!ns Assimp
+
+#endif //AI_BUNDLEDASSETIOSYSTEM_H_INC
 #endif //__ANDROID__ and __ANDROID_API__ > 9 and defined(AI_CONFIG_ANDROID_JNI_ASSIMP_MANAGER_SUPPORT)
+

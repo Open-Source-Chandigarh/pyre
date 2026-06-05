@@ -49,7 +49,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AI_DEFINES_H_INC
 
 #ifdef __GNUC__
-#pragma GCC system_header
+#  pragma GCC system_header
 #endif
 
 #include <assimp/config.h>
@@ -78,28 +78,28 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //////////////////////////////////////////////////////////////////////////
 
 #ifndef ASSIMP_BUILD_NO_COMPRESSED_X
-#define ASSIMP_BUILD_NEED_Z_INFLATE
+#  define ASSIMP_BUILD_NEED_Z_INFLATE
 #endif
 
 #ifndef ASSIMP_BUILD_NO_COMPRESSED_BLEND
-#define ASSIMP_BUILD_NEED_Z_INFLATE
+#  define ASSIMP_BUILD_NEED_Z_INFLATE
 #endif
 
 #ifndef ASSIMP_BUILD_NO_COMPRESSED_IFC
-#define ASSIMP_BUILD_NEED_Z_INFLATE
-#define ASSIMP_BUILD_NEED_UNZIP
+#  define ASSIMP_BUILD_NEED_Z_INFLATE
+#  define ASSIMP_BUILD_NEED_UNZIP
 #endif
 
 #ifndef ASSIMP_BUILD_NO_Q3BSP_IMPORTER
-#define ASSIMP_BUILD_NEED_Z_INFLATE
-#define ASSIMP_BUILD_NEED_UNZIP
+#  define ASSIMP_BUILD_NEED_Z_INFLATE
+#  define ASSIMP_BUILD_NEED_UNZIP
 #endif
 
 /**
  * @brief We need those constants, workaround for any platforms where nobody defined them yet.
  */
 #if (!defined SIZE_MAX)
-#define SIZE_MAX (~((size_t) 0))
+#  define SIZE_MAX (~((size_t)0))
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -146,20 +146,20 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 //////////////////////////////////////////////////////////////////////////
 #ifdef _WIN32
-#undef ASSIMP_API
-#ifdef ASSIMP_BUILD_DLL_EXPORT
-#define ASSIMP_API __declspec(dllexport)
-#define ASSIMP_API_WINONLY __declspec(dllexport)
-#elif (defined ASSIMP_DLL)
-#define ASSIMP_API __declspec(dllimport)
-#define ASSIMP_API_WINONLY __declspec(dllimport)
+#  undef ASSIMP_API
+#  ifdef ASSIMP_BUILD_DLL_EXPORT
+#    define ASSIMP_API __declspec(dllexport)
+#    define ASSIMP_API_WINONLY __declspec(dllexport)
+#  elif (defined ASSIMP_DLL)
+#    define ASSIMP_API __declspec(dllimport)
+#    define ASSIMP_API_WINONLY __declspec(dllimport)
+#  else
+#    define ASSIMP_API
+#    define ASSIMP_API_WINONLY
+#  endif
 #else
-#define ASSIMP_API
-#define ASSIMP_API_WINONLY
-#endif
-#else
-#define ASSIMP_API __attribute__((visibility("default")))
-#define ASSIMP_API_WINONLY
+#  define ASSIMP_API __attribute__((visibility("default")))
+#  define ASSIMP_API_WINONLY
 #endif // _WIN32
 
 /**
@@ -174,32 +174,32 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * Used in code analysis to skip dead paths (e.g. after an assertion evaluated to false).
  */
 #ifdef _MSC_VER
-#pragma warning(disable : 4521 4512 4714 4127 4510)
-#if _MSC_VER < 1900
-#pragma warning(disable : 4351)
-#endif
-#ifdef ASSIMP_BUILD_DLL_EXPORT
-#pragma warning(disable : 4251)
-#endif
-#define AI_FORCE_INLINE inline
-#define AI_WONT_RETURN __declspec(noreturn)
+    #pragma warning(disable : 4521 4512 4714 4127 4510)
+    #if _MSC_VER < 1900
+        #pragma warning(disable : 4351)
+    #endif
+    #ifdef ASSIMP_BUILD_DLL_EXPORT
+        #pragma warning(disable : 4251)
+    #endif
+    #define AI_FORCE_INLINE inline
+    #define AI_WONT_RETURN __declspec(noreturn)
 #elif defined(SWIG)
-/* Do nothing, the relevant defines are all in AssimpSwigPort.i */
+  /* Do nothing, the relevant defines are all in AssimpSwigPort.i */
 #else
-#define AI_WONT_RETURN
-#define AI_FORCE_INLINE inline
+    #define AI_WONT_RETURN
+    #define AI_FORCE_INLINE inline
 #endif // (defined _MSC_VER)
 
 #ifdef __GNUC__
-#define AI_WONT_RETURN_SUFFIX __attribute__((noreturn))
+#   define AI_WONT_RETURN_SUFFIX __attribute__((noreturn))
 #elif _MSC_VER
 #if defined(__clang__)
-#define AI_WONT_RETURN_SUFFIX __attribute__((noreturn))
+#   define AI_WONT_RETURN_SUFFIX __attribute__((noreturn))
 #else
-#define AI_WONT_RETURN_SUFFIX
+#   define AI_WONT_RETURN_SUFFIX
 #endif
 #else
-#define AI_WONT_RETURN_SUFFIX
+#   define AI_WONT_RETURN_SUFFIX
 #endif // (defined __clang__)
 
 #ifdef __cplusplus
@@ -226,21 +226,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 //////////////////////////////////////////////////////////////////////////
 /* Doxygen gets confused if we use c-struct typedefs to avoid
- * the explicit 'struct' notation. This trick here has the same
- * effect as the TYPEDEF_HIDES_STRUCT option, but we don't need
- * to typedef all structs/enums. */
+     * the explicit 'struct' notation. This trick here has the same
+     * effect as the TYPEDEF_HIDES_STRUCT option, but we don't need
+     * to typedef all structs/enums. */
 //////////////////////////////////////////////////////////////////////////
 #if (defined ASSIMP_DOXYGEN_BUILD)
-#define C_STRUCT
-#define C_ENUM
+#  define C_STRUCT
+#  define C_ENUM
 #else
-#define C_STRUCT struct
-#define C_ENUM enum
+#  define C_STRUCT struct
+#  define C_ENUM enum
 #endif
 #endif
 
 #if (defined(__BORLANDC__) || defined(__BCPLUSPLUS__))
-#error Currently, Borland is unsupported. Feel free to port Assimp.
+#  error Currently, Borland is unsupported. Feel free to port Assimp.
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -251,11 +251,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 //////////////////////////////////////////////////////////////////////////
 #ifndef ASSIMP_BUILD_SINGLETHREADED
-#define ASSIMP_BUILD_SINGLETHREADED
+#  define ASSIMP_BUILD_SINGLETHREADED
 #endif
 
 #if defined(_DEBUG) || !defined(NDEBUG)
-#define ASSIMP_BUILD_DEBUG
+#  define ASSIMP_BUILD_DEBUG
 #endif
 
 //////////////////////////////////////////////////////////////////////////
@@ -270,7 +270,7 @@ typedef unsigned long long int ai_uint;
 #ifndef ASSIMP_AI_REAL_TEXT_PRECISION
 #define ASSIMP_AI_REAL_TEXT_PRECISION 17
 #endif // ASSIMP_AI_REAL_TEXT_PRECISION
-#else  // ASSIMP_DOUBLE_PRECISION
+#else // ASSIMP_DOUBLE_PRECISION
 typedef float ai_real;
 typedef signed int ai_int;
 typedef unsigned int ai_uint;
@@ -301,7 +301,7 @@ typedef unsigned int ai_uint;
 #ifdef __cplusplus
 constexpr ai_real ai_epsilon = (ai_real) 1e-6;
 #else
-#define ai_epsilon ((ai_real) 1e-6)
+#  define ai_epsilon ((ai_real)1e-6)
 #endif
 
 /**
@@ -310,18 +310,18 @@ constexpr ai_real ai_epsilon = (ai_real) 1e-6;
  * This will check which byte ordering is used on the target architecture.
  */
 #if defined(__BYTE_ORDER__)
-#if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-#if !defined(__BIG_ENDIAN__)
-#define __BIG_ENDIAN__
+#  if (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#    if !defined(__BIG_ENDIAN__)
+#      define __BIG_ENDIAN__
+#    endif
+#  else /* little endian */
+#    if defined(__BIG_ENDIAN__)
+#      undef __BIG_ENDIAN__
+#    endif
+#  endif
 #endif
-#else /* little endian */
 #if defined(__BIG_ENDIAN__)
-#undef __BIG_ENDIAN__
-#endif
-#endif
-#endif
-#if defined(__BIG_ENDIAN__)
-#define AI_BUILD_BIG_ENDIAN
+#  define AI_BUILD_BIG_ENDIAN
 #endif
 
 /**
@@ -333,26 +333,26 @@ constexpr ai_real ai_epsilon = (ai_real) 1e-6;
 #define AI_MAX_ALLOC(type) ((256U * 1024 * 1024) / sizeof(type))
 
 #ifndef _MSC_VER
-#if __cplusplus >= 201103L // C++11
-#define AI_NO_EXCEPT noexcept
+#  if __cplusplus >= 201103L // C++11
+#    define AI_NO_EXCEPT noexcept
+#  else
+#    define AI_NO_EXCEPT
+#  endif
 #else
-#define AI_NO_EXCEPT
-#endif
-#else
-#if (_MSC_VER >= 1915)
-#define AI_NO_EXCEPT noexcept
-#else
-#define AI_NO_EXCEPT
-#endif
+#  if (_MSC_VER >= 1915)
+#    define AI_NO_EXCEPT noexcept
+#  else
+#    define AI_NO_EXCEPT
+#  endif
 #endif // _MSC_VER
 
 /**
  *  @brief Helper macro to set a pointer to NULL in debug builds
  */
 #if (defined ASSIMP_BUILD_DEBUG)
-#define AI_DEBUG_INVALIDATE_PTR(x) x = NULL;
+#  define AI_DEBUG_INVALIDATE_PTR(x) x = NULL;
 #else
-#define AI_DEBUG_INVALIDATE_PTR(x)
+#  define AI_DEBUG_INVALIDATE_PTR(x)
 #endif
 
 #define AI_COUNT_OF(X) (sizeof(X) / sizeof((X)[0]))
@@ -363,12 +363,12 @@ constexpr ai_real ai_epsilon = (ai_real) 1e-6;
  * Deprecation means that we will remove this function, class or methods in the next m
  */
 #if defined(__GNUC__) || defined(__clang__)
-#define AI_DEPRECATED __attribute__((deprecated))
+#  define AI_DEPRECATED __attribute__((deprecated))
 #elif defined(_MSC_VER)
-#define AI_DEPRECATED __declspec(deprecated)
+#  define AI_DEPRECATED __declspec(deprecated)
 #else
-#pragma message("WARNING: You need to implement DEPRECATED for this compiler")
-#define AI_DEPRECATED
+#  pragma message("WARNING: You need to implement DEPRECATED for this compiler")
+#  define AI_DEPRECATED
 #endif
 
 #endif // !! AI_DEFINES_H_INC

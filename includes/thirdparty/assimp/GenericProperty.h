@@ -44,24 +44,24 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AI_GENERIC_PROPERTY_H_INCLUDED
 
 #ifdef __GNUC__
-#pragma GCC system_header
+#    pragma GCC system_header
 #endif
 
 #include <assimp/Hash.h>
-#include <assimp/Importer.hpp>
 #include <assimp/ai_assert.h>
+#include <assimp/Importer.hpp>
 
 #include <map>
 
 // ------------------------------------------------------------------------------------------------
-template <class T> inline bool SetGenericProperty(std::map<unsigned int, T> &list, const char *szName, const T &value)
-{
+template <class T>
+inline bool SetGenericProperty(std::map<unsigned int, T> &list,
+        const char *szName, const T &value) {
     ai_assert(nullptr != szName);
     const uint32_t hash = SuperFastHash(szName);
 
     typename std::map<unsigned int, T>::iterator it = list.find(hash);
-    if (it == list.end())
-    {
+    if (it == list.end()) {
         list.insert(std::pair<unsigned int, T>(hash, value));
         return false;
     }
@@ -72,14 +72,13 @@ template <class T> inline bool SetGenericProperty(std::map<unsigned int, T> &lis
 
 // ------------------------------------------------------------------------------------------------
 template <class T>
-inline const T &GetGenericProperty(const std::map<unsigned int, T> &list, const char *szName, const T &errorReturn)
-{
+inline const T &GetGenericProperty(const std::map<unsigned int, T> &list,
+        const char *szName, const T &errorReturn) {
     ai_assert(nullptr != szName);
     const uint32_t hash = SuperFastHash(szName);
 
     typename std::map<unsigned int, T>::const_iterator it = list.find(hash);
-    if (it == list.end())
-    {
+    if (it == list.end()) {
         return errorReturn;
     }
 
@@ -90,47 +89,41 @@ inline const T &GetGenericProperty(const std::map<unsigned int, T> &list, const 
 // Special version for pointer types - they will be deleted when replaced with another value
 // passing nullptr removes the whole property
 template <class T>
-inline void SetGenericPropertyPtr(std::map<unsigned int, T *> &list, const char *szName, T *value,
-                                  bool *bWasExisting = nullptr)
-{
+inline void SetGenericPropertyPtr(std::map<unsigned int, T *> &list,
+        const char *szName, T *value, bool *bWasExisting = nullptr) {
     ai_assert(nullptr != szName);
     const uint32_t hash = SuperFastHash(szName);
 
     typename std::map<unsigned int, T *>::iterator it = list.find(hash);
-    if (it == list.end())
-    {
-        if (bWasExisting)
-        {
+    if (it == list.end()) {
+        if (bWasExisting) {
             *bWasExisting = false;
         }
 
         list.insert(std::pair<unsigned int, T *>(hash, value));
         return;
     }
-    if ((*it).second != value)
-    {
+    if ((*it).second != value) {
         delete (*it).second;
         (*it).second = value;
     }
-    if (!value)
-    {
+    if (!value) {
         list.erase(it);
     }
-    if (bWasExisting)
-    {
+    if (bWasExisting) {
         *bWasExisting = true;
     }
 }
 
 // ------------------------------------------------------------------------------------------------
-template <class T> inline bool HasGenericProperty(const std::map<unsigned int, T> &list, const char *szName)
-{
+template <class T>
+inline bool HasGenericProperty(const std::map<unsigned int, T> &list,
+        const char *szName) {
     ai_assert(nullptr != szName);
     const uint32_t hash = SuperFastHash(szName);
 
     typename std::map<unsigned int, T>::const_iterator it = list.find(hash);
-    if (it == list.end())
-    {
+    if (it == list.end()) {
         return false;
     }
 

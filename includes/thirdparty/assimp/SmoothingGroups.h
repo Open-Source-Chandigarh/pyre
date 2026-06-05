@@ -47,7 +47,7 @@ http://www.jalix.org/ressources/graphics/3DS/_unofficials/3ds-unofficial.txt */
 #define AI_SMOOTHINGGROUPS_H_INC
 
 #ifdef __GNUC__
-#pragma GCC system_header
+#   pragma GCC system_header
 #endif
 
 #include <assimp/vector3.h>
@@ -57,10 +57,10 @@ http://www.jalix.org/ressources/graphics/3DS/_unofficials/3ds-unofficial.txt */
 
 // ---------------------------------------------------------------------------
 /** Helper structure representing a face with smoothing groups assigned */
-struct FaceWithSmoothingGroup
-{
-    FaceWithSmoothingGroup() AI_NO_EXCEPT : mIndices(), iSmoothGroup(0)
-    {
+struct FaceWithSmoothingGroup {
+    FaceWithSmoothingGroup() AI_NO_EXCEPT
+    : mIndices()
+    , iSmoothGroup(0) {
         // in debug builds set all indices to a common magic value
 #ifdef ASSIMP_BUILD_DEBUG
         this->mIndices[0] = 0xffffffff;
@@ -68,6 +68,7 @@ struct FaceWithSmoothingGroup
         this->mIndices[2] = 0xffffffff;
 #endif
     }
+
 
     //! Indices. .3ds is using uint16. However, after
     //! an unique vertex set has been generated,
@@ -86,7 +87,8 @@ struct FaceWithSmoothingGroup
     but as they add extra members and need to be copied by value we
     need to use a template here.
     */
-template <class T> struct MeshWithSmoothingGroups
+template <class T>
+struct MeshWithSmoothingGroups
 {
     //! Vertex positions
     std::vector<aiVector3D> mPositions;
@@ -101,7 +103,9 @@ template <class T> struct MeshWithSmoothingGroups
 // ---------------------------------------------------------------------------
 /** Computes normal vectors for the mesh
  */
-template <class T> void ComputeNormalsWithSmoothingsGroups(MeshWithSmoothingGroups<T> &sMesh);
+template <class T>
+void ComputeNormalsWithSmoothingsGroups(MeshWithSmoothingGroups<T>& sMesh);
+
 
 // include implementations
 #include "SmoothingGroups.inl"

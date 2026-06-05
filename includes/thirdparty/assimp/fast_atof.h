@@ -18,13 +18,13 @@
 #define FAST_A_TO_F_H_INCLUDED
 
 #ifdef __GNUC__
-#pragma GCC system_header
+#   pragma GCC system_header
 #endif
 
-#include <assimp/defs.h>
 #include <cmath>
 #include <limits>
 #include <stdint.h>
+#include <assimp/defs.h>
 
 #include "StringComparison.h"
 #include <assimp/DefaultLogger.hpp>
@@ -32,17 +32,16 @@
 #include <assimp/StringUtils.h>
 
 #ifdef _MSC_VER
-#include <stdint.h>
+#  include <stdint.h>
 #else
-#include <assimp/Compiler/pstdint.h>
+#  include <assimp/Compiler/pstdint.h>
 #endif
 
-namespace Assimp
-{
+namespace Assimp {
 
 static constexpr size_t NumItems = 16;
 
-constexpr double fast_atof_table[NumItems] = { // we write [16] here instead of [] to work around a swig bug
+constexpr double fast_atof_table[NumItems] =  {  // we write [16] here instead of [] to work around a swig bug
     0.0,
     0.1,
     0.01,
@@ -58,27 +57,24 @@ constexpr double fast_atof_table[NumItems] = { // we write [16] here instead of 
     0.000000000001,
     0.0000000000001,
     0.00000000000001,
-    0.000000000000001};
+    0.000000000000001
+};
 
 // ------------------------------------------------------------------------------------
 // Convert a string in decimal format to a number
 // ------------------------------------------------------------------------------------
-inline unsigned int strtoul10(const char *in, const char **out = 0)
-{
+inline unsigned int strtoul10( const char* in, const char** out=0) {
     unsigned int value = 0;
 
-    for (;;)
-    {
-        if (*in < '0' || *in > '9')
-        {
+    for ( ;; ) {
+        if ( *in < '0' || *in > '9' ) {
             break;
         }
 
-        value = (value * 10) + (*in - '0');
+        value = ( value * 10 ) + ( *in - '0' );
         ++in;
     }
-    if (out)
-    {
+    if ( out ) {
         *out = in;
     }
     return value;
@@ -87,21 +83,17 @@ inline unsigned int strtoul10(const char *in, const char **out = 0)
 // ------------------------------------------------------------------------------------
 // Convert a string in octal format to a number
 // ------------------------------------------------------------------------------------
-inline unsigned int strtoul8(const char *in, const char **out = 0)
-{
-    unsigned int value(0);
-    for (;;)
-    {
-        if (*in < '0' || *in > '7')
-        {
+inline unsigned int strtoul8( const char* in, const char** out=0) {
+    unsigned int value( 0 );
+    for ( ;; ) {
+        if ( *in < '0' || *in > '7' ) {
             break;
         }
 
-        value = (value << 3) + (*in - '0');
+        value = ( value << 3 ) + ( *in - '0' );
         ++in;
     }
-    if (out)
-    {
+    if ( out ) {
         *out = in;
     }
     return value;
@@ -110,31 +102,21 @@ inline unsigned int strtoul8(const char *in, const char **out = 0)
 // ------------------------------------------------------------------------------------
 // Convert a string in hex format to a number
 // ------------------------------------------------------------------------------------
-inline unsigned int strtoul16(const char *in, const char **out = 0)
-{
-    unsigned int value(0);
-    for (;;)
-    {
-        if (*in >= '0' && *in <= '9')
-        {
-            value = (value << 4u) + (*in - '0');
-        }
-        else if (*in >= 'A' && *in <= 'F')
-        {
-            value = (value << 4u) + (*in - 'A') + 10;
-        }
-        else if (*in >= 'a' && *in <= 'f')
-        {
-            value = (value << 4u) + (*in - 'a') + 10;
-        }
-        else
-        {
+inline unsigned int strtoul16( const char* in, const char** out=0) {
+    unsigned int value( 0 );
+    for ( ;; ) {
+        if ( *in >= '0' && *in <= '9' ) {
+            value = ( value << 4u ) + ( *in - '0' );
+        } else if (*in >= 'A' && *in <= 'F') {
+            value = ( value << 4u ) + ( *in - 'A' ) + 10;
+        } else if (*in >= 'a' && *in <= 'f') {
+            value = ( value << 4u ) + ( *in - 'a' ) + 10;
+        } else {
             break;
         }
         ++in;
     }
-    if (out)
-    {
+    if ( out ) {
         *out = in;
     }
     return value;
@@ -144,19 +126,13 @@ inline unsigned int strtoul16(const char *in, const char **out = 0)
 // Convert just one hex digit
 // Return value is UINT_MAX if the input character is not a hex digit.
 // ------------------------------------------------------------------------------------
-inline unsigned int HexDigitToDecimal(char in)
-{
-    unsigned int out(UINT_MAX);
-    if (in >= '0' && in <= '9')
-    {
+inline unsigned int HexDigitToDecimal(char in) {
+    unsigned int out( UINT_MAX );
+    if ( in >= '0' && in <= '9' ) {
         out = in - '0';
-    }
-    else if (in >= 'a' && in <= 'f')
-    {
+    } else if ( in >= 'a' && in <= 'f' ) {
         out = 10u + in - 'a';
-    }
-    else if (in >= 'A' && in <= 'F')
-    {
+    } else if ( in >= 'A' && in <= 'F' ) {
         out = 10u + in - 'A';
     }
 
@@ -167,32 +143,25 @@ inline unsigned int HexDigitToDecimal(char in)
 // ------------------------------------------------------------------------------------
 // Convert a hex-encoded octet (2 characters, i.e. df or 1a).
 // ------------------------------------------------------------------------------------
-inline uint8_t HexOctetToDecimal(const char *in)
-{
-    return ((uint8_t) HexDigitToDecimal(in[0]) << 4) + (uint8_t) HexDigitToDecimal(in[1]);
+inline uint8_t HexOctetToDecimal(const char* in) {
+    return ((uint8_t)HexDigitToDecimal(in[0])<<4)+(uint8_t)HexDigitToDecimal(in[1]);
 }
 
 // ------------------------------------------------------------------------------------
 // signed variant of strtoul10
 // ------------------------------------------------------------------------------------
-inline int strtol10(const char *in, const char **out = 0)
-{
-    bool inv = (*in == '-');
-    if (inv || *in == '+')
-    {
+inline int strtol10( const char* in, const char** out = 0) {
+    bool inv = (*in=='-');
+    if ( inv || *in == '+' ) {
         ++in;
     }
 
-    int value = strtoul10(in, out);
-    if (inv)
-    {
-        if (value < INT_MAX && value > INT_MIN)
-        {
+    int value = strtoul10(in,out);
+    if (inv) {
+        if (value < INT_MAX && value > INT_MIN) {
             value = -value;
-        }
-        else
-        {
-            ASSIMP_LOG_WARN("Converting the string \"", in, "\" into an inverted value resulted in overflow.");
+        } else {
+            ASSIMP_LOG_WARN( "Converting the string \"", in, "\" into an inverted value resulted in overflow." );
         }
     }
     return value;
@@ -204,11 +173,9 @@ inline int strtol10(const char *in, const char **out = 0)
 // 0NNN   - oct
 // NNN    - dec
 // ------------------------------------------------------------------------------------
-inline unsigned int strtoul_cppstyle(const char *in, const char **out = 0)
-{
-    if ('0' == in[0])
-    {
-        return 'x' == in[1] ? strtoul16(in + 2, out) : strtoul8(in + 1, out);
+inline unsigned int strtoul_cppstyle( const char* in, const char** out=0) {
+    if ('0' == in[0]) {
+        return 'x' == in[1] ? strtoul16(in+2,out) : strtoul8(in+1,out);
     }
     return strtoul10(in, out);
 }
@@ -217,32 +184,26 @@ inline unsigned int strtoul_cppstyle(const char *in, const char **out = 0)
 // Special version of the function, providing higher accuracy and safety
 // It is mainly used by fast_atof to prevent ugly and unwanted integer overflows.
 // ------------------------------------------------------------------------------------
-template <typename ExceptionType = DeadlyImportError>
-inline uint64_t strtoul10_64(const char *in, const char **out = 0, unsigned int *max_inout = 0)
-{
+template<typename ExceptionType = DeadlyImportError>
+inline uint64_t strtoul10_64( const char* in, const char** out=0, unsigned int* max_inout=0) {
     unsigned int cur = 0;
     uint64_t value = 0;
 
-    if (*in < '0' || *in > '9')
-    {
+    if ( *in < '0' || *in > '9' ) {
         // The string is known to be bad, so don't risk printing the whole thing.
-        throw ExceptionType("The string \"", ai_str_toprintable(in, (int) strlen(in)),
-                            "\" cannot be converted into a value.");
+        throw ExceptionType("The string \"", ai_str_toprintable(in, (int)strlen(in)), "\" cannot be converted into a value." );
     }
 
-    for (;;)
-    {
-        if (*in < '0' || *in > '9')
-        {
+    for ( ;; ) {
+        if ( *in < '0' || *in > '9' ) {
             break;
         }
 
-        const uint64_t new_value = (value * (uint64_t) 10) + ((uint64_t) (*in - '0'));
+        const uint64_t new_value = ( value * (uint64_t) 10 ) + ( (uint64_t) ( *in - '0' ) );
 
         // numeric overflow, we rely on you
-        if (new_value < value)
-        {
-            ASSIMP_LOG_WARN("Converting the string \"", in, "\" into a value resulted in overflow.");
+        if ( new_value < value ) {
+            ASSIMP_LOG_WARN( "Converting the string \"", in, "\" into a value resulted in overflow." );
             return 0;
         }
 
@@ -251,12 +212,9 @@ inline uint64_t strtoul10_64(const char *in, const char **out = 0, unsigned int 
         ++in;
         ++cur;
 
-        if (max_inout && *max_inout == cur)
-        {
-            if (out)
-            { /* skip to end */
-                while (*in >= '0' && *in <= '9')
-                {
+        if (max_inout && *max_inout == cur) {
+            if (out) { /* skip to end */
+                while ( *in >= '0' && *in <= '9' ) {
                     ++in;
                 }
                 *out = in;
@@ -265,13 +223,11 @@ inline uint64_t strtoul10_64(const char *in, const char **out = 0, unsigned int 
             return value;
         }
     }
-    if (out)
-    {
+    if ( out ) {
         *out = in;
     }
 
-    if (max_inout)
-    {
+    if ( max_inout ) {
         *max_inout = cur;
     }
 
@@ -281,18 +237,15 @@ inline uint64_t strtoul10_64(const char *in, const char **out = 0, unsigned int 
 // ------------------------------------------------------------------------------------
 // signed variant of strtoul10_64
 // ------------------------------------------------------------------------------------
-template <typename ExceptionType = DeadlyImportError>
-inline int64_t strtol10_64(const char *in, const char **out = 0, unsigned int *max_inout = 0)
-{
+template<typename ExceptionType = DeadlyImportError>
+inline int64_t strtol10_64(const char* in, const char** out = 0, unsigned int* max_inout = 0) {
     bool inv = (*in == '-');
-    if (inv || *in == '+')
-    {
+    if ( inv || *in == '+' ) {
         ++in;
     }
 
     int64_t value = strtoul10_64<ExceptionType>(in, out, max_inout);
-    if (inv)
-    {
+    if (inv) {
         value = -value;
     }
     return value;
@@ -306,54 +259,46 @@ inline int64_t strtol10_64(const char *in, const char **out = 0, unsigned int *m
 //! about 6 times faster than atof in win32.
 // If you find any bugs, please send them to me, niko (at) irrlicht3d.org.
 // ------------------------------------------------------------------------------------
-template <typename Real, typename ExceptionType = DeadlyImportError>
-inline const char *fast_atoreal_move(const char *c, Real &out, bool check_comma = true)
-{
+template<typename Real, typename ExceptionType = DeadlyImportError>
+inline const char* fast_atoreal_move(const char* c, Real& out, bool check_comma = true) {
     Real f = 0;
 
     bool inv = (*c == '-');
-    if (inv || *c == '+')
-    {
+    if (inv || *c == '+') {
         ++c;
     }
 
-    if ((c[0] == 'N' || c[0] == 'n') && ASSIMP_strincmp(c, "nan", 3) == 0)
-    {
+    if ((c[0] == 'N' || c[0] == 'n') && ASSIMP_strincmp(c, "nan", 3) == 0) {
         out = std::numeric_limits<Real>::quiet_NaN();
         c += 3;
         return c;
     }
 
-    if ((c[0] == 'I' || c[0] == 'i') && ASSIMP_strincmp(c, "inf", 3) == 0)
-    {
+    if ((c[0] == 'I' || c[0] == 'i') && ASSIMP_strincmp(c, "inf", 3) == 0) {
         out = std::numeric_limits<Real>::infinity();
-        if (inv)
-        {
+        if (inv) {
             out = -out;
         }
         c += 3;
-        if ((c[0] == 'I' || c[0] == 'i') && ASSIMP_strincmp(c, "inity", 5) == 0)
-        {
+        if ((c[0] == 'I' || c[0] == 'i') && ASSIMP_strincmp(c, "inity", 5) == 0) {
             c += 5;
         }
         return c;
-    }
+     }
 
-    if (!(c[0] >= '0' && c[0] <= '9') && !((c[0] == '.' || (check_comma && c[0] == ',')) && c[1] >= '0' && c[1] <= '9'))
-    {
+    if (!(c[0] >= '0' && c[0] <= '9') &&
+            !((c[0] == '.' || (check_comma && c[0] == ',')) && c[1] >= '0' && c[1] <= '9')) {
         // The string is known to be bad, so don't risk printing the whole thing.
-        throw ExceptionType("Cannot parse string \"", ai_str_toprintable(c, (int) strlen(c)),
-                            "\" as a real number: does not start with digit "
-                            "or decimal point followed by digit.");
+        throw ExceptionType("Cannot parse string \"", ai_str_toprintable(c, (int)strlen(c)),
+                                    "\" as a real number: does not start with digit "
+                                    "or decimal point followed by digit.");
     }
 
-    if (*c != '.' && (!check_comma || c[0] != ','))
-    {
-        f = static_cast<Real>(strtoul10_64<ExceptionType>(c, &c));
+    if (*c != '.' && (! check_comma || c[0] != ',')) {
+        f = static_cast<Real>( strtoul10_64<ExceptionType> ( c, &c) );
     }
 
-    if ((*c == '.' || (check_comma && c[0] == ',')) && c[1] >= '0' && c[1] <= '9')
-    {
+    if ((*c == '.' || (check_comma && c[0] == ',')) && c[1] >= '0' && c[1] <= '9') {
         ++c;
 
         // NOTE: The original implementation is highly inaccurate here. The precision of a single
@@ -365,41 +310,36 @@ inline const char *fast_atoreal_move(const char *c, Real &out, bool check_comma 
         // number of digits to be read. AI_FAST_ATOF_RELAVANT_DECIMALS can be a value between
         // 1 and 15.
         unsigned int diff = AI_FAST_ATOF_RELAVANT_DECIMALS;
-        double pl = static_cast<double>(strtoul10_64<ExceptionType>(c, &c, &diff));
+        double pl = static_cast<double>( strtoul10_64<ExceptionType> ( c, &c, &diff ));
 
         pl *= fast_atof_table[diff];
-        f += static_cast<Real>(pl);
+        f += static_cast<Real>( pl );
     }
     // For backwards compatibility: eat trailing dots, but not trailing commas.
-    else if (*c == '.')
-    {
+    else if (*c == '.') {
         ++c;
     }
 
     // A major 'E' must be allowed. Necessary for proper reading of some DXF files.
     // Thanks to Zhao Lei to point out that this if() must be outside the if (*c == '.' ..)
-    if (*c == 'e' || *c == 'E')
-    {
+    if (*c == 'e' || *c == 'E') {
         ++c;
-        const bool einv = (*c == '-');
-        if (einv || *c == '+')
-        {
+        const bool einv = (*c=='-');
+        if (einv || *c=='+') {
             ++c;
         }
 
         // The reason float constants are used here is that we've seen cases where compilers
         // would perform such casts on compile-time constants at runtime, which would be
         // bad considering how frequently fast_atoreal_move<float> is called in Assimp.
-        Real exp = static_cast<Real>(strtoul10_64<ExceptionType>(c, &c));
-        if (einv)
-        {
+        Real exp = static_cast<Real>( strtoul10_64<ExceptionType>(c, &c) );
+        if (einv) {
             exp = -exp;
         }
         f *= std::pow(static_cast<Real>(10.0), exp);
     }
 
-    if (inv)
-    {
+    if (inv) {
         f = -f;
     }
     out = f;
@@ -408,30 +348,31 @@ inline const char *fast_atoreal_move(const char *c, Real &out, bool check_comma 
 
 // ------------------------------------------------------------------------------------
 // The same but more human.
-template <typename ExceptionType = DeadlyImportError> inline ai_real fast_atof(const char *c)
-{
+template<typename ExceptionType = DeadlyImportError>
+inline ai_real fast_atof(const char* c) {
     ai_real ret(0.0);
     fast_atoreal_move<ai_real, ExceptionType>(c, ret);
 
     return ret;
 }
 
-template <typename ExceptionType = DeadlyImportError> inline ai_real fast_atof(const char *c, const char **cout)
-{
+template<typename ExceptionType = DeadlyImportError>
+inline
+ai_real fast_atof( const char* c, const char** cout) {
     ai_real ret(0.0);
     *cout = fast_atoreal_move<ai_real, ExceptionType>(c, ret);
 
     return ret;
 }
 
-template <typename ExceptionType = DeadlyImportError> inline ai_real fast_atof(const char **inout)
-{
+template<typename ExceptionType = DeadlyImportError>
+inline ai_real fast_atof( const char** inout) {
     ai_real ret(0.0);
     *inout = fast_atoreal_move<ai_real, ExceptionType>(*inout, ret);
 
     return ret;
 }
 
-} // namespace Assimp
+} //! namespace Assimp
 
 #endif // FAST_A_TO_F_H_INCLUDED

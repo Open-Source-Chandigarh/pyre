@@ -1,16 +1,27 @@
 ---
 Language: Cpp
-BreakBeforeBraces: Allman
+BasedOnStyle: LLVM
 
-# visual Settings
 IndentWidth: 4
 TabWidth: 4
-UseTab: Never       
-ColumnLimit: 120         
-AccessModifierOffset: -4      
+UseTab: Never
+ColumnLimit: 120
 
-# spacing tweaks
-PointerAlignment: Right       
-SpaceBeforeParens: ControlStatements 
-KeepEmptyLinesAtTheStartOfBlocks: false
-...
+BreakBeforeBraces: Allman
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+PointerAlignment: Right
+
+SpaceAfterCStyleCast: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesInAngles: false
+
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+
+SortIncludes: true

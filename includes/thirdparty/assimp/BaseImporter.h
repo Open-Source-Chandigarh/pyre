@@ -51,18 +51,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "Exceptional.h"
 
-#include <assimp/ProgressHandler.hpp>
 #include <assimp/types.h>
+#include <assimp/ProgressHandler.hpp>
 #include <exception>
-#include <memory>
 #include <set>
 #include <vector>
+#include <memory>
 
 struct aiScene;
 struct aiImporterDesc;
 
-namespace Assimp
-{
+namespace Assimp {
 
 // Forward declarations
 class Importer;
@@ -72,7 +71,8 @@ class SharedPostProcessInfo;
 class IOStream;
 
 // utility to do char4 to uint32 in a portable manner
-#define AI_MAKE_MAGIC(string) ((uint32_t) ((string[0] << 24) + (string[1] << 16) + (string[2] << 8) + string[3]))
+#define AI_MAKE_MAGIC(string) ((uint32_t)((string[0] << 24) + \
+                                          (string[1] << 16) + (string[2] << 8) + string[3]))
 
 using UByteBuffer = std::vector<uint8_t>;
 using ByteBuffer = std::vector<int8_t>;
@@ -87,11 +87,10 @@ using ByteBuffer = std::vector<int8_t>;
  * imports the given file. ReadFile is not overridable, it just calls
  * InternReadFile() and catches any ImportErrorException that might occur.
  */
-class ASSIMP_API BaseImporter
-{
+class ASSIMP_API BaseImporter {
     friend class Importer;
 
-  public:
+public:
     /** Constructor to be privately used by #Importer */
     BaseImporter() AI_NO_EXCEPT;
 
@@ -111,7 +110,10 @@ class ASSIMP_API BaseImporter
      * @return true if the class can read this file, false if not or if
      * unsure.
      */
-    virtual bool CanRead(const std::string &pFile, IOSystem *pIOHandler, bool checkSig) const = 0;
+    virtual bool CanRead(
+            const std::string &pFile,
+            IOSystem *pIOHandler,
+            bool checkSig) const = 0;
 
     // -------------------------------------------------------------------
     /** Imports the given file and returns the imported data.
@@ -132,7 +134,10 @@ class ASSIMP_API BaseImporter
      * in InternReadFile(), this function will catch it and transform it into
      *  a suitable response to the caller.
      */
-    aiScene *ReadFile(Importer *pImp, const std::string &pFile, IOSystem *pIOHandler);
+    aiScene *ReadFile(
+            Importer *pImp,
+            const std::string &pFile,
+            IOSystem *pIOHandler);
 
     // -------------------------------------------------------------------
     /** Returns the error description of the last error that occurred.
@@ -141,8 +146,7 @@ class ASSIMP_API BaseImporter
      * @return A description of the last error that occurred. An empty
      * string if there was no error.
      */
-    const std::string &GetErrorText() const
-    {
+    const std::string &GetErrorText() const {
         return m_ErrorText;
     }
 
@@ -152,8 +156,7 @@ class ASSIMP_API BaseImporter
      * should be consulted too.
      * @return The last exception that occurred.
      */
-    const std::exception_ptr &GetException() const
-    {
+    const std::exception_ptr& GetException() const {
         return m_Exception;
     }
 
@@ -163,7 +166,8 @@ class ASSIMP_API BaseImporter
      * basing on the Importer's configuration property list.
      * @param pImp Importer instance
      */
-    virtual void SetupProperties(const Importer *pImp);
+    virtual void SetupProperties(
+            const Importer *pImp);
 
     // -------------------------------------------------------------------
     /** Called by #Importer::GetImporterInfo to get a description of
@@ -173,8 +177,7 @@ class ASSIMP_API BaseImporter
     /**
      * Will be called only by scale process when scaling is requested.
      */
-    void SetFileScale(double scale)
-    {
+    void SetFileScale(double scale) {
         fileScale = scale;
     }
 
@@ -185,7 +188,7 @@ class ASSIMP_API BaseImporter
      *  @param extension set to collect file extensions in*/
     void GetExtensionList(std::set<std::string> &extensions);
 
-  protected:
+protected:
     double importerScale = 1.0;
     double fileScale = 1.0;
 
@@ -233,9 +236,12 @@ class ASSIMP_API BaseImporter
      * nullptr is not a valid parameter.
      * @param pIOHandler The IO handler to use for any file access.
      * nullptr is not a valid parameter. */
-    virtual void InternReadFile(const std::string &pFile, aiScene *pScene, IOSystem *pIOHandler) = 0;
+    virtual void InternReadFile(
+            const std::string &pFile,
+            aiScene *pScene,
+            IOSystem *pIOHandler) = 0;
 
-  public: // static utilities
+public: // static utilities
     // -------------------------------------------------------------------
     /** A utility for CanRead().
      *
@@ -250,9 +256,14 @@ class ASSIMP_API BaseImporter
      *  @param numTokens Size of the token array
      *  @param searchBytes Number of bytes to be searched for the tokens.
      */
-    static bool SearchFileHeaderForToken(IOSystem *pIOSystem, const std::string &file, const char **tokens,
-                                         std::size_t numTokens, unsigned int searchBytes = 200, bool tokensSol = false,
-                                         bool noGraphBeforeTokens = false);
+    static bool SearchFileHeaderForToken(
+            IOSystem *pIOSystem,
+            const std::string &file,
+            const char **tokens,
+            std::size_t numTokens,
+            unsigned int searchBytes = 200,
+            bool tokensSol = false,
+            bool noGraphBeforeTokens = false);
 
     // -------------------------------------------------------------------
     /** @brief Check whether a file has a specific file extension
@@ -262,8 +273,12 @@ class ASSIMP_API BaseImporter
      *  @param ext2 Optional third extension
      *  @note Case-insensitive
      */
-    static bool SimpleExtensionCheck(const std::string &pFile, const char *ext0, const char *ext1 = nullptr,
-                                     const char *ext2 = nullptr, const char *ext3 = nullptr);
+    static bool SimpleExtensionCheck(
+            const std::string &pFile,
+            const char *ext0,
+            const char *ext1 = nullptr,
+            const char *ext2 = nullptr,
+            const char *ext3 = nullptr);
 
     // -------------------------------------------------------------------
     /** @brief Check whether a file has one of the passed file extensions
@@ -271,14 +286,17 @@ class ASSIMP_API BaseImporter
      *  @param extensions Extensions to check for. Lowercase characters only, no dot!
      *  @note Case-insensitive
      */
-    static bool HasExtension(const std::string &pFile, const std::set<std::string> &extensions);
+    static bool HasExtension(
+            const std::string &pFile,
+            const std::set<std::string> &extensions);
 
     // -------------------------------------------------------------------
     /** @brief Extract file extension from a string
      *  @param pFile Input file
      *  @return Extension without trailing dot, all lowercase
      */
-    static std::string GetExtension(const std::string &pFile);
+    static std::string GetExtension(
+            const std::string &pFile);
 
     // -------------------------------------------------------------------
     /** @brief Check whether a file starts with one or more magic tokens
@@ -294,8 +312,13 @@ class ASSIMP_API BaseImporter
      *  byte-swapped variant of all tokens (big endian). Only for
      *  tokens of size 2,4.
      */
-    static bool CheckMagicToken(IOSystem *pIOHandler, const std::string &pFile, const void *magic, std::size_t num,
-                                unsigned int offset = 0, unsigned int size = 4);
+    static bool CheckMagicToken(
+            IOSystem *pIOHandler,
+            const std::string &pFile,
+            const void *magic,
+            std::size_t num,
+            unsigned int offset = 0,
+            unsigned int size = 4);
 
     // -------------------------------------------------------------------
     /** An utility for all text file loaders. It converts a file to our
@@ -303,7 +326,8 @@ class ASSIMP_API BaseImporter
      *
      *  @param data File buffer to be converted to UTF8 data. The buffer
      *  is resized as appropriate. */
-    static void ConvertToUTF8(std::vector<char> &data);
+    static void ConvertToUTF8(
+            std::vector<char> &data);
 
     // -------------------------------------------------------------------
     /** An utility for all text file loaders. It converts a file from our
@@ -311,12 +335,12 @@ class ASSIMP_API BaseImporter
      *
      *  @param data File buffer to be converted from UTF8 to ISO-8859-1. The buffer
      *  is resized as appropriate. */
-    static void ConvertUTF8toISO8859_1(std::string &data);
+    static void ConvertUTF8toISO8859_1(
+            std::string &data);
 
     // -------------------------------------------------------------------
     /// @brief  Enum to define, if empty files are ok or not.
-    enum TextFileMode
-    {
+    enum TextFileMode {
         ALLOW_EMPTY,
         FORBID_EMPTY
     };
@@ -330,18 +354,23 @@ class ASSIMP_API BaseImporter
      *   converted text file data. The buffer is terminated with
      *   a binary 0.
      *  @param mode Whether it is OK to load empty text files. */
-    static void TextFileToBuffer(IOStream *stream, std::vector<char> &data, TextFileMode mode = FORBID_EMPTY);
+    static void TextFileToBuffer(
+            IOStream *stream,
+            std::vector<char> &data,
+            TextFileMode mode = FORBID_EMPTY);
 
     // -------------------------------------------------------------------
     /** Utility function to move a std::vector into a aiScene array
-     *  @param vec The vector to be moved
-     *  @param out The output pointer to the allocated array.
-     *  @param numOut The output count of elements copied. */
-    template <typename T> AI_FORCE_INLINE static void CopyVector(std::vector<T> &vec, T *&out, unsigned int &outLength)
-    {
+    *  @param vec The vector to be moved
+    *  @param out The output pointer to the allocated array.
+    *  @param numOut The output count of elements copied. */
+    template <typename T>
+    AI_FORCE_INLINE static void CopyVector(
+            std::vector<T> &vec,
+            T *&out,
+            unsigned int &outLength) {
         outLength = unsigned(vec.size());
-        if (outLength)
-        {
+        if (outLength) {
             out = new T[outLength];
             std::swap_ranges(vec.begin(), vec.end(), out);
         }
@@ -349,31 +378,27 @@ class ASSIMP_API BaseImporter
 
     // -------------------------------------------------------------------
     /** Utility function to move a std::vector of unique_ptrs into a aiScene array
-     *  @param vec The vector of unique_ptrs to be moved
-     *  @param out The output pointer to the allocated array.
-     *  @param numOut The output count of elements copied. */
+    *  @param vec The vector of unique_ptrs to be moved
+    *  @param out The output pointer to the allocated array.
+    *  @param numOut The output count of elements copied. */
     template <typename T>
-    AI_FORCE_INLINE static void CopyVector(std::vector<std::unique_ptr<T>> &vec, T **&out, unsigned int &outLength)
-    {
+    AI_FORCE_INLINE static void CopyVector(
+            std::vector<std::unique_ptr<T> > &vec,
+            T **&out,
+            unsigned int &outLength) {
         outLength = unsigned(vec.size());
-        if (outLength)
-        {
-            out = new T *[outLength];
-            T **outPtr = out;
-            std::for_each(vec.begin(), vec.end(),
-                          [&outPtr](std::unique_ptr<T> &uPtr)
-                          {
-                              *outPtr = uPtr.release();
-                              ++outPtr;
-                          });
+        if (outLength) {
+            out = new T*[outLength];
+            T** outPtr = out;
+            std::for_each(vec.begin(), vec.end(), [&outPtr](std::unique_ptr<T>& uPtr){*outPtr = uPtr.release(); ++outPtr; });
         }
     }
 
-  private:
+private:
     /* Pushes state into importer for the importer scale */
     void UpdateImporterScale(Importer *pImp);
 
-  protected:
+protected:
     /// Error description in case there was one.
     std::string m_ErrorText;
     /// The exception, in case there was one.

@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AI_STREAMREADER_H_INCLUDED
 
 #ifdef __GNUC__
-#pragma GCC system_header
+#   pragma GCC system_header
 #endif
 
 #include <assimp/ByteSwapper.h>
@@ -56,8 +56,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <memory>
 
-namespace Assimp
-{
+namespace Assimp {
 
 // --------------------------------------------------------------------------------------------
 /** Wrapper class around IOStream to allow for consistent reading of binary data in both
@@ -69,9 +68,9 @@ namespace Assimp
  *
  *  XXX switch from unsigned int for size types to size_t? or ptrdiff_t?*/
 // --------------------------------------------------------------------------------------------
-template <bool SwapEndianness = false, bool RuntimeSwitch = false> class StreamReader
-{
-  public:
+template <bool SwapEndianness = false, bool RuntimeSwitch = false>
+class StreamReader {
+public:
     using diff = size_t;
     using pos = size_t;
 
@@ -87,25 +86,31 @@ template <bool SwapEndianness = false, bool RuntimeSwitch = false> class StreamR
      *    stream is in little endian byte order. Otherwise the
      *    endianness information is contained in the @c SwapEndianness
      *    template parameter and this parameter is meaningless.  */
-    StreamReader(std::shared_ptr<IOStream> stream, bool le = false)
-        : mStream(stream), mBuffer(nullptr), mCurrent(nullptr), mEnd(nullptr), mLimit(nullptr), mLe(le)
-    {
+    StreamReader(std::shared_ptr<IOStream> stream, bool le = false) :
+            mStream(stream),
+            mBuffer(nullptr),
+            mCurrent(nullptr),
+            mEnd(nullptr),
+            mLimit(nullptr),
+            mLe(le) {
         ai_assert(stream);
         InternBegin();
     }
 
     // ---------------------------------------------------------------------
-    StreamReader(IOStream *stream, bool le = false)
-        : mStream(std::shared_ptr<IOStream>(stream)), mBuffer(nullptr), mCurrent(nullptr), mEnd(nullptr),
-          mLimit(nullptr), mLe(le)
-    {
+    StreamReader(IOStream *stream, bool le = false) :
+            mStream(std::shared_ptr<IOStream>(stream)),
+            mBuffer(nullptr),
+            mCurrent(nullptr),
+            mEnd(nullptr),
+            mLimit(nullptr),
+            mLe(le) {
         ai_assert(nullptr != stream);
         InternBegin();
     }
 
     // ---------------------------------------------------------------------
-    ~StreamReader()
-    {
+    ~StreamReader() {
         delete[] mBuffer;
     }
 
@@ -113,105 +118,90 @@ template <bool SwapEndianness = false, bool RuntimeSwitch = false> class StreamR
 
     // ---------------------------------------------------------------------
     /// Read a float from the stream.
-    float GetF4()
-    {
+    float GetF4() {
         return Get<float>();
     }
 
     // ---------------------------------------------------------------------
     /// Read a double from the stream.
-    double GetF8()
-    {
+    double GetF8() {
         return Get<double>();
     }
 
     // ---------------------------------------------------------------------
     /** Read a signed 16 bit integer from the stream */
-    int16_t GetI2()
-    {
+    int16_t GetI2() {
         return Get<int16_t>();
     }
 
     // ---------------------------------------------------------------------
     /** Read a signed 8 bit integer from the stream */
-    int8_t GetI1()
-    {
+    int8_t GetI1() {
         return Get<int8_t>();
     }
 
     // ---------------------------------------------------------------------
     /** Read an signed 32 bit integer from the stream */
-    int32_t GetI4()
-    {
+    int32_t GetI4() {
         return Get<int32_t>();
     }
 
     // ---------------------------------------------------------------------
     /** Read a signed 64 bit integer from the stream */
-    int64_t GetI8()
-    {
+    int64_t GetI8() {
         return Get<int64_t>();
     }
 
     // ---------------------------------------------------------------------
     /** Read a unsigned 16 bit integer from the stream */
-    uint16_t GetU2()
-    {
+    uint16_t GetU2() {
         return Get<uint16_t>();
     }
 
     // ---------------------------------------------------------------------
     /// Read a unsigned 8 bit integer from the stream
-    uint8_t GetU1()
-    {
+    uint8_t GetU1() {
         return Get<uint8_t>();
     }
 
     // ---------------------------------------------------------------------
     /// Read an unsigned 32 bit integer from the stream
-    uint32_t GetU4()
-    {
+    uint32_t GetU4() {
         return Get<uint32_t>();
     }
 
     // ---------------------------------------------------------------------
     /// Read a unsigned 64 bit integer from the stream
-    uint64_t GetU8()
-    {
+    uint64_t GetU8() {
         return Get<uint64_t>();
     }
 
     // ---------------------------------------------------------------------
     /// Get the remaining stream size (to the end of the stream)
-    size_t GetRemainingSize() const
-    {
-        return (unsigned int) (mEnd - mCurrent);
+    size_t GetRemainingSize() const {
+        return (unsigned int)(mEnd - mCurrent);
     }
 
     // ---------------------------------------------------------------------
     /** Get the remaining stream size (to the current read limit). The
      *  return value is the remaining size of the stream if no custom
      *  read limit has been set. */
-    size_t GetRemainingSizeToLimit() const
-    {
-        return (unsigned int) (mLimit - mCurrent);
+    size_t GetRemainingSizeToLimit() const {
+        return (unsigned int)(mLimit - mCurrent);
     }
 
     // ---------------------------------------------------------------------
     /** Increase the file pointer (relative seeking)  */
-    void IncPtr(intptr_t plus)
-    {
+    void IncPtr(intptr_t plus) {
         mCurrent += plus;
-        if (mCurrent > mLimit)
-        {
+        if (mCurrent > mLimit) {
             throw DeadlyImportError("End of file or read limit was reached");
         }
     }
 
     // ---------------------------------------------------------------------
     /** Get the current file pointer */
-    int8_t *GetPtr() const
-    {
+    int8_t *GetPtr() const {
         return mCurrent;
     }
 
@@ -221,11 +211,9 @@ template <bool SwapEndianness = false, bool RuntimeSwitch = false> class StreamR
      *  large chunks of data at once.
      *  @param p The new pointer, which is validated against the size
      *    limit and buffer boundaries. */
-    void SetPtr(int8_t *p)
-    {
+    void SetPtr(int8_t *p) {
         mCurrent = p;
-        if (mCurrent > mLimit || mCurrent < mBuffer)
-        {
+        if (mCurrent > mLimit || mCurrent < mBuffer) {
             throw DeadlyImportError("End of file or read limit was reached");
         }
     }
@@ -234,8 +222,7 @@ template <bool SwapEndianness = false, bool RuntimeSwitch = false> class StreamR
     /** Copy n bytes to an external buffer
      *  @param out Destination for copying
      *  @param bytes Number of bytes to copy */
-    void CopyAndAdvance(void *out, size_t bytes)
-    {
+    void CopyAndAdvance(void *out, size_t bytes) {
         int8_t *ur = GetPtr();
         SetPtr(ur + bytes); // fire exception if eof
 
@@ -243,13 +230,11 @@ template <bool SwapEndianness = false, bool RuntimeSwitch = false> class StreamR
     }
 
     /// @brief Get the current offset from the beginning of the file
-    int GetCurrentPos() const
-    {
-        return (unsigned int) (mCurrent - mBuffer);
+    int GetCurrentPos() const {
+        return (unsigned int)(mCurrent - mBuffer);
     }
 
-    void SetCurrentPos(size_t pos)
-    {
+    void SetCurrentPos(size_t pos) {
         SetPtr(mBuffer + pos);
     }
 
@@ -260,18 +245,15 @@ template <bool SwapEndianness = false, bool RuntimeSwitch = false> class StreamR
      *    the beginning of the file. Specifying UINT_MAX
      *    resets the limit to the original end of the stream.
      *  Returns the previously set limit. */
-    unsigned int SetReadLimit(unsigned int _limit)
-    {
+    unsigned int SetReadLimit(unsigned int _limit) {
         unsigned int prev = GetReadLimit();
-        if (UINT_MAX == _limit)
-        {
+        if (UINT_MAX == _limit) {
             mLimit = mEnd;
             return prev;
         }
 
         mLimit = mBuffer + _limit;
-        if (mLimit > mEnd)
-        {
+        if (mLimit > mEnd) {
             throw DeadlyImportError("StreamReader: Invalid read limit");
         }
         return prev;
@@ -280,33 +262,30 @@ template <bool SwapEndianness = false, bool RuntimeSwitch = false> class StreamR
     // ---------------------------------------------------------------------
     /** Get the current read limit in bytes. Reading over this limit
      *  accidentally raises an exception.  */
-    unsigned int GetReadLimit() const
-    {
-        return (unsigned int) (mLimit - mBuffer);
+    unsigned int GetReadLimit() const {
+        return (unsigned int)(mLimit - mBuffer);
     }
 
     // ---------------------------------------------------------------------
     /** Skip to the read limit in bytes. Reading over this limit
      *  accidentally raises an exception. */
-    void SkipToReadLimit()
-    {
+    void SkipToReadLimit() {
         mCurrent = mLimit;
     }
 
     // ---------------------------------------------------------------------
     /** overload operator>> and allow chaining of >> ops. */
-    template <typename T> StreamReader &operator>>(T &f)
-    {
+    template <typename T>
+    StreamReader &operator>>(T &f) {
         f = Get<T>();
         return *this;
     }
 
     // ---------------------------------------------------------------------
     /** Generic read method. ByteSwap::Swap(T*) *must* be defined */
-    template <typename T> T Get()
-    {
-        if (mCurrent + sizeof(T) > mLimit)
-        {
+    template <typename T>
+    T Get() {
+        if (mCurrent + sizeof(T) > mLimit) {
             throw DeadlyImportError("End of file or stream limit was reached");
         }
 
@@ -318,18 +297,15 @@ template <bool SwapEndianness = false, bool RuntimeSwitch = false> class StreamR
         return f;
     }
 
-  private:
+private:
     // ---------------------------------------------------------------------
-    void InternBegin()
-    {
-        if (nullptr == mStream)
-        {
+    void InternBegin() {
+        if (nullptr == mStream) {
             throw DeadlyImportError("StreamReader: Unable to open file");
         }
 
         const size_t filesize = mStream->FileSize() - mStream->Tell();
-        if (0 == filesize)
-        {
+        if (0 == filesize) {
             throw DeadlyImportError("StreamReader: File is empty or EOF is already reached");
         }
 
@@ -340,7 +316,7 @@ template <bool SwapEndianness = false, bool RuntimeSwitch = false> class StreamR
         mEnd = mLimit = &mBuffer[read - 1] + 1;
     }
 
-  private:
+private:
     std::shared_ptr<IOStream> mStream;
     int8_t *mBuffer;
     int8_t *mCurrent;

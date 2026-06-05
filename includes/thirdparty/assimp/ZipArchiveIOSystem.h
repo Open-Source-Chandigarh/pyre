@@ -41,34 +41,32 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /** @file ZipArchiveIOSystem.h
  *  @brief Implementation of IOSystem to read a ZIP file from another IOSystem
- */
+*/
 
 #pragma once
 #ifndef AI_ZIPARCHIVEIOSYSTEM_H_INC
 #define AI_ZIPARCHIVEIOSYSTEM_H_INC
 
 #ifdef __GNUC__
-#pragma GCC system_header
+#   pragma GCC system_header
 #endif
 
 #include <assimp/IOStream.hpp>
 #include <assimp/IOSystem.hpp>
 #include <zlib.h>
 
-namespace Assimp
-{
+namespace Assimp {
 
-class ZipArchiveIOSystem : public IOSystem
-{
-  public:
+class ZipArchiveIOSystem : public IOSystem {
+public:
     //! Open a Zip using the proffered IOSystem
-    ZipArchiveIOSystem(IOSystem *pIOHandler, const char *pFilename, const char *pMode = "r");
-    ZipArchiveIOSystem(IOSystem *pIOHandler, const std::string &rFilename, const char *pMode = "r");
+    ZipArchiveIOSystem(IOSystem* pIOHandler, const char *pFilename, const char* pMode = "r");
+    ZipArchiveIOSystem(IOSystem* pIOHandler, const std::string& rFilename, const char* pMode = "r");
     ~ZipArchiveIOSystem() override;
-    bool Exists(const char *pFilename) const override;
+    bool Exists(const char* pFilename) const override;
     char getOsSeparator() const override;
-    IOStream *Open(const char *pFilename, const char *pMode = "rb") override;
-    void Close(IOStream *pFile) override;
+    IOStream* Open(const char* pFilename, const char* pMode = "rb") override;
+    void Close(IOStream* pFile) override;
 
     // Specific to ZIP
     //! The file was opened and is a ZIP
@@ -76,16 +74,16 @@ class ZipArchiveIOSystem : public IOSystem
 
     //! Get the list of all files with their simplified paths
     //! Intended for use within Assimp library boundaries
-    void getFileList(std::vector<std::string> &rFileList) const;
+    void getFileList(std::vector<std::string>& rFileList) const;
 
     //! Get the list of all files with extension (must be lowercase)
     //! Intended for use within Assimp library boundaries
-    void getFileListExtension(std::vector<std::string> &rFileList, const std::string &extension) const;
+    void getFileListExtension(std::vector<std::string>& rFileList, const std::string& extension) const;
 
-    static bool isZipArchive(IOSystem *pIOHandler, const char *pFilename);
-    static bool isZipArchive(IOSystem *pIOHandler, const std::string &rFilename);
+    static bool isZipArchive(IOSystem* pIOHandler, const char *pFilename);
+    static bool isZipArchive(IOSystem* pIOHandler, const std::string& rFilename);
 
-  private:
+private:
     class Implement;
     Implement *pImpl = nullptr;
 };

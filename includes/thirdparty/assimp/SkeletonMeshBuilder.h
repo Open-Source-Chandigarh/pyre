@@ -61,8 +61,7 @@ struct aiMaterial;
 struct aiScene;
 struct aiNode;
 
-namespace Assimp
-{
+namespace Assimp {
 
 // ---------------------------------------------------------------------------
 /**
@@ -70,9 +69,8 @@ namespace Assimp
  * the resembles the node hierarchy. This is useful for file formats
  * that don't carry any mesh data but only animation data.
  */
-class ASSIMP_API SkeletonMeshBuilder
-{
-  public:
+class ASSIMP_API SkeletonMeshBuilder {
+public:
     // -------------------------------------------------------------------
     /** The constructor processes the given scene and adds a mesh there.
      *
@@ -82,9 +80,10 @@ class ASSIMP_API SkeletonMeshBuilder
      * @param bKnobsOnly Set this to true if you don't want the connectors
      *   between the knobs representing the nodes.
      */
-    SkeletonMeshBuilder(aiScene *pScene, aiNode *root = nullptr, bool bKnobsOnly = false);
+    SkeletonMeshBuilder(aiScene *pScene, aiNode *root = nullptr,
+            bool bKnobsOnly = false);
 
-  protected:
+protected:
     // -------------------------------------------------------------------
     /** Recursively builds a simple mesh representation for the given node
      * and also creates a joint for the node that affects this part of
@@ -102,17 +101,15 @@ class ASSIMP_API SkeletonMeshBuilder
     /** Creates a dummy material and returns it. */
     aiMaterial *CreateMaterial();
 
-  private:
+private:
     /** space to assemble the mesh data: points */
     std::vector<aiVector3D> mVertices;
 
     /** faces */
-    struct Face
-    {
+    struct Face {
         unsigned int mIndices[3];
         Face();
-        Face(unsigned int p0, unsigned int p1, unsigned int p2)
-        {
+        Face(unsigned int p0, unsigned int p1, unsigned int p2) {
             mIndices[0] = p0;
             mIndices[1] = p1;
             mIndices[2] = p2;

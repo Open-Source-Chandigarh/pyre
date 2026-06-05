@@ -46,15 +46,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AI_D3DSSPATIALSORT_H_INC
 
 #ifdef __GNUC__
-#pragma GCC system_header
+#   pragma GCC system_header
 #endif
 
 #include <assimp/types.h>
-#include <stdint.h>
 #include <vector>
+#include <stdint.h>
 
-namespace Assimp
-{
+namespace Assimp {
 
 // ----------------------------------------------------------------------------------
 /** Specialized version of SpatialSort to support smoothing groups
@@ -63,16 +62,15 @@ namespace Assimp
  *  implementation to handle all details of its file format correctly.
  */
 // ----------------------------------------------------------------------------------
-class ASSIMP_API SGSpatialSort
-{
-  public:
+class ASSIMP_API SGSpatialSort {
+public:
     SGSpatialSort();
 
     // -------------------------------------------------------------------
     /** Construction from a given face array, handling smoothing groups
      *  properly
      */
-    explicit SGSpatialSort(const std::vector<aiVector3D> &vPositions);
+    explicit SGSpatialSort(const std::vector<aiVector3D>& vPositions);
 
     // -------------------------------------------------------------------
     /** Add a vertex to the spatial sort
@@ -80,7 +78,8 @@ class ASSIMP_API SGSpatialSort
      * @param index Index of the vrtex
      * @param smoothingGroup SmoothingGroup for this vertex
      */
-    void Add(const aiVector3D &vPosition, unsigned int index, unsigned int smoothingGroup);
+    void Add(const aiVector3D& vPosition, unsigned int index,
+        unsigned int smoothingGroup);
 
     // -------------------------------------------------------------------
     /** Prepare the spatial sorter for use. This step runs in O(logn)
@@ -104,10 +103,11 @@ class ASSIMP_API SGSpatialSort
      * @return An iterator to iterate over all vertices in the given area.
      */
     // -------------------------------------------------------------------
-    void FindPositions(const aiVector3D &pPosition, uint32_t pSG, float pRadius, std::vector<unsigned int> &poResults,
-                       bool exactMatch = false) const;
+    void FindPositions( const aiVector3D& pPosition, uint32_t pSG,
+        float pRadius, std::vector<unsigned int>& poResults,
+        bool exactMatch = false) const;
 
-  protected:
+protected:
     /** Normal of the sorting plane, normalized. The center is always at (0, 0, 0) */
     aiVector3D mPlaneNormal;
 
@@ -116,26 +116,29 @@ class ASSIMP_API SGSpatialSort
      *  vertex index, its position and its pre-calculated distance from
      *  the reference plane */
     // -------------------------------------------------------------------
-    struct Entry
-    {
-        unsigned int mIndex;  ///< The vertex referred by this entry
-        aiVector3D mPosition; ///< Position
+    struct Entry {
+        unsigned int mIndex;    ///< The vertex referred by this entry
+        aiVector3D mPosition;   ///< Position
         uint32_t mSmoothGroups;
-        float mDistance; ///< Distance of this vertex to the sorting plane
+        float mDistance;        ///< Distance of this vertex to the sorting plane
 
-        Entry() AI_NO_EXCEPT : mIndex(0), mPosition(), mSmoothGroups(0), mDistance(0.0f)
-        {
+        Entry() AI_NO_EXCEPT
+        : mIndex(0)
+        , mPosition()
+        , mSmoothGroups(0)
+        , mDistance(0.0f) {
             // empty
         }
 
-        Entry(unsigned int pIndex, const aiVector3D &pPosition, float pDistance, uint32_t pSG)
-            : mIndex(pIndex), mPosition(pPosition), mSmoothGroups(pSG), mDistance(pDistance)
-        {
+        Entry( unsigned int pIndex, const aiVector3D& pPosition, float pDistance,uint32_t pSG)
+        : mIndex( pIndex)
+        , mPosition( pPosition)
+        , mSmoothGroups(pSG)
+        , mDistance( pDistance) {
             // empty
         }
 
-        bool operator<(const Entry &e) const
-        {
+        bool operator < (const Entry& e) const {
             return mDistance < e.mDistance;
         }
     };

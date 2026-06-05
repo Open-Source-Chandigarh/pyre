@@ -47,22 +47,21 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC system_header
 #endif
 
-#include <assimp/IOStream.hpp>
 #include <assimp/ParsingUtils.h>
 #include <assimp/types.h>
+#include <assimp/IOStream.hpp>
 
 #include <vector>
 
-namespace Assimp
-{
+namespace Assimp {
 
 // ---------------------------------------------------------------------------
 /**
  *  Implementation of a cached stream buffer.
  */
-template <class T> class IOStreamBuffer
-{
-  public:
+template <class T>
+class IOStreamBuffer {
+public:
     /// @brief  The class constructor.
     IOStreamBuffer(size_t cache = 4096 * 4096);
 
@@ -117,7 +116,7 @@ template <class T> class IOStreamBuffer
     /// @return true if successful.
     bool getNextBlock(std::vector<T> &buffer);
 
-  private:
+private:
     IOStream *m_stream;
     size_t m_filesize;
     size_t m_cacheSize;
@@ -129,51 +128,50 @@ template <class T> class IOStreamBuffer
 };
 
 template <class T>
-AI_FORCE_INLINE IOStreamBuffer<T>::IOStreamBuffer(size_t cache)
-    : m_stream(nullptr), m_filesize(0), m_cacheSize(cache), m_numBlocks(0), m_blockIdx(0), m_cachePos(0), m_filePos(0)
-{
+AI_FORCE_INLINE IOStreamBuffer<T>::IOStreamBuffer(size_t cache) :
+        m_stream(nullptr),
+        m_filesize(0),
+        m_cacheSize(cache),
+        m_numBlocks(0),
+        m_blockIdx(0),
+        m_cachePos(0),
+        m_filePos(0) {
     m_cache.resize(cache);
     std::fill(m_cache.begin(), m_cache.end(), '\n');
 }
 
-template <class T> AI_FORCE_INLINE bool IOStreamBuffer<T>::open(IOStream *stream)
-{
+template <class T>
+AI_FORCE_INLINE bool IOStreamBuffer<T>::open(IOStream *stream) {
     //  file still opened!
-    if (nullptr != m_stream)
-    {
+    if (nullptr != m_stream) {
         return false;
     }
 
     //  Invalid stream pointer
-    if (nullptr == stream)
-    {
+    if (nullptr == stream) {
         return false;
     }
 
     m_stream = stream;
     m_filesize = m_stream->FileSize();
-    if (m_filesize == 0)
-    {
+    if (m_filesize == 0) {
         return false;
     }
-    if (m_filesize < m_cacheSize)
-    {
+    if (m_filesize < m_cacheSize) {
         m_cacheSize = m_filesize;
     }
 
     m_numBlocks = m_filesize / m_cacheSize;
-    if ((m_filesize % m_cacheSize) > 0)
-    {
+    if ((m_filesize % m_cacheSize) > 0) {
         m_numBlocks++;
     }
 
     return true;
 }
 
-template <class T> AI_FORCE_INLINE bool IOStreamBuffer<T>::close()
-{
-    if (nullptr == m_stream)
-    {
+template <class T>
+AI_FORCE_INLINE bool IOStreamBuffer<T>::close() {
+    if (nullptr == m_stream) {
         return false;
     }
 
@@ -188,26 +186,28 @@ template <class T> AI_FORCE_INLINE bool IOStreamBuffer<T>::close()
     return true;
 }
 
-template <class T> AI_FORCE_INLINE size_t IOStreamBuffer<T>::size() const
-{
+template <class T>
+AI_FORCE_INLINE
+        size_t
+        IOStreamBuffer<T>::size() const {
     return m_filesize;
 }
 
-template <class T> AI_FORCE_INLINE size_t IOStreamBuffer<T>::cacheSize() const
-{
+template <class T>
+AI_FORCE_INLINE
+        size_t
+        IOStreamBuffer<T>::cacheSize() const {
     return m_cacheSize;
 }
 
-template <class T> AI_FORCE_INLINE bool IOStreamBuffer<T>::readNextBlock()
-{
+template <class T>
+AI_FORCE_INLINE bool IOStreamBuffer<T>::readNextBlock() {
     m_stream->Seek(m_filePos, aiOrigin_SET);
     size_t readLen = m_stream->Read(&m_cache[0], sizeof(T), m_cacheSize);
-    if (readLen == 0)
-    {
+    if (readLen == 0) {
         return false;
     }
-    if (readLen < m_cacheSize)
-    {
+    if (readLen < m_cacheSize) {
         m_cacheSize = readLen;
     }
     m_filePos += m_cacheSize;
@@ -217,46 +217,39 @@ template <class T> AI_FORCE_INLINE bool IOStreamBuffer<T>::readNextBlock()
     return true;
 }
 
-template <class T> AI_FORCE_INLINE size_t IOStreamBuffer<T>::getNumBlocks() const
-{
+template <class T>
+AI_FORCE_INLINE size_t IOStreamBuffer<T>::getNumBlocks() const {
     return m_numBlocks;
 }
 
-template <class T> AI_FORCE_INLINE size_t IOStreamBuffer<T>::getCurrentBlockIndex() const
-{
+template <class T>
+AI_FORCE_INLINE size_t IOStreamBuffer<T>::getCurrentBlockIndex() const {
     return m_blockIdx;
 }
 
-template <class T> AI_FORCE_INLINE size_t IOStreamBuffer<T>::getFilePos() const
-{
+template <class T>
+AI_FORCE_INLINE size_t IOStreamBuffer<T>::getFilePos() const {
     return m_filePos;
 }
 
-template <class T> AI_FORCE_INLINE bool IOStreamBuffer<T>::getNextDataLine(std::vector<T> &buffer, T continuationToken)
-{
+template <class T>
+AI_FORCE_INLINE bool IOStreamBuffer<T>::getNextDataLine(std::vector<T> &buffer, T continuationToken) {
     buffer.resize(m_cacheSize);
-    if (m_cachePos >= m_cacheSize || 0 == m_filePos)
-    {
-        if (!readNextBlock())
-        {
+    if (m_cachePos >= m_cacheSize || 0 == m_filePos) {
+        if (!readNextBlock()) {
             return false;
         }
     }
 
     size_t i = 0;
-    for (;;)
-    {
-        if (continuationToken == m_cache[m_cachePos] && IsLineEnd(m_cache[m_cachePos + 1]))
-        {
+    for (;;) {
+        if (continuationToken == m_cache[m_cachePos] && IsLineEnd(m_cache[m_cachePos + 1])) {
             ++m_cachePos;
-            while (m_cache[m_cachePos] != '\n')
-            {
+            while (m_cache[m_cachePos] != '\n') {
                 ++m_cachePos;
             }
             ++m_cachePos;
-        }
-        else if (IsLineEnd(m_cache[m_cachePos]))
-        {
+        } else if (IsLineEnd(m_cache[m_cachePos])) {
             break;
         }
 
@@ -264,19 +257,15 @@ template <class T> AI_FORCE_INLINE bool IOStreamBuffer<T>::getNextDataLine(std::
         ++m_cachePos;
         ++i;
 
-        if (i == buffer.size())
-        {
+        if(i == buffer.size()) {
             buffer.resize(buffer.size() * 2);
         }
 
-        if (m_cachePos >= size())
-        {
+        if (m_cachePos >= size()) {
             break;
         }
-        if (m_cachePos >= m_cacheSize)
-        {
-            if (!readNextBlock())
-            {
+        if (m_cachePos >= m_cacheSize) {
+            if (!readNextBlock()) {
                 return false;
             }
         }
@@ -288,80 +277,65 @@ template <class T> AI_FORCE_INLINE bool IOStreamBuffer<T>::getNextDataLine(std::
     return true;
 }
 
-static AI_FORCE_INLINE bool isEndOfCache(size_t pos, size_t cacheSize)
-{
+static AI_FORCE_INLINE bool isEndOfCache(size_t pos, size_t cacheSize) {
     return (pos == cacheSize);
 }
 
-template <class T> AI_FORCE_INLINE bool IOStreamBuffer<T>::getNextLine(std::vector<T> &buffer)
-{
+template <class T>
+AI_FORCE_INLINE bool IOStreamBuffer<T>::getNextLine(std::vector<T> &buffer) {
     buffer.resize(m_cacheSize);
-    if (m_cachePos >= m_cacheSize || 0 == m_filePos)
-    {
-        if (!readNextBlock())
-        {
+    if (m_cachePos >= m_cacheSize || 0 == m_filePos) {
+        if (!readNextBlock()) {
             return false;
         }
     }
 
-    if (IsLineEnd(m_cache[m_cachePos]))
-    {
+    if (IsLineEnd(m_cache[m_cachePos])) {
         // skip line end
-        do
-        {
+        do {
             ++m_cachePos;
-            if (isEndOfCache(m_cachePos, m_cacheSize) && !readNextBlock())
-            {
+            if (isEndOfCache(m_cachePos, m_cacheSize) && !readNextBlock()) {
                 return false;
             }
-        } while (m_cache[m_cachePos] != '\n');
+        }
+        while (m_cache[m_cachePos] != '\n');
     }
 
     size_t i(0);
-    while (!IsLineEnd(m_cache[m_cachePos]))
-    {
+    while (!IsLineEnd(m_cache[m_cachePos])) {
         buffer[i] = m_cache[m_cachePos];
         ++m_cachePos;
         ++i;
 
-        if (i == buffer.size())
-        {
+        if(i == buffer.size()) {
             buffer.resize(buffer.size() * 2);
         }
 
-        if (m_cachePos >= m_cacheSize)
-        {
-            if (!readNextBlock())
-            {
+        if (m_cachePos >= m_cacheSize) {
+            if (!readNextBlock()) {
                 return false;
             }
         }
     }
     buffer[i] = '\n';
-    if (m_cachePos < m_cacheSize && (m_cache[m_cachePos] == '\r'))
-    {
+    if (m_cachePos < m_cacheSize && (m_cache[m_cachePos] == '\r')) {
         ++m_cachePos;
     }
-    if (m_cachePos < m_cacheSize && (m_cache[m_cachePos] == '\n'))
-    {
+    if (m_cachePos < m_cacheSize && (m_cache[m_cachePos] == '\n')) {
         ++m_cachePos;
     }
 
     return true;
 }
 
-template <class T> AI_FORCE_INLINE bool IOStreamBuffer<T>::getNextBlock(std::vector<T> &buffer)
-{
+template <class T>
+AI_FORCE_INLINE bool IOStreamBuffer<T>::getNextBlock(std::vector<T> &buffer) {
     // Return the last block-value if getNextLine was used before
-    if (0 != m_cachePos)
-    {
+    if (0 != m_cachePos) {
         buffer = std::vector<T>(m_cache.begin() + m_cachePos, m_cache.end());
         m_cachePos = 0;
-    }
-    else
-    {
-        if (!readNextBlock())
-        {
+    } else {
+        if (!readNextBlock()) {
             return false;
         }
 

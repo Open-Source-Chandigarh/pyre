@@ -47,13 +47,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define INCLUDED_AI_CREATE_ANIM_MESH_H
 
 #ifdef __GNUC__
-#pragma GCC system_header
+#   pragma GCC system_header
 #endif
 
 #include <assimp/mesh.h>
 
-namespace Assimp
-{
+namespace Assimp {
 
 /**
  *  Create aiAnimMesh from aiMesh.
@@ -65,9 +64,14 @@ namespace Assimp
  *  @param  needTexCoords   If true, texCoords will be copied from.
  *  @return The new created animated mesh.
  */
-ASSIMP_API aiAnimMesh *aiCreateAnimMesh(const aiMesh *mesh, bool needPositions = true, bool needNormals = true,
-                                        bool needTangents = true, bool needColors = true, bool needTexCoords = true);
+ASSIMP_API aiAnimMesh *aiCreateAnimMesh(const aiMesh *mesh,
+                                        bool needPositions = true,
+                                        bool needNormals = true,
+                                        bool needTangents = true,
+                                        bool needColors = true,
+                                        bool needTexCoords = true);
 
 } // end of namespace Assimp
 
 #endif // INCLUDED_AI_CREATE_ANIM_MESH_H
+
