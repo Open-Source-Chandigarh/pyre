@@ -22,7 +22,6 @@ Renderer::Renderer()
     defaultMat->floats["material_shininess"] = 32.0f;
     defaultMat->floats["material_reflectivity"] = 0.0f;
     defaultMat->vec3s["material_diffuseColor"] = glm::vec3(1.0f);
-    InitSSAO();
 }
 
 Renderer::~Renderer()
@@ -134,6 +133,8 @@ void Renderer::EnsureGBuffer(unsigned int width, unsigned int height)
 
 void Renderer::InitSSAO()
 {
+    if (!ssaoKernel.empty()) return;
+
     std::uniform_real_distribution<float> randomFloats(-1.0, 1.0);
     std::default_random_engine generator;
 
@@ -388,6 +389,47 @@ void Renderer::RenderGeometryPass(const std::vector<std::shared_ptr<Entity>> &op
     RenderPass(opaque, viewMatrix, projMatrix, gBufferShader);
     glEnable(GL_BLEND);
     Framebuffer::Unbind();
+}
+
+void Renderer::RenderSSAOPass(unsigned int width, unsigned int height)
+{
+    InitSSAO();
+    EnsureSSAOBuffer(width, height);
+
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
+
+    ssaoFBO->Bind();
+    glViewport(0, 0, ssaoFBO->Width(), ssaoFBO->Height());
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // Default to white (no shadow)
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    ssaoShader->use();
+    // upload the 64 kernel points
+    for (unsigned int i = 0; i < 64; ++i)
+        ssaoShader->setVec3("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
+    
+    ssaoShader->setFloat("radius", ssaoRadius);
+    ssaoShader->setInt("gPosition", Bindings::TEX_SLOT_GBUFFER_POSITION);
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_POSITION);
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(0));
+    ssaoShader->setInt("gNormal", Bindings::TEX_SLOT_GBUFFER_NORMAL);
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_NORMAL);
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(1));
+    ssaoShader->setInt("texNoise", Bindings::TEX_SLOT_SSAO_NOISE);
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_SSAO_NOISE);
+    glBindTexture(GL_TEXTURE_2D, noiseTexture);
+    RenderQuad();
+
+    ssaoBlurFBO->Bind();
+    glClear(GL_COLOR_BUFFER_BIT);
+    ssaoBlurShader->use();
+    ssaoBlurShader->setInt("ssaoInput", 14);
+    glActiveTexture(GL_TEXTURE0 + 14);
+    glBindTexture(GL_TEXTURE_2D, ssaoFBO->GetColorTexture(0));
+    RenderQuad();
+
+    glEnable(GL_DEPTH_TEST);
 }
 
 void Renderer::RenderDeferredLightingPass(LightManager &lightManager, Framebuffer &sceneFBO, std::shared_ptr<Entity> skybox)
@@ -915,48 +957,7 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities,
     if (!wireFrame) {
         if (useDeferred) {
             RenderGeometryPass(opaqueEntities);
-
-            EnsureSSAOBuffer(sceneFBO.Width(), sceneFBO.Height());
-
-            glDisable(GL_DEPTH_TEST);
-            glDisable(GL_BLEND);
-
-            ssaoFBO->Bind();
-            glViewport(0, 0, ssaoFBO->Width(), ssaoFBO->Height());
-            glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // Default to white (no shadow)
-            glClear(GL_COLOR_BUFFER_BIT);
-            ssaoShader->use();
-            // upload the 64 kernel points
-            for (unsigned int i = 0; i < 64; ++i) {
-                ssaoShader->setVec3("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
-            }
-            ssaoShader->setFloat("radius", ssaoRadius);
-
-            ssaoShader->setInt("gPosition", Bindings::TEX_SLOT_GBUFFER_POSITION);
-            glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_POSITION);
-            glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(0));
-
-            ssaoShader->setInt("gNormal", Bindings::TEX_SLOT_GBUFFER_NORMAL);
-            glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_NORMAL);
-            glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(1));
-
-            ssaoShader->setInt("texNoise", Bindings::TEX_SLOT_SSAO_NOISE);
-            glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_SSAO_NOISE);
-            glBindTexture(GL_TEXTURE_2D, noiseTexture);
-
-            RenderQuad();
-
-            ssaoBlurFBO->Bind();
-            glClear(GL_COLOR_BUFFER_BIT);
-            ssaoBlurShader->use();
-        
-            ssaoBlurShader->setInt("ssaoInput", 14);
-            glActiveTexture(GL_TEXTURE0 + 14);
-            glBindTexture(GL_TEXTURE_2D, ssaoFBO->GetColorTexture(0));
-        
-            RenderQuad();
-
-            glEnable(GL_DEPTH_TEST);
+            RenderSSAOPass(sceneFBO.Width(), sceneFBO.Height());
 
             sceneFBO.Bind();
             const float clearCol[] = { clearColor.r, clearColor.g, clearColor.b, 1.0f };

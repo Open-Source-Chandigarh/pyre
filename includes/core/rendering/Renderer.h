@@ -93,6 +93,9 @@ private:
     // render opaque objects to gbuffer
     void RenderGeometryPass(const std::vector<std::shared_ptr<Entity>> &opaque);
 
+    // render ssao pass
+    void RenderSSAOPass(unsigned int width, unsigned int height);
+
     // helper to draw a single entity based on its components (mesh vs model)
     void DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverride, bool isShadowPass = false);
 
