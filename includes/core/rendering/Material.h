@@ -72,6 +72,9 @@ struct Material
         shader.setInt("material_diffuse", Bindings::TEX_SLOT_DIFFUSE);
         shader.setInt("material_specular", Bindings::TEX_SLOT_SPECULAR);
         shader.setInt("material_normal", Bindings::TEX_SLOT_NORMAL);
+        shader.setInt("material_metallic", Bindings::TEX_SLOT_METALLIC);
+        shader.setInt("material_roughness", Bindings::TEX_SLOT_ROUGHNESS);
+        shader.setInt("material_ao", Bindings::TEX_SLOT_AO);
         shader.setInt("material_displacement", Bindings::TEX_SLOT_DISPLACEMENT);
         shader.setInt("material_skybox", Bindings::TEX_SLOT_SKYBOX);
 
@@ -86,6 +89,12 @@ struct Material
                 shader.setInt("material_normal_present", 0);
             if (shader.hasUniform("material_displacement_present"))
                 shader.setInt("material_displacement_present", 0);
+            if (shader.hasUniform("material_metallic_present"))
+                shader.setInt("material_metallic_present", 0);
+            if (shader.hasUniform("material_roughness_present"))
+                shader.setInt("material_roughness_present", 0);
+            if (shader.hasUniform("material_ao_present"))
+                shader.setInt("material_ao_present", 0);
             if (shader.hasUniform("material_skybox_present"))
                 shader.setInt("material_skybox_present", 0);
         }
@@ -119,6 +128,15 @@ struct Material
                 break;
             case TextureType::TEX_NORMAL:
                 slot = Bindings::TEX_SLOT_NORMAL;
+                break;
+            case TextureType::TEX_METALLIC:
+                slot = Bindings::TEX_SLOT_METALLIC;
+                break;
+            case TextureType::TEX_ROUGHNESS:
+                slot = Bindings::TEX_SLOT_ROUGHNESS;
+                break;
+            case TextureType::TEX_AO:
+                slot = Bindings::TEX_SLOT_AO;
                 break;
             case TextureType::TEX_DISPLACEMENT:
                 slot = Bindings::TEX_SLOT_DISPLACEMENT;

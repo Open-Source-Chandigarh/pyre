@@ -48,14 +48,47 @@ void main()
         N = normalize(Normal);
     }
 
+    float alpha = 1.0;
+    if (material_diffuse_present == 1) 
+    {
+        alpha = texture(material_diffuse, uv).a;
+        if (alpha < 0.05) discard; 
+    }
+
+    vec3 albedo = material_diffuseColor;
+    if (material_diffuse_present == 1) 
+    {
+        albedo = texture(material_diffuse, uv).rgb;
+    }
+
+    float roughness = 0.5;
+    if (material_roughness_present == 1) 
+    {
+        roughness = texture(material_roughness, uv).r;
+    } 
+    else if (material_specular_present == 1) 
+    {
+        roughness = clamp(1.0 - (GetShininess() / 256.0), 0.05, 1.0);
+    }
+
+    float metallic = 0.0;
+    if (material_metallic_present == 1) 
+    {
+        metallic = texture(material_metallic, uv).r;
+    } 
+    else if (material_specular_present == 1) 
+    {
+        metallic = texture(material_specular, uv).r;
+    }
+
     vec3 result = vec3(0.0);
 
     // Directional light (single)
-    result += CalcDirLight(N, FragPos, V, uv, 1.0);
+    result += CalcDirLight(N, FragPos, V, uv, albedo, roughness, metallic, 1.0);
 
     // Point lights
     for (int i = 0; i < numPointLights; ++i)
-        result += CalcPointLight(i, N, FragPos, V, uv);
+        result += CalcPointLight(i, N, FragPos, V, albedo, roughness, metallic);
 
     // Spot lights
     for (int i = 0; i < numSpotLights; ++i)
@@ -71,18 +104,8 @@ void main()
         reflectionColor = texture(material_skybox, R).rgb;
     }
 
-    float reflectionMix = material_reflectivity;
-    if (material_specular_present == 1) {
-        reflectionMix = texture(material_specular, uv).r;
-    }
+    float reflectionMix = max(metallic, material_reflectivity);
     vec3 finalColor = mix(result, reflectionColor, material_skybox_present != 0 ? reflectionMix : 0.0);
-
-    // Alpha from diffuse texture if present
-    float alpha = 1.0;
-    if (material_diffuse_present == 1) {
-        alpha = texture(material_diffuse, uv).a;
-        if (alpha < 0.05) discard; // alpha cutoff
-    }
     
     FragColor = vec4(finalColor, alpha);
     // convert to grayscale to get the perceived brightness of this fragment

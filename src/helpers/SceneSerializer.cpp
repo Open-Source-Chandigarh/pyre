@@ -263,9 +263,20 @@ static json SerializeEntity(const std::shared_ptr<Entity> &e)
     j["transform"] = SerializeTransform(e->transform);
 
     // Only serialize materialOverride if it exists
-    if (e->renderComp && e->renderComp->materialOverride)
+    if (e->renderComp)
     {
-        j["materialOverride"] = SerializeMaterial(e->renderComp->materialOverride);
+        if (e->renderComp->materialOverride)
+            j["materialOverride"] = SerializeMaterial(e->renderComp->materialOverride);
+
+        json baseMatsArray = json::array();
+        for (const auto &node : e->renderComp->nodes)
+        {
+            if (node.baseMaterial)
+                baseMatsArray.push_back(SerializeMaterial(node.baseMaterial));
+            else
+                baseMatsArray.push_back(json::object());
+        }
+        j["baseMaterials"] = baseMatsArray;
     }
 
     return j;
@@ -279,12 +290,22 @@ static void DeserializeEntity(std::shared_ptr<Entity> &e, const json &j)
     if (j.contains("transform"))
         DeserializeTransform(e->transform, j["transform"]);
 
-    if (j.contains("materialOverride") && e->renderComp)
+    if (e->renderComp)
     {
-        // Ensure entity has a unique material before deserializing properties into it
-        // This prevents state leaks across shared materials (e.g. all cubes getting outlines)
-        e->GetUniqueMaterial();
-        DeserializeMaterial(e->renderComp->materialOverride, j["materialOverride"]);
+        if (j.contains("materialOverride"))
+        {
+            e->GetOverrideMaterial();
+            DeserializeMaterial(e->renderComp->materialOverride, j["materialOverride"]);
+        }
+
+        if (j.contains("baseMaterials"))
+        {
+            auto baseMatsArray = j["baseMaterials"];
+            for (size_t i = 0; i < baseMatsArray.size() && i < e->renderComp->nodes.size(); i++)
+            {
+                DeserializeMaterial(e->renderComp->nodes[i].baseMaterial, baseMatsArray[i]);
+            }
+        }
     }
 }
 

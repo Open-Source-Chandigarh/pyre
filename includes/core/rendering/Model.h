@@ -12,6 +12,7 @@
 struct ModelNode
 {
     std::shared_ptr<Mesh> mesh;
+    std::shared_ptr<Material> baseMaterial;
     glm::mat4 localTransform = glm::mat4(1.0f);
 };
 

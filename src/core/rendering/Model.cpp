@@ -86,12 +86,24 @@ std::shared_ptr<Texture> Model::LoadStandardMap(TextureType type)
     }
     else if (type == TextureType::TEX_SPECULAR)
     {
-        standardNames = {"specular.png", "specular.jpg", "spec.png", "spec.jpg", "roughness.png", "roughness.jpg"};
+        standardNames = {"specular.png", "specular.jpg", "spec.png", "spec.jpg"};
     }
     // added normal map standard names
     else if (type == TextureType::TEX_NORMAL)
     {
         standardNames = {"normal.png", "normal.jpg", "norm.png", "norm.jpg"};
+    }
+    else if (type == TextureType::TEX_METALLIC)
+    {
+        standardNames = {"metallic.png", "metallic.jpg", "metalness.png", "metalness.jpg", "metal.png", "metal.jpg"};
+    }
+    else if (type == TextureType::TEX_ROUGHNESS)
+    {
+        standardNames = {"roughness.png", "roughness.jpg", "rough.png", "rough.jpg"};
+    }
+    else if (type == TextureType::TEX_DISPLACEMENT)
+    {
+        standardNames = {"displacement.png", "displacement.jpg", "disp.png", "disp.jpg", "height.png", "height.jpg"};
     }
 
     // Scan the directory
@@ -196,8 +208,6 @@ ModelNode Model::processMesh(aiMesh *mesh, const aiScene *scene)
         auto specTex = LoadMaterialTexture(aMat, aiTextureType_SPECULAR, TextureType::TEX_SPECULAR);
         if (!specTex)
             specTex = LoadStandardMap(TextureType::TEX_SPECULAR);
-        if (!specTex)
-            specTex = LoadMaterialTexture(aMat, aiTextureType_METALNESS, TextureType::TEX_SPECULAR);
         if (specTex)
             baseMat->textures["material_specular"] = specTex;
 
@@ -209,6 +219,26 @@ ModelNode Model::processMesh(aiMesh *mesh, const aiScene *scene)
             normTex = LoadStandardMap(TextureType::TEX_NORMAL);
         if (normTex)
             baseMat->textures["material_normal"] = normTex;
+
+        auto dispTex = LoadMaterialTexture(aMat, aiTextureType_DISPLACEMENT, TextureType::TEX_DISPLACEMENT);
+        if (!dispTex)
+            dispTex = LoadStandardMap(TextureType::TEX_DISPLACEMENT);
+        if (dispTex)
+            baseMat->textures["material_displacement"] = dispTex;
+
+        // PBR metallic map
+        auto metalTex = LoadMaterialTexture(aMat, aiTextureType_METALNESS, TextureType::TEX_METALLIC);
+        if (!metalTex)
+            metalTex = LoadStandardMap(TextureType::TEX_METALLIC);
+        if (metalTex)
+            baseMat->textures["material_metallic"] = metalTex;
+
+        // PBR roughness map
+        auto roughTex = LoadMaterialTexture(aMat, aiTextureType_DIFFUSE_ROUGHNESS, TextureType::TEX_ROUGHNESS);
+        if (!roughTex)
+            roughTex = LoadStandardMap(TextureType::TEX_ROUGHNESS);
+        if (roughTex)
+            baseMat->textures["material_roughness"] = roughTex;
 
         // B. Load Fallback Properties from Assimp (Colors/Shininess)
         // We still read these just in case the model has specific color data we want to respect
@@ -237,6 +267,7 @@ ModelNode Model::processMesh(aiMesh *mesh, const aiScene *scene)
     ModelNode node;
     // Pass the baseMat into the Mesh constructor
     node.mesh = std::make_shared<Mesh>(vertices, indices, baseMat);
+    node.baseMaterial = baseMat;
     node.localTransform = glm::mat4(1.0f); // Default transform (Assimp node transform handling can be added here)
     return node;
 }

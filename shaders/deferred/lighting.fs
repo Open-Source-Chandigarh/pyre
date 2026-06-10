@@ -39,7 +39,7 @@ vec3 GetSpecularColor(vec2 uv)
 float GetShininess() {
     // reverse the roughness calculation stored in gNormal.a
     float roughness = texture(gNormal, TexCoords).a;
-    return (1.0 - roughness) * 256.0;
+    return max((1.0 - roughness) * 256.0, 0.001);
 }
 
 #include "../includes/lightingCommon.glsl"
@@ -58,7 +58,11 @@ void main()
     vec3 viewDir = normalize(viewPos - fragPos);
     vec3 lightingResult = vec3(0.0);
 
-    lightingResult += CalcDirLight(normal, fragPos, viewDir, TexCoords, ssao);
+    vec3 albedo = texture(gAlbedoSpec, TexCoords).rgb;
+    float roughness = texture(gNormal, TexCoords).a;
+    float metallic = abs(reflectivity);
+
+    lightingResult += CalcDirLight(normal, fragPos, viewDir, TexCoords, albedo, roughness, metallic, ssao);
 
     for(int i = 0; i < numSpotLights; i++)
     {
@@ -66,18 +70,16 @@ void main()
     }
 
     vec3 reflectionColor = vec3(0.0);
-    float rawReflectivity = texture(gAlbedoSpec, TexCoords).a;
-    float specIntensity = abs(rawReflectivity);
-    bool wantsEnvMap = (rawReflectivity < 0.0); // if reflectivity is negative that means we want env mapping since we set it negative in geomtry pass if skybox was true
+    bool wantsEnvMap = (reflectivity < 0.0); // if reflectivity is negative that means we want env mapping since we set it negative in geomtry pass if skybox was true
 
-    if(wantsEnvMap && specIntensity > 0.01)
+    if(wantsEnvMap && GetShininess() > 0)
     {
         vec3 I = normalize(fragPos - viewPos);
         vec3 R = reflect(I, normal);
-        reflectionColor = texture(skyboxTexture, R).rgb * ssao;
+        reflectionColor = texture(skyboxTexture, R).rgb;
     }
-
-    vec3 finalColor = mix(lightingResult, reflectionColor, (wantsEnvMap ? specIntensity : 0.0));
+    float reflectionMix = max(metallic, material_reflectivity);
+    vec3 finalColor = mix(lightingResult, reflectionColor, (wantsEnvMap ? reflectionMix : 0.0));
     FragColor = vec4(finalColor, 1.0);
 
     float brightness = dot(FragColor.rgb, vec3(0.2126, 0.7152, 0.0722));

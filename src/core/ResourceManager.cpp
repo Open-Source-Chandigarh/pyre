@@ -59,6 +59,8 @@ std::shared_ptr<Texture> ResourceManager::LoadTexture(const std::string &path, T
     GLenum dataFormat;
     if (nrChannels == 1)
         dataFormat = GL_RED;
+    if (nrChannels == 2)
+        dataFormat = GL_RG;
     else if (nrChannels == 3)
         dataFormat = GL_RGB;
     else if (nrChannels == 4)

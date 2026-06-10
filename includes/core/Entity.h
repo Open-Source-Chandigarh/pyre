@@ -69,40 +69,14 @@ struct Entity
         return e;
     }
 
-    std::shared_ptr<Material> GetUniqueMaterial()
+    std::shared_ptr<Material> GetOverrideMaterial()
     {
         if (!renderComp)
             return nullptr;
 
         if (!renderComp->materialOverride)
         {
-            // Clone the first mesh's material as a base if it exists
-            if (!renderComp->nodes.empty() && renderComp->nodes[0].mesh && renderComp->nodes[0].mesh->localMaterial)
-            {
-                renderComp->materialOverride = std::make_shared<Material>(*renderComp->nodes[0].mesh->localMaterial);
-            }
-            else
-            {
-                renderComp->materialOverride = std::make_shared<Material>();
-            }
-        }
-        else if (renderComp->materialOverride.use_count() > 1)
-        {
-            auto newMat = std::make_shared<Material>(*renderComp->materialOverride);
-            renderComp->materialOverride = newMat;
-        }
-
-        // pull base mesh textures into override so they show up in the editor
-        if (!renderComp->nodes.empty() && renderComp->nodes[0].mesh && renderComp->nodes[0].mesh->localMaterial)
-        {
-            auto baseMat = renderComp->nodes[0].mesh->localMaterial;
-            for (const auto &[key, tex] : baseMat->textures)
-            {
-                if (renderComp->materialOverride->textures.find(key) == renderComp->materialOverride->textures.end())
-                {
-                    renderComp->materialOverride->textures[key] = tex;
-                }
-            }
+            renderComp->materialOverride = std::make_shared<Material>();
         }
 
         return renderComp->materialOverride;
@@ -118,10 +92,10 @@ struct Entity
         ModelNode node;
         node.mesh = mesh;
         node.localTransform = glm::mat4(1.0f);
+        node.baseMaterial = mat ? std::make_shared<Material>(*mat) : std::make_shared<Material>();
 
         renderComp->nodes.push_back(node);
         renderComp->shader = shader;
-        renderComp->materialOverride = mat;
         renderComp->instanceCount = instanceCount;
     }
 

@@ -30,7 +30,7 @@ vec3 GetDiffuseColor(vec2 uv) { return texture(gAlbedoSpec, uv).rgb; }
 vec3 GetSpecularColor(vec2 uv) { return vec3(abs(texture(gAlbedoSpec, uv).a)); }
 float GetShininess() {
     float roughness = texture(gNormal, TexCoords).a;
-    return (1.0 - roughness) * 256.0;
+    return max((1.0 - roughness) * 256.0, 0.001);
 }
 
 #include "../includes/lightingCommon.glsl"
@@ -47,7 +47,12 @@ void main()
     vec3 normal  = normalize(texture(gNormal, TexCoords).rgb);
     vec3 viewDir = normalize(vec3(viewPos) - fragPos);
 
-    vec3 result = CalcPointLight(lightIndex, normal, fragPos, viewDir, TexCoords);
+    vec3 albedo = texture(gAlbedoSpec, TexCoords).rgb;
+    float roughness = texture(gNormal, TexCoords).a;
+    float rawReflectivity = texture(gAlbedoSpec, TexCoords).a;
+    float metallic = abs(rawReflectivity);
+
+    vec3 result = CalcPointLight(lightIndex, normal, fragPos, viewDir, albedo, roughness, metallic);
 
     FragColor = vec4(result, 1.0);
 

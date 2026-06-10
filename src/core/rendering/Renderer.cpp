@@ -317,7 +317,7 @@ void Renderer::DrawEntityInPass(Entity *e, std::shared_ptr<Shader> shaderOverrid
         if (!node.mesh)
             continue;
         // Get Base Material (from file)
-        std::shared_ptr<Material> baseMat = node.mesh->localMaterial;
+        std::shared_ptr<Material> baseMat = node.baseMaterial;
 
         // Get Override Material (from Entity settings)
         std::shared_ptr<Material> overrideMat = e->renderComp->materialOverride;
@@ -605,9 +605,17 @@ void Renderer::CategorizeEntities(const std::vector<std::shared_ptr<Entity>> &so
         {
             if (e->renderComp->materialOverride && e->renderComp->materialOverride->isTransparent)
                 isTransparent = true;
-            else if (!e->renderComp->nodes.empty() && e->renderComp->nodes[0].mesh->localMaterial)
-                if (e->renderComp->nodes[0].mesh->localMaterial->isTransparent)
-                    isTransparent = true;
+            else
+            {
+                for (const auto& node : e->renderComp->nodes) 
+                {
+                    if (node.baseMaterial && node.baseMaterial->isTransparent) 
+                    {
+                        isTransparent = true;
+                        break;
+                    }
+                }
+            }
         }
 
         if (isTransparent)
@@ -976,8 +984,8 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
 
                 if (e->renderComp->materialOverride)
                     forceFwd = e->renderComp->materialOverride->GetBool("forceForward");
-                else if (!e->renderComp->nodes.empty() && e->renderComp->nodes[0].mesh->localMaterial)
-                    forceFwd = e->renderComp->nodes[0].mesh->localMaterial->GetBool("forceForward");
+                else if (!e->renderComp->nodes.empty() && e->renderComp->nodes[0].baseMaterial)
+                    forceFwd = e->renderComp->nodes[0].baseMaterial->GetBool("forceForward");
 
                 if (forceFwd)
                     DrawEntityInPass(e.get(), nullptr, false);
@@ -1187,7 +1195,7 @@ void Renderer::RenderOutlinesPass(const std::vector<std::shared_ptr<Entity>> &en
         {
             if (!node.mesh)
                 continue;
-            std::shared_ptr<Material> baseMat = node.mesh->localMaterial;
+            std::shared_ptr<Material> baseMat = node.baseMaterial;
             std::shared_ptr<Material> overrideMat = e->renderComp->materialOverride;
 
             bool doOutline = false;

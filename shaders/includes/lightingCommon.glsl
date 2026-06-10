@@ -17,6 +17,58 @@ vec3 sampleOffsetDirections[20] = vec3[]
    vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
 
+const float PI = 3.14159265359;
+
+// Normal Distribution Function (Trowbridge-Reitz GGX)
+// a^2 / PI * ((n dot h)^2 (a^2 - 1) + 1)^2
+float DistributionGGX(vec3 N, vec3 H, float roughness) 
+{
+    roughness = max(roughness, 0.04);
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+
+    float num = a2;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom = PI * denom * denom + 0.00001;
+    
+    return num / denom;
+}
+
+// Geometry Function (Schlick-GGX)
+// n dot v / n dot v * (1 - k) + k
+// k = (roughness + 1) ^ 2 / 8
+float GeometrySchlickGGX(float NdotV, float roughness)
+{
+    float r = (roughness + 1.0);
+    float k = (r * r) / 8.0; // k for direct lighting
+
+    float num = NdotV;
+    float denom = NdotV * (1.0 - k) + k;
+
+    return num / denom;
+}
+
+// Geomtery function (Smith)
+// to acccount for both shadowing and masking
+// GeometryGGX(NdotV, k) *  GeometryGGX(NdotL, k) V is camera direction and L is light direction
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) 
+{
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx2 = GeometrySchlickGGX(NdotV, roughness); // view masking
+    float ggx1 = GeometrySchlickGGX(NdotL, roughness); // light shadowing
+    
+    return ggx1 * ggx2;
+}
+
+// Fresnel Equation (Fresnel-Schlick Approximation)
+vec3 FresnelSchlick(float cosTheta, vec3 F0) 
+{
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
 float CalcPointShadow(int lightIndex, vec3 fragPos, vec3 lightPos, vec3 normal)
 {
     vec3 fragToLight = fragPos - lightPos;
@@ -166,38 +218,39 @@ float ShadowCalculation(vec3 fragPosWorldSpace, vec3 normal, vec3 lightDir)
     return shadow;
 }
 
-vec3 CalcDirLight(vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv, float ssao)
+vec3 CalcDirLight(vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv, vec3 albedo, float roughness, float metallic, float ssao)
 {
-    vec3 lightDir = normalize(-vec3(dir_direction));
-    
-    // diffuse shading
-    // calculate how much the surface faces the light
-    float diff = max(dot(normal, lightDir), 0.0);
-    
-    // specular shading
-    // blinn-phong method using the halfway vector
-    vec3 halfWayDir = normalize(lightDir + viewDir);
-    float shininess = GetShininess();
-    float spec = pow(max(dot(normal, halfWayDir), 0.0), shininess);
+    vec3 L = normalize((-vec3(dir_direction)));
+    vec3 H = normalize(viewDir + L);
 
-    vec3 diffuseColor = GetDiffuseColor(uv);
-    vec3 specColor = GetSpecularColor(uv);
+    // radiance for a directional light is constant (no attenuation)
+    vec3 radiance = vec3(dir_diffuse);
 
-    // combine results
-    // ambient light is always present
-    vec3 ambient  = vec3(dir_ambient) * diffuseColor * ssao;
-    vec3 diffuse  = vec3(dir_diffuse) * diff * diffuseColor;
-    vec3 specular = vec3(dir_specular) * spec * specColor;
-    
-    // calculate shadow
-    // we pass the world position directly to our helper function
-    float shadow = ShadowCalculation(fragPos, normal, lightDir);    
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0, albedo, metallic);
 
-    // apply shadow to diffuse and specular, but never ambient
-    return (ambient + (1.0 - shadow) * (diffuse + specular));
+    float NDF = DistributionGGX(normal, H, roughness);
+    float G = GeometrySmith(normal, viewDir, L, roughness);
+    vec3 F = FresnelSchlick(max(dot(H, viewDir), 0.0), F0);
+
+    vec3 kS = F;
+    vec3 kD = vec3(1.0) - F;
+    kD *= 1.0 - metallic;
+
+    vec3 numerator = NDF * G * F;
+    float denominator = 4.0 * max(dot(normal, viewDir), 0.0) * max(dot(normal, L), 0.0) + 0.0001;
+    vec3 specular = numerator / denominator;
+
+    float NdotL = max(dot(normal, L), 0.0);
+    vec3 Lo = (kD * albedo / PI + specular) * radiance * NdotL;
+
+    vec3 ambient = vec3(dir_ambient) * albedo * ssao;
+    float shadow = ShadowCalculation(fragPos, normal, L);
+
+    return ambient + (1.0 - shadow) * Lo;
 }
 
-vec3 CalcPointLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv)
+vec3 CalcPointLightBlinnPhong(int idx, vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv)
 {
     // standard lighting logic
     vec3 lightPos = vec3(point_position[idx]);
@@ -230,6 +283,41 @@ vec3 CalcPointLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv)
     float shadow = CalcPointShadow(idx, fragPos, vec3(point_position[idx]), normal);
 
     return ambient + (1.0 - shadow) * (diffuse + specular);
+}
+
+vec3 CalcPointLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 albedo, float roughness, float metallic)
+{
+    vec3 lightPos = vec3(point_position[idx]);
+    vec3 L = normalize(lightPos - fragPos);
+    vec3 H = normalize(viewDir + L); // halway vector
+
+    float distance = length(lightPos - fragPos);
+    float attenuation = 1.0 / max(distance * distance, 0.001);
+    vec3 radiance = vec3(point_diffuse[idx]) * attenuation; // incoming radiance (irradiance)
+
+    vec3 F0 = vec3(0.04);
+    F0 = mix(F0, albedo, metallic);
+
+    float NDF = DistributionGGX(normal, H, roughness);
+    float G = GeometrySmith(normal, viewDir, L, roughness);
+    vec3 F = FresnelSchlick(max(dot(H, viewDir), 0.0), F0);
+
+    vec3 kS = F;
+    vec3 kD = vec3(1.0) - kS;
+    kD *= 1.0 - metallic;
+
+    vec3 numerator = NDF * G * F;
+    float denominator = 4.0 * max(dot(normal, viewDir), 0.0) 
+                        * max(dot(normal, L), 0.0) + 0.0001;
+    vec3 specular = numerator / denominator;
+
+    // final outgoing radiance (Lo)
+    float NdotL = max(dot(normal, L), 0.0);                
+    vec3 Lo = (kD * albedo / PI + specular) * radiance * NdotL;
+
+    float shadow = CalcPointShadow(idx, fragPos, lightPos, normal);
+
+    return (1.0 - shadow) * Lo;
 }
 
 vec3 CalcSpotLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv)

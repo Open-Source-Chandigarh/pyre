@@ -7,6 +7,9 @@ uniform samplerCube material_skybox;
 uniform sampler2D material_specular;
 uniform sampler2D material_normal;
 uniform sampler2D material_displacement;
+uniform sampler2D material_metallic;
+uniform sampler2D material_roughness;
+uniform sampler2D material_ao;
 
 // Fallback / direct values
 uniform vec3 material_diffuseColor;
@@ -19,6 +22,9 @@ uniform int material_specular_present;
 uniform int material_skybox_present;
 uniform int material_normal_present;
 uniform int material_displacement_present;
+uniform int material_metallic_present;
+uniform int material_roughness_present;
+uniform int material_ao_present;
 uniform float material_heightScale;
 
 // Helper accessors used by lighting_common.glsl
