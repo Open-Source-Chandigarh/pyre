@@ -170,6 +170,42 @@ std::shared_ptr<Texture> ResourceManager::LoadCubeMap(std::vector<std::string> f
     return texture;
 }
 
+std::shared_ptr<Texture> ResourceManager::LoadHDRTexture(const std::string &path)
+{
+    stbi_set_flip_vertically_on_load(true);
+
+    int width, height, nrComponents;
+
+    float *data = stbi_loadf(path.c_str(), &width, &height, &nrComponents, 0);
+
+    if (!data)
+    {
+        std::cerr << "Failed to load HDR image: " << path << std::endl;
+        return nullptr;
+    }
+
+    std::shared_ptr<Texture> texture = std::make_shared<Texture>();
+    texture->width = width;
+    texture->height = height;
+    texture->channels = nrComponents;
+    texture->path = path;
+    texture->type = TextureType::TEX_EQUIRECTANGULAR;
+
+    glGenTextures(1, &texture->ID);
+    glBindTexture(GL_TEXTURE_2D, texture->ID);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, data); 
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    stbi_image_free(data);
+    stbi_set_flip_vertically_on_load(false);
+
+    return texture;
+}
+
 std::shared_ptr<Texture> ResourceManager::GetTexture(const std::string &path)
 {
     auto it = textures.find(path);

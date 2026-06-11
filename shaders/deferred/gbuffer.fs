@@ -46,16 +46,11 @@ void main()
     }
     gNormal.rgb = N;
 
-    float shininess = GetShininess();
-    float roughness = 0.5;
+    float roughness = clamp(1.0 - (GetShininess() / 256.0), 0.05, 1.0);
     if (material_roughness_present == 1) 
     {
         roughness = texture(material_roughness, uv).r;
     } 
-    else if (material_specular_present == 1) 
-    {
-        roughness = clamp(1.0 - (GetShininess() / 256.0), 0.05, 1.0); 
-    }
     gNormal.a = roughness;
 
     vec3 albedo = material_diffuseColor;
@@ -67,14 +62,10 @@ void main()
     }
     gAlbedo.rgb = albedo;
 
-    float metallic = 0.0;
+    float metallic = material_reflectivity;
     if (material_metallic_present == 1) 
     {
         metallic = texture(material_metallic, uv).r;
-    } 
-    else if (material_specular_present == 1) 
-    {
-        metallic = GetSpecularColor(uv).r;
     }
 
     if (material_skybox_present == 1) // inverse sign to let lighting pass know that we want env mapping

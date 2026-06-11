@@ -292,7 +292,19 @@ vec3 CalcPointLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 albed
     vec3 H = normalize(viewDir + L); // halway vector
 
     float distance = length(lightPos - fragPos);
-    float attenuation = 1.0 / max(distance * distance, 0.001);
+    float radius = point_params[idx].w;
+    float physicalAttenuation = 1.0 / max(distance * distance, 0.001);
+
+    // windowing function from ue4 to to smoothly scale light to 0.0 when at the edge of the radius
+    float distanceRatio = distance / radius;
+    float distanceRatio4 = distanceRatio * distanceRatio * distanceRatio * distanceRatio;
+    float falloffWindow = clamp(1.0 - distanceRatio4, 0.0, 1.0);
+    falloffWindow = falloffWindow * falloffWindow;
+
+    float attenuation = physicalAttenuation * falloffWindow;
+
+    if (attenuation <= 0.0) return vec3(0.0);
+
     vec3 radiance = vec3(point_diffuse[idx]) * attenuation; // incoming radiance (irradiance)
 
     vec3 F0 = vec3(0.04);

@@ -61,24 +61,16 @@ void main()
         albedo = texture(material_diffuse, uv).rgb;
     }
 
-    float roughness = 0.5;
+    float roughness = clamp(1.0 - (GetShininess() / 256.0), 0.05, 1.0);;
     if (material_roughness_present == 1) 
     {
         roughness = texture(material_roughness, uv).r;
-    } 
-    else if (material_specular_present == 1) 
-    {
-        roughness = clamp(1.0 - (GetShininess() / 256.0), 0.05, 1.0);
     }
 
-    float metallic = 0.0;
+    float metallic = material_reflectivity;
     if (material_metallic_present == 1) 
     {
         metallic = texture(material_metallic, uv).r;
-    } 
-    else if (material_specular_present == 1) 
-    {
-        metallic = texture(material_specular, uv).r;
     }
 
     vec3 result = vec3(0.0);
