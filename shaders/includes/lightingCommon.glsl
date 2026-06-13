@@ -3,9 +3,7 @@
 #include "globalUbos.glsl"
 // we use a texture array because we have multiple shadow maps (one for each cascade)
 uniform sampler2DArray shadowMap;
-
 uniform samplerCubeArrayShadow pointShadowMap;
-uniform float pointShadowFarPlane;
 
 // Poisson Disk Sample Pattern (Standard 20 samples)
 vec3 sampleOffsetDirections[20] = vec3[]
@@ -76,10 +74,12 @@ float CalcPointShadow(int lightIndex, vec3 fragPos, vec3 lightPos, vec3 normal)
     
     // dynamic bias based on surface angle to prevent shadow acne
     vec3 lightDir = normalize(lightPos - fragPos);
-    float bias = max(0.5 * (1.0 - dot(normal, lightDir)), 0.1); 
+    float bias = max(0.5 * (1.0 - dot(normal, lightDir)), 0.1);
+
+    float lightRadius = point_params[lightIndex].w; 
     
     // Map the depth to [0, 1] range just like we did when rendering the shadow map
-    float normalizedDepth = (currentDepth - bias) / pointShadowFarPlane;
+    float normalizedDepth = (currentDepth - bias) / lightRadius;
     
     // If we are beyond the light's range, there is no shadow
     if(normalizedDepth > 1.0) return 0.0;

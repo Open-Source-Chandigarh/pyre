@@ -46,14 +46,13 @@ float GetShininess() {
 
 void main()
 {
+    if (length(texture(gNormal, TexCoords).rgb) < 0.1) discard; 
     // get base data from gBuffer geometry pass
     vec3 fragPos = texture(gPosition, TexCoords).rgb;
     vec3 normal = normalize(texture(gNormal, TexCoords).rgb);
     float depth = texture(gPosition, TexCoords).a;
     float reflectivity = texture(gAlbedoSpec, TexCoords).a;
     float ssao = texture(ssaoMap, TexCoords).r;
-    if (depth <= 0.0 || depth > 200.0)
-        discard; 
 
     vec3 viewDir = normalize(viewPos - fragPos);
     vec3 lightingResult = vec3(0.0);

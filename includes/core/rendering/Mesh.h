@@ -32,6 +32,7 @@ class Mesh
     unsigned int instanceVBO = 0;
     int vertexCount = 0;
     int indexCount = 0;
+    unsigned int instanceCapacity = 0;
 
     Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std::shared_ptr<Material> mat);
     Mesh() = default;

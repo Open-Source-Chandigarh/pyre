@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 #include <memory>
 #include <random>
+#include <unordered_map>
 #include <vector>
 
 class Model;
@@ -79,7 +80,7 @@ class Renderer
     // render pass logic
 
     // render opaque objects to gbuffer
-    void RenderGeometryPass(const std::vector<std::shared_ptr<Entity>> &opaque);
+    void RenderGeometryPass();
 
     // render ssao pass
     void RenderSSAOPass(unsigned int width, unsigned int height);
@@ -91,17 +92,17 @@ class Renderer
     void RenderPass(const std::vector<std::shared_ptr<Entity>> &entities, const glm::mat4 &view, const glm::mat4 &proj,
                     std::shared_ptr<Shader> shaderOverride = nullptr, bool isShadowPass = false);
 
+    void RenderBatches(const std::shared_ptr<Shader> &overrideShader = nullptr);
+
     void CopyDepthBuffer(Framebuffer &source, Framebuffer &dest);
 
     // scene organization helpers
 
     // sorts entities into opaque, transparent, and skybox buckets
-    void CategorizeEntities(const std::vector<std::shared_ptr<Entity>> &source,
-                            std::vector<std::shared_ptr<Entity>> &opaque,
-                            std::vector<std::shared_ptr<Entity>> &transparent, std::shared_ptr<Entity> &skybox);
+    void CategorizeEntities(const std::vector<std::shared_ptr<Entity>> &source, std::shared_ptr<Entity> &skybox);
 
     // sorts transparent objects back-to-front for correct alpha blending
-    void SortTransparentEntities(std::vector<std::shared_ptr<Entity>> &transparent, const glm::vec3 &camPos);
+    void SortTransparentEntities(const glm::vec3 &camPos);
 
     // render outlines for deferred shading
     void RenderOutlinesPass(const std::vector<std::shared_ptr<Entity>> &entities);
@@ -118,12 +119,10 @@ class Renderer
     std::vector<glm::mat4> GetLightSpaceMatrices(const glm::vec3 &lightDir, const Camera &camera);
 
     // renders the depth map for shadows (dir, point, spot etc..)
-    void RenderShadowMap(const std::vector<std::shared_ptr<Entity>> &opaqueEntities, const glm::vec3 &lightDir,
-                         const Camera &camera);
+    void RenderShadowMap(const glm::vec3 &lightDir, const Camera &camera);
 
     // renders the depth map for point shadows (used inside RenderShadowMap func)
-    void RenderPointShadows(const std::vector<std::shared_ptr<Entity>> &opaqueEntities,
-                            const LightManager &lightManager);
+    void RenderPointShadows(const LightManager &lightManager);
 
     // main lighting passes
 
@@ -132,14 +131,12 @@ class Renderer
     void RenderLocalLightVolumes(LightManager &lightManager, Framebuffer &sceneFBO);
 
     // forward pass that renders color, lighting, skybox, and transparent objects
-    void RenderLightingPass(const std::vector<std::shared_ptr<Entity>> &opaque,
-                            const std::vector<std::shared_ptr<Entity>> &transparent, std::shared_ptr<Entity> skybox,
-                            LightManager &lightManager, Framebuffer &sceneFBO, PostProcessingPipeline &postProcessor,
+    void RenderLightingPass(std::shared_ptr<Entity> skybox, LightManager &lightManager, 
+                            Framebuffer &sceneFBO, PostProcessingPipeline &postProcessor,
                             glm::vec3 clearColor);
 
     // simplified debug pass for wireframe mode
-    void RenderWireframePass(const std::vector<std::shared_ptr<Entity>> &opaque,
-                             const std::vector<std::shared_ptr<Entity>> &transparent, std::shared_ptr<Entity> skybox,
+    void RenderWireframePass(std::shared_ptr<Entity> skybox,
                              LightManager &lightManager, Framebuffer &sceneFBO);
 
     // low level submission helpers
@@ -163,6 +160,22 @@ class Renderer
     void InitQuad();
 
     // member variables
+
+    // dynamic batching
+    // this group matrices by Shader -> Base Material -> Override Material -> Mesh -> Matrices
+    std::unordered_map<
+      std::shared_ptr<Shader>, 
+      std::unordered_map<
+        std::shared_ptr<Material>, 
+        std::unordered_map<
+        std::shared_ptr<Material>, std::unordered_map<Mesh*, std::vector<glm::mat4>>
+        >
+      >
+    > opaqueBatch;
+
+    std::vector<std::shared_ptr<Entity>> transparentEntities;
+    std::vector<std::shared_ptr<Entity>> opaqueEntities;
+
     // The fallback material for objects that don't have one
     std::shared_ptr<Material> defaultMat;
     glm::mat4 viewMatrix;

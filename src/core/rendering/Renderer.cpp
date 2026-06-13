@@ -385,14 +385,179 @@ void Renderer::RenderPass(const std::vector<std::shared_ptr<Entity>> &entities, 
     projMatrix = oldProj;
 }
 
-void Renderer::RenderGeometryPass(const std::vector<std::shared_ptr<Entity>> &opaque)
+void Renderer::RenderBatches(const std::shared_ptr<Shader> &overrideShader)
+{
+    bool isGBufferPass = (overrideShader == gBufferShader);
+    bool isShadowPass = (overrideShader == depthShader || overrideShader == pointShadowShader);
+
+    for (auto &shaderPair : opaqueBatch)
+    {
+        std::shared_ptr<Shader> activeShader = overrideShader ? overrideShader : shaderPair.first;
+        if (!activeShader) continue;
+
+        activeShader->use();
+
+        if (activeShader->hasUniform("view"))
+            activeShader->setMat4("view", viewMatrix);
+        if (activeShader->hasUniform("projection"))
+            activeShader->setMat4("projection", projMatrix);
+        if (activeShader->hasUniform("viewPos"))
+            activeShader->setVec3("viewPos", viewPosition);
+
+        if (activeShader->hasUniform("shadowMap"))
+        {
+            activeShader->setInt("shadowMap", Bindings::TEX_SLOT_CSM_SHADOW);
+            glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_CSM_SHADOW);
+            glBindTexture(GL_TEXTURE_2D, shadowFBO->GetDepthTexture());
+        }
+        if (activeShader->hasUniform("pointShadowMap"))
+        {
+            activeShader->setInt("pointShadowMap", Bindings::TEX_SLOT_POINT_SHADOW);
+            glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_POINT_SHADOW);
+            glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, pointShadowFBO->GetDepthTexture());
+        }
+
+        for (auto &baseMaterialPair : shaderPair.second)
+        {
+            std::shared_ptr<Material> baseMaterial = baseMaterialPair.first;
+            if (!baseMaterial) baseMaterial = defaultMat;
+
+            for (auto &overrideMaterialPair : baseMaterialPair.second)
+            {
+                std::shared_ptr<Material> overrideMaterial = overrideMaterialPair.first;
+                bool forceFwd = false;
+                if (overrideMaterial && overrideMaterial->bools.count("forceForward"))
+                    forceFwd = overrideMaterial->GetBool("forceForward");
+                else
+                    forceFwd = baseMaterial->GetBool("forceForward");
+
+                if (isGBufferPass && forceFwd) 
+                    continue;
+                    
+                bool castShadows = true;
+                if (overrideMaterial && overrideMaterial->bools.count("castShadows"))
+                    castShadows = overrideMaterial->GetBool("castShadows");
+                else
+                    castShadows = baseMaterial->GetBool("castShadows", true);
+
+                if (isShadowPass && !castShadows) 
+                    continue;
+
+                bool wireframe = false;
+                if (overrideMaterial && overrideMaterial->bools.count("wireframe"))
+                    wireframe = overrideMaterial->GetBool("wireframe");
+                else
+                    wireframe = baseMaterial->GetBool("wireframe");
+
+                CullMode currentCull = baseMaterial->cullMode;
+                if (overrideMaterial && overrideMaterial->cullMode != CullMode::Back)
+                    currentCull = overrideMaterial->cullMode;
+
+                bool doOutline = forceOutlines && !isShadowPass;
+                glm::vec3 outlineCol(1.0f);
+                float bloomFactor = 0.0f;
+                float outlineThickness = 0.05f;
+
+                if (!isShadowPass)
+                {
+                    if (overrideMaterial && overrideMaterial->bools.count("outlineEnabled"))
+                    {
+                        doOutline = overrideMaterial->GetBool("outlineEnabled") || doOutline;
+                        outlineCol = overrideMaterial->GetVec3("outlineColor");
+                        bloomFactor = overrideMaterial->GetFloat("bloomFactor");
+                        outlineThickness = overrideMaterial->GetFloat("outlineThickness", 0.05f);
+                    }
+                    else if (baseMaterial->GetBool("outlineEnabled"))
+                    {
+                        doOutline = true;
+                        outlineCol = baseMaterial->GetVec3("outlineColor");
+                        bloomFactor = baseMaterial->GetFloat("bloomFactor");
+                        outlineThickness = baseMaterial->GetFloat("outlineThickness", 0.05f);
+                    }
+                }
+
+                bool doNormals = false;
+                if (overrideMaterial && overrideMaterial->bools.count("showNormals"))
+                    doNormals = overrideMaterial->GetBool("showNormals");
+                else
+                    doNormals = baseMaterial->GetBool("showNormals");
+
+                // bind textures if we are doing standard drawing (not depth/shadow passes)
+                if (overrideShader == nullptr || overrideShader == gBufferShader) 
+                {
+                    baseMaterial->ApplyToShader(*activeShader, false);
+                    if (overrideMaterial) overrideMaterial->ApplyToShader(*activeShader, true);
+                }
+
+                if (wireframe) 
+                    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+                if (currentCull == CullMode::None)
+                    glDisable(GL_CULL_FACE);
+                else
+                {
+                    glEnable(GL_CULL_FACE);
+                    glCullFace((currentCull == CullMode::Front) ? GL_FRONT : GL_BACK);
+                }
+
+                ConfigureStencilForOutline(doOutline);
+
+                for (auto &meshPair : overrideMaterialPair.second)
+                {
+                    Mesh* mesh = meshPair.first;
+                    std::vector<glm::mat4>& matrices = meshPair.second;
+
+                    if (!mesh || matrices.empty()) continue;
+
+                    mesh->SetupInstancing(matrices); 
+                    mesh->DrawInstanced(*activeShader, matrices.size());
+
+                    if (doOutline && activeShader != gBufferShader)
+                    {
+                        for (const auto& mat : matrices) {
+                            RenderMeshOutline(*mesh, mat, outlineCol, bloomFactor, outlineThickness);
+                        }
+                    }
+
+                    if (doNormals && !isShadowPass)
+                    {
+                        for (const auto& mat : matrices) {
+                            RenderMeshNormals(*mesh, mat);
+                        }
+                    }
+                }
+
+                if (wireframe) 
+                    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+                if (currentCull != CullMode::Back)
+                {
+                    glEnable(GL_CULL_FACE);
+                    glCullFace(GL_BACK);
+                }
+
+                ConfigureStencilForOutline(false);
+            }
+        }
+    }
+
+    glActiveTexture(GL_TEXTURE0);
+}
+
+void Renderer::RenderGeometryPass()
 {
     gBufferFBO->Bind();
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glDisable(GL_BLEND);
     // render all opaque objects
-    RenderPass(opaque, viewMatrix, projMatrix, gBufferShader);
+    RenderBatches(gBufferShader);
+
+    for (auto &e : opaqueEntities)
+    {
+        if (e->renderComp && e->renderComp->instanceCount > 1)
+            DrawEntityInPass(e.get(), gBufferShader, false);
+    }
     glEnable(GL_BLEND);
     Framebuffer::Unbind();
 }
@@ -455,7 +620,6 @@ void Renderer::RenderDeferredLightingPass(LightManager &lightManager, Framebuffe
     deferredLightingShader->setInt("gAlbedoSpec", Bindings::TEX_SLOT_GBUFFER_ALBEDO);
     deferredLightingShader->setInt("shadowMap", Bindings::TEX_SLOT_CSM_SHADOW);
     deferredLightingShader->setInt("pointShadowMap", Bindings::TEX_SLOT_POINT_SHADOW);
-    deferredLightingShader->setFloat("pointShadowFarPlane", pointShadowFar);
     deferredLightingShader->setInt("ssaoMap", 12);
 
     deferredLightingShader->setInt("skyboxTexture", 15);
@@ -536,7 +700,6 @@ void Renderer::RenderLocalLightVolumes(LightManager &lightManager, Framebuffer &
     {
         glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_POINT_SHADOW);
         glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, pointShadowFBO->GetDepthTexture());
-        pointLightVolumeShader->setFloat("pointShadowFarPlane", pointShadowFar);
         pointLightVolumeShader->setInt("pointShadowMap", Bindings::TEX_SLOT_POINT_SHADOW);
     }
 
@@ -580,10 +743,12 @@ void Renderer::CopyDepthBuffer(Framebuffer &source, Framebuffer &dest)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void Renderer::CategorizeEntities(const std::vector<std::shared_ptr<Entity>> &source,
-                                  std::vector<std::shared_ptr<Entity>> &opaque,
-                                  std::vector<std::shared_ptr<Entity>> &transparent, std::shared_ptr<Entity> &skybox)
+void Renderer::CategorizeEntities(const std::vector<std::shared_ptr<Entity>> &source, std::shared_ptr<Entity> &skybox)
 {
+    opaqueBatch.clear();
+    transparentEntities.clear();
+    opaqueEntities.clear();
+
     // we iterate through the raw list of entities and sort them into buckets
     // this is crucial because opaque objects must be drawn first, followed by the skybox, and finally transparent
     // objects
@@ -619,17 +784,37 @@ void Renderer::CategorizeEntities(const std::vector<std::shared_ptr<Entity>> &so
         }
 
         if (isTransparent)
-            transparent.push_back(e);
+            transparentEntities.push_back(e);
         else
-            opaque.push_back(e);
+        {
+            opaqueEntities.push_back(e);
+            if (e->renderComp && e->renderComp->instanceCount > 1) continue;
+
+            // batching
+            std::shared_ptr<Shader> shader = e->renderComp->shader;
+
+            glm::mat4 modelMatrix = e->transform.GetModelMatrix();
+
+            for (const auto &node : e->renderComp->nodes)
+            {
+                if (!node.mesh) continue;
+
+                std::shared_ptr<Material> baseMat = node.baseMaterial ? node.baseMaterial : defaultMat;
+                std::shared_ptr<Material> overrideMat = e->renderComp->materialOverride;
+
+                glm::mat4 finalMatrix = modelMatrix * node.localTransform;
+
+                opaqueBatch[shader][baseMat][overrideMat][node.mesh.get()].push_back(finalMatrix);
+            }
+        }
     }
 }
 
-void Renderer::SortTransparentEntities(std::vector<std::shared_ptr<Entity>> &transparent, const glm::vec3 &camPos)
+void Renderer::SortTransparentEntities(const glm::vec3 &camPos)
 {
     // transparent objects must be sorted back-to-front based on distance to camera
     // this uses the standard painter's algorithm to ensure alpha blending works correctly
-    std::sort(transparent.begin(), transparent.end(),
+    std::sort(transparentEntities.begin(), transparentEntities.end(),
               [&camPos](const std::shared_ptr<Entity> a, const std::shared_ptr<Entity> b)
               {
                   float da = glm::dot(camPos - a->transform.position, camPos - a->transform.position);
@@ -737,8 +922,7 @@ std::vector<glm::mat4> Renderer::GetLightSpaceMatrices(const glm::vec3 &lightDir
     return ret;
 }
 
-void Renderer::RenderShadowMap(const std::vector<std::shared_ptr<Entity>> &opaqueEntities, const glm::vec3 &lightDir,
-                               const Camera &camera)
+void Renderer::RenderShadowMap(const glm::vec3 &lightDir, const Camera &camera)
 {
     // calculate matrices
     std::vector<glm::mat4> matrices = GetLightSpaceMatrices(lightDir, camera);
@@ -778,14 +962,18 @@ void Renderer::RenderShadowMap(const std::vector<std::shared_ptr<Entity>> &opaqu
 
     // perform the actual draw calls for all opaque objects that should cast
     // pass identity matrices (geometry shader uses the ubo data)
-    RenderPass(opaqueEntities, glm::mat4(1.0f), glm::mat4(1.0f), depthShader, true);
+    RenderBatches(depthShader);
+
+    for (auto &e : opaqueEntities) {
+        if (e->renderComp && e->renderComp->instanceCount > 1)
+            DrawEntityInPass(e.get(), depthShader, true);
+    }
 
     Framebuffer::Unbind();
     glCullFace(GL_BACK);
 }
 
-void Renderer::RenderPointShadows(const std::vector<std::shared_ptr<Entity>> &opaqueEntities,
-                                  const LightManager &lightManager)
+void Renderer::RenderPointShadows(const LightManager &lightManager)
 {
     if (lightManager.points.empty())
         return;
@@ -796,9 +984,6 @@ void Renderer::RenderPointShadows(const std::vector<std::shared_ptr<Entity>> &op
     glViewport(0, 0, pointShadowFBO->Width(), pointShadowFBO->Height());
     glClear(GL_DEPTH_BUFFER_BIT);
 
-    float aspect = (float) pointShadowFBO->Width() / (float) pointShadowFBO->Height();
-    glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, pointShadowNear, pointShadowFar);
-
     int activeLights = std::min((int) lightManager.points.size(), 8);
     int shadowLayerIndex = 0;
     for (int i = 0; i < activeLights; i++)
@@ -806,9 +991,13 @@ void Renderer::RenderPointShadows(const std::vector<std::shared_ptr<Entity>> &op
         if (!lightManager.points[i].enabled)
             continue;
         glm::vec3 pos = lightManager.points[i].position;
+        float lightRadius = lightManager.points[i].radius;
         PointShadowData uboData;
         uboData.lightPos = glm::vec4(pos, 1.0f); // .w is padding
-        uboData.farPlane = pointShadowFar;
+        uboData.farPlane = lightRadius;
+
+        float aspect = (float) pointShadowFBO->Width() / (float) pointShadowFBO->Height();
+        glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, pointShadowNear, lightRadius);
 
         // +X (Right)
         uboData.shadowMatrices[0] = shadowProj * glm::lookAt(pos, pos + glm::vec3(1, 0, 0), glm::vec3(0, -1, 0));
@@ -827,12 +1016,10 @@ void Renderer::RenderPointShadows(const std::vector<std::shared_ptr<Entity>> &op
         pointShadowUBO->UploadData(&uboData, sizeof(PointShadowData));
         pointShadowShader->setInt("lightIndex", shadowLayerIndex);
 
-        // optimization: filter out entities with massive instance counts (asteroids/grass)
-        // to prevent geometry shader from a lot of calculations
-        for (const auto &e : opaqueEntities)
-        {
-            if (e->renderComp && e->renderComp->instanceCount > 100)
-                continue;
+        RenderBatches(pointShadowShader);
+
+        for (auto &e : opaqueEntities) {
+        if (e->renderComp && e->renderComp->instanceCount > 1)
             DrawEntityInPass(e.get(), pointShadowShader, true);
         }
 
@@ -844,9 +1031,7 @@ void Renderer::RenderPointShadows(const std::vector<std::shared_ptr<Entity>> &op
     Framebuffer::Unbind();
 }
 
-void Renderer::RenderLightingPass(const std::vector<std::shared_ptr<Entity>> &opaque,
-                                  const std::vector<std::shared_ptr<Entity>> &transparent,
-                                  std::shared_ptr<Entity> skybox, LightManager &lightManager, Framebuffer &sceneFBO,
+void Renderer::RenderLightingPass(std::shared_ptr<Entity> skybox, LightManager &lightManager, Framebuffer &sceneFBO,
                                   PostProcessingPipeline &postProcessor, glm::vec3 clearColor)
 {
     sceneFBO.Bind();
@@ -875,7 +1060,13 @@ void Renderer::RenderLightingPass(const std::vector<std::shared_ptr<Entity>> &op
     }
 
     // 1. draw opaque geometry first as they write to the depth buffer
-    RenderPass(opaque, viewMatrix, projMatrix, nullptr);
+    RenderBatches();
+
+    for (auto &e : opaqueEntities) 
+    {
+        if (e->renderComp && e->renderComp->instanceCount > 1)
+            DrawEntityInPass(e.get(), nullptr, false);
+    }
 
     // 2. draw the skybox afterwards to optimize performance by avoiding pixels already covered by geometry
     if (skybox)
@@ -896,7 +1087,7 @@ void Renderer::RenderLightingPass(const std::vector<std::shared_ptr<Entity>> &op
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // 4. draw transparent geometry last so they blend correctly over everything else
-    RenderPass(transparent, viewMatrix, projMatrix, nullptr);
+    RenderPass(transparentEntities, viewMatrix, projMatrix, nullptr);
 
     glDisable(GL_BLEND);
 
@@ -910,9 +1101,7 @@ void Renderer::RenderLightingPass(const std::vector<std::shared_ptr<Entity>> &op
     glEnable(GL_DEPTH_TEST);
 }
 
-void Renderer::RenderWireframePass(const std::vector<std::shared_ptr<Entity>> &opaque,
-                                   const std::vector<std::shared_ptr<Entity>> &transparent,
-                                   std::shared_ptr<Entity> skybox, LightManager &lightManager, Framebuffer &sceneFBO)
+void Renderer::RenderWireframePass(std::shared_ptr<Entity> skybox, LightManager &lightManager, Framebuffer &sceneFBO)
 {
     // this is a simplified render path that skips post-processing and shadows
     // mostly used for debugging geometry
@@ -920,7 +1109,7 @@ void Renderer::RenderWireframePass(const std::vector<std::shared_ptr<Entity>> &o
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-    RenderPass(opaque, viewMatrix, projMatrix, nullptr);
+    RenderPass(opaqueEntities, viewMatrix, projMatrix, nullptr);
 
     if (skybox)
     {
@@ -928,7 +1117,7 @@ void Renderer::RenderWireframePass(const std::vector<std::shared_ptr<Entity>> &o
     }
 
     lightManager.RenderDebugLights(viewMatrix, projMatrix);
-    RenderPass(transparent, viewMatrix, projMatrix, nullptr);
+    RenderPass(transparentEntities, viewMatrix, projMatrix, nullptr);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
@@ -936,30 +1125,28 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
                            Framebuffer &sceneFBO, PostProcessingPipeline &postProcessor, bool wireFrame,
                            glm::vec3 clearColor)
 {
-    std::vector<std::shared_ptr<Entity>> transparentEntities;
-    std::vector<std::shared_ptr<Entity>> opaqueEntities;
     std::shared_ptr<Entity> skyboxEntity = nullptr;
 
     EnsureGBuffer(sceneFBO.Width(), sceneFBO.Height());
 
     // organize all entities into their respective buckets for correct sorting
-    CategorizeEntities(entities, opaqueEntities, transparentEntities, skyboxEntity);
+    CategorizeEntities(entities, skyboxEntity);
 
     // transparent entities need strict depth sorting to look correct
-    SortTransparentEntities(transparentEntities, camera.Position);
+    SortTransparentEntities(camera.Position);
 
     // generate the shadow map texture
     glm::vec3 lightDir = glm::normalize(lightManager.GetDirectionalLightDir());
-    RenderShadowMap(opaqueEntities, lightDir, camera);
+    RenderShadowMap(lightDir, camera);
 
     // generate the shadow map texture for point lights
-    RenderPointShadows(opaqueEntities, lightManager);
+    RenderPointShadows(lightManager);
 
     if (!wireFrame)
     {
         if (useDeferred)
         {
-            RenderGeometryPass(opaqueEntities);
+            RenderGeometryPass();
             RenderSSAOPass(sceneFBO.Width(), sceneFBO.Height());
 
             sceneFBO.Bind();
@@ -1018,13 +1205,12 @@ void Renderer::RenderScene(std::vector<std::shared_ptr<Entity>> entities, Camera
         }
         else
         {
-            RenderLightingPass(opaqueEntities, transparentEntities, skyboxEntity, lightManager, sceneFBO, postProcessor,
-                               clearColor);
+            RenderLightingPass(skyboxEntity, lightManager, sceneFBO, postProcessor, clearColor);
         }
     }
     else
     {
-        RenderWireframePass(opaqueEntities, transparentEntities, skyboxEntity, lightManager, sceneFBO);
+        RenderWireframePass(skyboxEntity, lightManager, sceneFBO);
     }
 }
 
@@ -1115,7 +1301,6 @@ void Renderer::UploadMeshUniforms(const std::shared_ptr<Shader> &shader, const g
     if (shader->hasUniform("pointShadowMap"))
     {
         shader->setInt("pointShadowMap", Bindings::TEX_SLOT_POINT_SHADOW);
-        shader->setFloat("pointShadowFarPlane", pointShadowFar);
         glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_POINT_SHADOW);
         glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, pointShadowFBO->GetDepthTexture());
     }

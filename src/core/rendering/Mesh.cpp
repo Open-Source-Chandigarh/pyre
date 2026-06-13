@@ -86,22 +86,42 @@ void Mesh::setupMesh()
 
 void Mesh::SetupInstancing(const std::vector<glm::mat4> &models)
 {
+    if (models.empty()) return;
+
     glBindVertexArray(VAO);
 
-    // Create Buffer
-    glGenBuffers(1, &instanceVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-    glBufferData(GL_ARRAY_BUFFER, models.size() * sizeof(glm::mat4), models.data(), GL_STATIC_DRAW);
-
-    // Setup Attributes (mat4 requires 4 vec4 slots)
-    std::size_t vec4Size = sizeof(glm::vec4);
-
-    for (int i = 0; i < 4; i++)
+    if (instanceVBO == 0)
     {
-        glEnableVertexAttribArray(4 + i);
-        glVertexAttribPointer(4 + i, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void *) (i * vec4Size));
-        // Tell OpenGL this attribute changes per INSTANCE, not per vertex
-        glVertexAttribDivisor(4 + i, 1);
+        glGenBuffers(1, &instanceVBO);
+        glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+        // allocate with GL_DYNAMIC_DRAW because this will change every frame
+        glBufferData(GL_ARRAY_BUFFER, models.size()  * sizeof(glm::mat4), models.data(), GL_DYNAMIC_DRAW);
+        instanceCapacity = models.size();
+
+        for (int i = 0; i < 4; i++)
+        {
+            glEnableVertexAttribArray(4 + i);
+            glVertexAttribPointer(4 + i, 4, GL_FLOAT, false, 4 * sizeof(glm::vec4), (void *)(i * sizeof(glm::vec4)));
+            glVertexAttribDivisor(4 + i, 1);
+        }
+    }
+    else 
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+
+        // if we spawned more entities than the buffer can hold, reallocate it larger
+        if (models.size() > instanceCapacity)
+        {
+            glBufferData(GL_ARRAY_BUFFER, models.size() * sizeof(glm::mat4), models.data(), GL_DYNAMIC_DRAW);
+            instanceCapacity = models.size();
+        }
+        else 
+        {
+            // buffer orphaning pass a nullptr to orphan old memory this prevents GPU stalling the CPU to write memory
+            glBufferData(GL_ARRAY_BUFFER, models.size() * sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
+            // push the new matrices
+            glBufferSubData(GL_ARRAY_BUFFER, 0, models.size() * sizeof(glm::mat4), models.data());
+        }
     }
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
