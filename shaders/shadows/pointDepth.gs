@@ -14,8 +14,7 @@ void main()
         // gl_Layer logic for Cubemap Array:
         // Layer index = (LightIndex * 6 faces) + CurrentFace
         gl_Layer = (lightIndex * 6) + face;
-        gl_Layer = (lightIndex * 6) + face;
-
+        
         for(int i = 0; i < 3; ++i) // for each triangle vertex
         {
             FragPos = gl_in[i].gl_Position;
