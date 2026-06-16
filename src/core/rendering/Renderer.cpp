@@ -678,7 +678,6 @@ void Renderer::RenderLocalLightVolumes(LightManager &lightManager, Framebuffer &
     glBlendFunc(GL_ONE, GL_ONE);
 
     glEnable(GL_CULL_FACE);
-    glFrontFace(GL_CW);
     glCullFace(GL_FRONT); // cull the front faces this makes it impossible for the camera near plane to clip the light
     glEnable(GL_DEPTH_CLAMP);
     glEnable(GL_DEPTH_TEST);
@@ -723,7 +722,6 @@ void Renderer::RenderLocalLightVolumes(LightManager &lightManager, Framebuffer &
     }
 
     glDisable(GL_DEPTH_CLAMP);
-    glFrontFace(GL_CCW);
     glDisable(GL_BLEND);
     glDepthMask(GL_TRUE);
     glCullFace(GL_BACK);

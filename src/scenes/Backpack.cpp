@@ -2,6 +2,7 @@
 #include "core/ResourceManager.h"
 #include "core/rendering/Material.h"
 #include "core/rendering/Texture.h"
+#include "core/rendering/geometry/GeometryFactory.h"
 #include "helpers/Utils.h"
 #include <iostream>
 #include <thirdparty/glad/glad.h>
@@ -32,6 +33,21 @@ void Backpack::Init(AppState &appState)
     overrideMat->SetOutline(true, glm::vec3(1.0f), 1.5f);
 
     entities.clear();
+
+    auto skyBox = ResourceManager::LoadIBLCubeMap("resources\\earthlike_planet.hdr");
+    ResourceManager::LoadShader("skybox", "shaders/common/skyBox.vs", "shaders/common/skyBox.fs");
+
+    skyMesh = GeometryFactory::CreateSkyboxCube();
+
+    {
+        auto skyMat = std::make_shared<Material>();
+        skyMat->textures["skybox"] = skyBox;
+        std::shared_ptr<Entity> e = Entity::Create("Skybox");
+        e->AddSkybox(skyMesh.get(), skyMat, ResourceManager::GetShader("skybox"));
+        entities.push_back(e);
+    }
+
+
     std::shared_ptr<Entity> e = Entity::Create("Backpack");
     e->AddModel(obj.get(), shader, overrideMat);
     e->renderComp->shadowProxyModel = shadowObj;

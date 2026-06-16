@@ -3,7 +3,7 @@
 out vec4 FragColor;
 in vec3 localPos;
 
-uniform sampler2D material_diffuse; // hdr sky map
+uniform sampler2D equirectangularMap; // hdr sky map
 
 const vec2 invAtan = vec2(0.1591, 0.3183); // to normalize spherical angles we use inverse of 2pi and pi
 vec2 SampleSphericalMap(vec3 v)
@@ -18,7 +18,7 @@ vec2 SampleSphericalMap(vec3 v)
 void main()
 {
     vec2 uv = SampleSphericalMap(normalize(localPos));
-    vec3 color = texture(material_diffuse, uv).rgb;
+    vec3 color = texture(equirectangularMap, uv).rgb;
 
     FragColor = vec4(color, 1.0);
 }

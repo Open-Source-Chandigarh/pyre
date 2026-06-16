@@ -4,10 +4,11 @@ layout (location = 0) in vec3 aPos;
 
 out vec3 localPos;
 
-#include "includes/globalUbos.glsl"
+uniform mat4 projection;
+uniform mat4 view;
 
 void main()
 {
     localPos = aPos;
-    gl_Position = proj * view * vec4(localPos, 1.0);
+    gl_Position = projection * view * vec4(localPos, 1.0);
 }

@@ -184,7 +184,7 @@ std::shared_ptr<Mesh> GeometryFactory::CreateSphere(float radius, int segments, 
         {
             unsigned int i0 = y * (segments + 1) + x;
             unsigned int i1 = i0 + segments + 1;
-            indices.insert(indices.end(), {i0, i1, i0 + 1, i1, i1 + 1, i0 + 1});
+            indices.insert(indices.end(), {i0, i0 + 1, i1, i0 + 1, i1 + 1, i1});
         }
     }
 

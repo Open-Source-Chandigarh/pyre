@@ -38,6 +38,7 @@ class Backpack : public Scene
   private:
     std::shared_ptr<Shader> shader;
     std::shared_ptr<Model> obj;
+    std::shared_ptr<Mesh> skyMesh;
 
     float rotationAngle;
     float rotationSpeed;
