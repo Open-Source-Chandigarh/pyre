@@ -195,6 +195,9 @@ class Renderer
     GLuint quadVAO = 0;
     GLuint quadVBO = 0;
 
+    // ibl
+    GLuint activeIrradianceMap = 0;
+
     // ssao
     GLuint noiseTexture = 0;
     std::unique_ptr<Framebuffer> ssaoFBO;

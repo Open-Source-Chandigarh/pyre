@@ -23,6 +23,7 @@ class ResourceManager
     static std::shared_ptr<Texture> LoadCubeMap(std::vector<std::string> faces, std::string name = "");
     static std::shared_ptr<Texture> LoadHDRTexture(const std::string &path);
     static std::shared_ptr<Texture> LoadIBLCubeMap(const std::string &path);
+    static std::shared_ptr<Texture> ConvoluteIrradianceMap(const std::shared_ptr<Texture> &envMap);
 
     // Cleanup GPU resources
     static void Clear();

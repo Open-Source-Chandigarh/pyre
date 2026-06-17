@@ -417,6 +417,21 @@ void Renderer::RenderBatches(const std::shared_ptr<Shader> &overrideShader)
             glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, pointShadowFBO->GetDepthTexture());
         }
 
+        if (activeShader->hasUniform("irradianceMap"))
+        {
+            activeShader->setInt("irradianceMap", 16);
+            if (activeIrradianceMap != 0)
+            {
+                activeShader->setInt("hasIrradianceMap", 1);
+                glActiveTexture(GL_TEXTURE0 + 16);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, activeIrradianceMap);
+            }
+            else
+            {
+                activeShader->setInt("hasIrradianceMap", 0);
+            }
+        }
+
         for (auto &baseMaterialPair : shaderPair.second)
         {
             std::shared_ptr<Material> baseMaterial = baseMaterialPair.first;
@@ -622,6 +637,18 @@ void Renderer::RenderDeferredLightingPass(LightManager &lightManager, Framebuffe
     deferredLightingShader->setInt("pointShadowMap", Bindings::TEX_SLOT_POINT_SHADOW);
     deferredLightingShader->setInt("ssaoMap", 12);
 
+    deferredLightingShader->setInt("irradianceMap", 16);
+    if (activeIrradianceMap != 0)
+    {
+        deferredLightingShader->setInt("hasIrradianceMap", 1);
+        glActiveTexture(GL_TEXTURE0 + 16);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, activeIrradianceMap);
+    }
+    else
+    {
+        deferredLightingShader->setInt("hasIrradianceMap", 0);
+    }
+
     deferredLightingShader->setInt("skyboxTexture", 15);
     if (skybox && skybox->skyboxComp && skybox->skyboxComp->material)
     {
@@ -747,6 +774,9 @@ void Renderer::CategorizeEntities(const std::vector<std::shared_ptr<Entity>> &so
     transparentEntities.clear();
     opaqueEntities.clear();
 
+    // reset the active map at the start of every frame
+    activeIrradianceMap = 0;
+
     // we iterate through the raw list of entities and sort them into buckets
     // this is crucial because opaque objects must be drawn first, followed by the skybox, and finally transparent
     // objects
@@ -759,7 +789,13 @@ void Renderer::CategorizeEntities(const std::vector<std::shared_ptr<Entity>> &so
         if (e->skyboxComp)
         {
             if (!skybox)
+            {
                 skybox = e;
+                if (skybox->skyboxComp->material && skybox->skyboxComp->material->textures.count("irradiance"))
+                {
+                    activeIrradianceMap = skybox->skyboxComp->material->textures["irradiance"]->ID;
+                }
+            }
             continue;
         }
 

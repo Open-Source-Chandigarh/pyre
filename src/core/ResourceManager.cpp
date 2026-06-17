@@ -218,7 +218,7 @@ std::shared_ptr<Texture> ResourceManager::LoadIBLCubeMap(const std::string &path
     glBindTexture(GL_TEXTURE_CUBE_MAP, envCubeMap);
     for (unsigned int i = 0; i < 6; i++)
     {
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 512, 512, 0, GL_RGB, GL_FLOAT, nullptr);
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 1024, 1024, 0, GL_RGB, GL_FLOAT, nullptr);
     }
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -226,7 +226,7 @@ std::shared_ptr<Texture> ResourceManager::LoadIBLCubeMap(const std::string &path
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    std::unique_ptr<Framebuffer> captureFBO = std::make_unique<Framebuffer>(512, 512, true, false, false);
+    std::unique_ptr<Framebuffer> captureFBO = std::make_unique<Framebuffer>(1024, 1024, true, false, false);
 
     glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
     glm::mat4 captureViews[] =
@@ -272,14 +272,88 @@ std::shared_ptr<Texture> ResourceManager::LoadIBLCubeMap(const std::string &path
     std::shared_ptr<Texture> finalCubeMap = std::make_shared<Texture>();
     finalCubeMap->ID = envCubeMap;
     finalCubeMap->type = TextureType::TEX_ENVIRONMENT;
-    finalCubeMap->width = 512;
-    finalCubeMap->height = 512;
+    finalCubeMap->width = 1024;
+    finalCubeMap->height = 1024;
     finalCubeMap->channels = 3;
     finalCubeMap->path = "IBL_CUBEMAP_" + path;
 
     textures[finalCubeMap->path] = finalCubeMap;
 
     return finalCubeMap;
+}
+
+std::shared_ptr<Texture> ResourceManager::ConvoluteIrradianceMap(const std::shared_ptr<Texture> &envMap)
+{
+    unsigned int irradianceMap;
+    glGenTextures(1, &irradianceMap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
+
+    for (unsigned int i = 0; i < 6; i++)
+    {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 32, 32, 0, GL_RGB, GL_FLOAT, nullptr);
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+    glm::mat4 captureViews[] = {
+        glm::lookAt(glm::vec3(0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),  // +X (Right)
+        glm::lookAt(glm::vec3(0.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)), // -X (Left)
+        glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),   // +Y (Top)
+        glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)), // -Y (Bottom)
+        glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),  // +Z (Front)
+        glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f))  // -Z (Back)
+    };
+
+    std::unique_ptr<Framebuffer> captureFBO = std::make_unique<Framebuffer>(32, 32, true, false, false);
+
+    std::shared_ptr<Shader> irradianceShader =
+        LoadShader("irradianceConv", "shaders/ibl/hdrCube.vs", "shaders/ibl/irradianceConvolution.fs");
+
+    irradianceShader->use();
+    irradianceShader->setInt("environmentMap", 0);
+    irradianceShader->setMat4("projection", captureProjection);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, envMap->ID);
+
+    captureFBO->Bind();
+
+    // force the FBO to accept color output, overriding the withColor=false default
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    glDisable(GL_CULL_FACE);
+
+    std::shared_ptr<Mesh> unitCube = GeometryFactory::CreateCube();
+
+    for (unsigned int i = 0; i < 6; ++i)
+    {
+        irradianceShader->setMat4("view", captureViews[i]);
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap,
+                               0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        unitCube->DrawSimple();
+    }
+
+    glEnable(GL_CULL_FACE);
+    Framebuffer::Unbind();
+
+    auto finalCubemap = std::make_shared<Texture>();
+    finalCubemap->ID = irradianceMap;
+    finalCubemap->type = TextureType::TEX_ENVIRONMENT;
+    finalCubemap->width = 32;
+    finalCubemap->height = 32;
+    finalCubemap->channels = 3;
+    finalCubemap->path = "IRRADIANCE_" + envMap->path;
+
+    textures[finalCubemap->path] = finalCubemap;
+
+    return finalCubemap;
 }
 
 std::shared_ptr<Texture> ResourceManager::GetTexture(const std::string &path)

@@ -32,10 +32,8 @@ void Test::Init(AppState &appState)
         ResourceManager::LoadTexture("resources/textures/transparent_window.png", TextureType::TEX_DIFFUSE);
     auto windowSpecMap = ResourceManager::LoadTexture("resources/textures/metalSpec.png", TextureType::TEX_SPECULAR);
 
-    std::vector<std::string> faces = {"resources/textures/skybox/right.jpg", "resources/textures/skybox/left.jpg",
-                                      "resources/textures/skybox/top.jpg",   "resources/textures/skybox/bottom.jpg",
-                                      "resources/textures/skybox/front.jpg", "resources/textures/skybox/back.jpg"};
-    auto skyBox = ResourceManager::LoadCubeMap(faces);
+    auto skyBox = ResourceManager::LoadIBLCubeMap("resources\\photo_studio_loft_hall_4k.hdr");
+    auto irradianceMap = ResourceManager::ConvoluteIrradianceMap(skyBox);
 
     cube = GeometryFactory::CreateCube();
     plane = GeometryFactory::CreatePlane();
@@ -44,6 +42,7 @@ void Test::Init(AppState &appState)
     {
         auto skyMat = std::make_shared<Material>();
         skyMat->textures["skybox"] = skyBox;
+        skyMat->textures["irradiance"] = irradianceMap;
         std::shared_ptr<Entity> e = Entity::Create("Skybox");
         e->AddSkybox(skyMesh.get(), skyMat, ResourceManager::GetShader("skybox"));
         entities.push_back(e);

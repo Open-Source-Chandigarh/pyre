@@ -35,6 +35,7 @@ void Backpack::Init(AppState &appState)
     entities.clear();
 
     auto skyBox = ResourceManager::LoadIBLCubeMap("resources\\earthlike_planet.hdr");
+    auto irradianceMap = ResourceManager::ConvoluteIrradianceMap(skyBox);
     ResourceManager::LoadShader("skybox", "shaders/common/skyBox.vs", "shaders/common/skyBox.fs");
 
     skyMesh = GeometryFactory::CreateSkyboxCube();
@@ -42,6 +43,7 @@ void Backpack::Init(AppState &appState)
     {
         auto skyMat = std::make_shared<Material>();
         skyMat->textures["skybox"] = skyBox;
+        skyMat->textures["irradiance"] = irradianceMap;
         std::shared_ptr<Entity> e = Entity::Create("Skybox");
         e->AddSkybox(skyMesh.get(), skyMat, ResourceManager::GetShader("skybox"));
         entities.push_back(e);
