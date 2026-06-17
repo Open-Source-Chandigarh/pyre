@@ -97,6 +97,18 @@ struct Material
                 shader.setInt("material_ao_present", 0);
             if (shader.hasUniform("material_skybox_present"))
                 shader.setInt("material_skybox_present", 0);
+
+            if (shader.hasUniform("material_shininess"))
+                shader.setFloat("material_shininess", 32.0f);
+            if (shader.hasUniform("material_reflectivity"))
+                shader.setFloat("material_reflectivity", 0.0f);
+            if (shader.hasUniform("material_heightScale"))
+                shader.setFloat("material_heightScale", 0.1f);
+
+            if (shader.hasUniform("material_diffuseColor"))
+                shader.setVec3("material_diffuseColor", glm::vec3(1.0f));
+            if (shader.hasUniform("material_specularColor"))
+                shader.setVec3("material_specularColor", glm::vec3(0.0f));
         }
 
         // iterate available textures and bind based on type
