@@ -49,7 +49,6 @@ void Backpack::Init(AppState &appState)
         entities.push_back(e);
     }
 
-
     std::shared_ptr<Entity> e = Entity::Create("Backpack");
     e->AddModel(obj.get(), shader, overrideMat);
     e->renderComp->shadowProxyModel = shadowObj;

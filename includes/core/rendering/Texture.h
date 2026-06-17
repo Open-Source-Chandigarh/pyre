@@ -14,8 +14,8 @@ enum class TextureType
     TEX_ROUGHNESS,
     TEX_AO,
     TEX_DISPLACEMENT,
-    TEX_CUBEMAP,     // generic Cubemap
-    TEX_ENVIRONMENT, // specifically for Skybox/Reflections
+    TEX_CUBEMAP,         // generic Cubemap
+    TEX_ENVIRONMENT,     // specifically for Skybox/Reflections
     TEX_EQUIRECTANGULAR, // for hdr sky maps
     Other
 };

@@ -195,7 +195,7 @@ std::shared_ptr<Texture> ResourceManager::LoadHDRTexture(const std::string &path
 
     glGenTextures(1, &texture->ID);
     glBindTexture(GL_TEXTURE_2D, texture->ID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, data); 
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, data);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -211,7 +211,8 @@ std::shared_ptr<Texture> ResourceManager::LoadHDRTexture(const std::string &path
 std::shared_ptr<Texture> ResourceManager::LoadIBLCubeMap(const std::string &path)
 {
     std::shared_ptr<Texture> hdrTexture = LoadHDRTexture(path);
-    if (!hdrTexture) return nullptr;
+    if (!hdrTexture)
+        return nullptr;
 
     unsigned int envCubeMap;
     glGenTextures(1, &envCubeMap);
@@ -229,18 +230,17 @@ std::shared_ptr<Texture> ResourceManager::LoadIBLCubeMap(const std::string &path
     std::unique_ptr<Framebuffer> captureFBO = std::make_unique<Framebuffer>(1024, 1024, true, false, false);
 
     glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-    glm::mat4 captureViews[] =
-    {
-        glm::lookAt(glm::vec3(0.0f), glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)), // +X (Right)
-        glm::lookAt(glm::vec3(0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)), // -X (Left)
-        glm::lookAt(glm::vec3(0.0f), glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)), // +Y (Top)
-        glm::lookAt(glm::vec3(0.0f), glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)), // -Y (Bottom)
-        glm::lookAt(glm::vec3(0.0f), glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)), // +Z (Front)
-        glm::lookAt(glm::vec3(0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))  // -Z (Back)
+    glm::mat4 captureViews[] = {
+        glm::lookAt(glm::vec3(0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),  // +X (Right)
+        glm::lookAt(glm::vec3(0.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)), // -X (Left)
+        glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),   // +Y (Top)
+        glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)), // -Y (Bottom)
+        glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),  // +Z (Front)
+        glm::lookAt(glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f))  // -Z (Back)
     };
 
-
-    std::shared_ptr<Shader> equirectShader = LoadShader("hdrToCubemap", "shaders/ibl/hdrCube.vs", "shaders/ibl/hdrCube.fs");
+    std::shared_ptr<Shader> equirectShader =
+        LoadShader("hdrToCubemap", "shaders/ibl/hdrCube.vs", "shaders/ibl/hdrCube.fs");
 
     equirectShader->use();
     equirectShader->setInt("equirectangularMap", 0);

@@ -131,13 +131,11 @@ class Renderer
     void RenderLocalLightVolumes(LightManager &lightManager, Framebuffer &sceneFBO);
 
     // forward pass that renders color, lighting, skybox, and transparent objects
-    void RenderLightingPass(std::shared_ptr<Entity> skybox, LightManager &lightManager, 
-                            Framebuffer &sceneFBO, PostProcessingPipeline &postProcessor,
-                            glm::vec3 clearColor);
+    void RenderLightingPass(std::shared_ptr<Entity> skybox, LightManager &lightManager, Framebuffer &sceneFBO,
+                            PostProcessingPipeline &postProcessor, glm::vec3 clearColor);
 
     // simplified debug pass for wireframe mode
-    void RenderWireframePass(std::shared_ptr<Entity> skybox,
-                             LightManager &lightManager, Framebuffer &sceneFBO);
+    void RenderWireframePass(std::shared_ptr<Entity> skybox, LightManager &lightManager, Framebuffer &sceneFBO);
 
     // low level submission helpers
 
@@ -163,15 +161,11 @@ class Renderer
 
     // dynamic batching
     // this group matrices by Shader -> Base Material -> Override Material -> Mesh -> Matrices
-    std::unordered_map<
-      std::shared_ptr<Shader>, 
-      std::unordered_map<
-        std::shared_ptr<Material>, 
-        std::unordered_map<
-        std::shared_ptr<Material>, std::unordered_map<Mesh*, std::vector<glm::mat4>>
-        >
-      >
-    > opaqueBatch;
+    std::unordered_map<std::shared_ptr<Shader>,
+                       std::unordered_map<std::shared_ptr<Material>,
+                                          std::unordered_map<std::shared_ptr<Material>,
+                                                             std::unordered_map<Mesh *, std::vector<glm::mat4>>>>>
+        opaqueBatch;
 
     std::vector<std::shared_ptr<Entity>> transparentEntities;
     std::vector<std::shared_ptr<Entity>> opaqueEntities;

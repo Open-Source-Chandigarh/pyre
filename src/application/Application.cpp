@@ -362,9 +362,9 @@ void Application::Run()
             }
 
             // Render Component (Material Editing)
-           if (entity->renderComp && ImGui::CollapsingHeader("Entity Overrides", ImGuiTreeNodeFlags_DefaultOpen))
+            if (entity->renderComp && ImGui::CollapsingHeader("Entity Overrides", ImGuiTreeNodeFlags_DefaultOpen))
             {
-                Material* overrideMat = entity->GetOverrideMaterial().get();
+                Material *overrideMat = entity->GetOverrideMaterial().get();
 
                 if (overrideMat)
                 {
@@ -385,7 +385,8 @@ void Application::Run()
                     if (ImGui::Checkbox("Entity Outline / Glow", &outline))
                     {
                         overrideMat->SetOutline(outline, overrideMat->GetVec3("outlineColor", glm::vec3(1.0f)),
-                                                overrideMat->GetFloat("bloomFactor", 0.0f), overrideMat->GetFloat("outlineThickness", 0.05f));
+                                                overrideMat->GetFloat("bloomFactor", 0.0f),
+                                                overrideMat->GetFloat("outlineThickness", 0.05f));
                     }
 
                     if (outline)
@@ -393,19 +394,22 @@ void Application::Run()
                         glm::vec3 gc = overrideMat->GetVec3("outlineColor", glm::vec3(1.0f));
                         if (ImGui::ColorEdit3("Glow Color", &gc.x))
                         {
-                            overrideMat->SetOutline(outline, gc, overrideMat->GetFloat("bloomFactor", 0.0f), overrideMat->GetFloat("outlineThickness", 0.05f));
+                            overrideMat->SetOutline(outline, gc, overrideMat->GetFloat("bloomFactor", 0.0f),
+                                                    overrideMat->GetFloat("outlineThickness", 0.05f));
                         }
 
                         float bf = overrideMat->GetFloat("bloomFactor", 0.0f);
                         if (ImGui::DragFloat("Bloom Factor", &bf, 0.1f, 0.0f, 10.0f))
                         {
-                            overrideMat->SetOutline(outline, overrideMat->GetVec3("outlineColor", glm::vec3(1.0f)), bf, overrideMat->GetFloat("outlineThickness", 0.05f));
+                            overrideMat->SetOutline(outline, overrideMat->GetVec3("outlineColor", glm::vec3(1.0f)), bf,
+                                                    overrideMat->GetFloat("outlineThickness", 0.05f));
                         }
 
                         float ot = overrideMat->GetFloat("outlineThickness", 0.05f);
                         if (ImGui::DragFloat("Outline Thickness", &ot, 0.005f, 0.0f, 5.0f))
                         {
-                            overrideMat->SetOutline(outline, overrideMat->GetVec3("outlineColor", glm::vec3(1.0f)), overrideMat->GetFloat("bloomFactor", 0.0f), ot);
+                            overrideMat->SetOutline(outline, overrideMat->GetVec3("outlineColor", glm::vec3(1.0f)),
+                                                    overrideMat->GetFloat("bloomFactor", 0.0f), ot);
                         }
                     }
                 }
@@ -415,42 +419,55 @@ void Application::Run()
             {
                 for (size_t n = 0; n < entity->renderComp->nodes.size(); n++)
                 {
-                    auto& node = entity->renderComp->nodes[n];
-                    if (!node.mesh || !node.baseMaterial) continue;
+                    auto &node = entity->renderComp->nodes[n];
+                    if (!node.mesh || !node.baseMaterial)
+                        continue;
 
                     std::string matHeader = "Mesh " + std::to_string(n) + " Base Material";
                     if (ImGui::TreeNode(matHeader.c_str()))
                     {
-                        Material* mat = node.baseMaterial.get();
+                        Material *mat = node.baseMaterial.get();
 
                         // Local helper lambdas
-                        auto EditFloat = [&](const char* label, const char* key, float def, float min, float max, const char* tooltip, bool isSlider = false)
+                        auto EditFloat = [&](const char *label, const char *key, float def, float min, float max,
+                                             const char *tooltip, bool isSlider = false)
                         {
                             float v = mat->GetFloat(key, def);
-                            bool changed = isSlider ? ImGui::SliderFloat(label, &v, min, max) : ImGui::DragFloat(label, &v, 1.0f, min, max);
-                            if (changed) mat->floats[key] = v;
-                            if (ImGui::IsItemHovered()) ImGui::SetTooltip(tooltip);
+                            bool changed = isSlider ? ImGui::SliderFloat(label, &v, min, max)
+                                                    : ImGui::DragFloat(label, &v, 1.0f, min, max);
+                            if (changed)
+                                mat->floats[key] = v;
+                            if (ImGui::IsItemHovered())
+                                ImGui::SetTooltip(tooltip);
                         };
 
-                        auto EditColor = [&](const char* label, const char* key, glm::vec3 def, const char* tooltip)
+                        auto EditColor = [&](const char *label, const char *key, glm::vec3 def, const char *tooltip)
                         {
                             glm::vec3 v = mat->GetVec3(key, def);
-                            if (ImGui::ColorEdit3(label, &v.x)) mat->vec3s[key] = v;
-                            if (ImGui::IsItemHovered()) ImGui::SetTooltip(tooltip);
+                            if (ImGui::ColorEdit3(label, &v.x))
+                                mat->vec3s[key] = v;
+                            if (ImGui::IsItemHovered())
+                                ImGui::SetTooltip(tooltip);
                         };
 
                         // Standard Properties
                         EditFloat("Shininess", "material_shininess", 32.0f, 1.0f, 256.0f, "Specular exponent");
                         EditColor("Diffuse", "material_diffuseColor", glm::vec3(1.0f), "Base color");
                         EditColor("Specular", "material_specularColor", glm::vec3(0.0f), "Specular color");
-                        EditFloat("Reflectivity", "material_reflectivity", 0.0f, 0.0f, 1.0f, "Environment reflection strength", true);
-                        EditFloat("Height Scale", "material_heightScale", 0.1f, 0.0f, 1.0f, "Parallax mapping displacement depth", true);
+                        EditFloat("Reflectivity", "material_reflectivity", 0.0f, 0.0f, 1.0f,
+                                  "Environment reflection strength", true);
+                        EditFloat("Height Scale", "material_heightScale", 0.1f, 0.0f, 1.0f,
+                                  "Parallax mapping displacement depth", true);
 
-                        const char* cullModes[] = { "Back", "Front", "None (Double-Sided)" };
-                        int cullIdx = (mat->cullMode == CullMode::Back) ? 0 : (mat->cullMode == CullMode::Front) ? 1 : 2;
+                        const char *cullModes[] = {"Back", "Front", "None (Double-Sided)"};
+                        int cullIdx = (mat->cullMode == CullMode::Back)    ? 0
+                                      : (mat->cullMode == CullMode::Front) ? 1
+                                                                           : 2;
                         if (ImGui::Combo("Cull Mode", &cullIdx, cullModes, 3))
                         {
-                            mat->cullMode = (cullIdx == 0) ? CullMode::Back : (cullIdx == 1) ? CullMode::Front : CullMode::None;
+                            mat->cullMode = (cullIdx == 0)   ? CullMode::Back
+                                            : (cullIdx == 1) ? CullMode::Front
+                                                             : CullMode::None;
                         }
 
                         ImGui::Checkbox("Transparent", &mat->isTransparent);
@@ -460,19 +477,21 @@ void Application::Run()
                         {
                             std::string keyToRemove;
 
-                            for (auto& [name, tex] : mat->textures)
+                            for (auto &[name, tex] : mat->textures)
                             {
-                                if (!tex || tex->type == TextureType::TEX_CUBEMAP || tex->type == TextureType::TEX_ENVIRONMENT)
+                                if (!tex || tex->type == TextureType::TEX_CUBEMAP ||
+                                    tex->type == TextureType::TEX_ENVIRONMENT)
                                     continue;
 
                                 ImGui::PushID(name.c_str());
-                                ImGui::Image((void*)(intptr_t)tex->ID, ImVec2(48, 48), ImVec2(0, 1), ImVec2(1, 0));
-                                
+                                ImGui::Image((void *) (intptr_t) tex->ID, ImVec2(48, 48), ImVec2(0, 1), ImVec2(1, 0));
+
                                 if (ImGui::IsItemHovered())
                                 {
                                     ImGui::BeginTooltip();
                                     ImGui::Text("ID: %u (%dx%d)", tex->ID, tex->width, tex->height);
-                                    ImGui::Image((void*)(intptr_t)tex->ID, ImVec2(128, 128), ImVec2(0, 1), ImVec2(1, 0));
+                                    ImGui::Image((void *) (intptr_t) tex->ID, ImVec2(128, 128), ImVec2(0, 1),
+                                                 ImVec2(1, 0));
                                     ImGui::EndTooltip();
                                 }
 
@@ -481,33 +500,57 @@ void Application::Run()
                                 ImGui::TextColored(ImVec4(0.8f, 0.8f, 1.0f, 1.0f), "%s", name.c_str());
                                 ImGui::TextDisabled("%s", tex->path.c_str());
 
-                                if (ImGui::SmallButton("Remove")) keyToRemove = name;
+                                if (ImGui::SmallButton("Remove"))
+                                    keyToRemove = name;
                                 ImGui::EndGroup();
                                 ImGui::PopID();
                                 ImGui::Separator();
                             }
 
-                            if (!keyToRemove.empty()) mat->textures[keyToRemove] = nullptr;
+                            if (!keyToRemove.empty())
+                                mat->textures[keyToRemove] = nullptr;
 
-                            if (ImGui::Button("Load Texture...")) ImGui::OpenPopup("LoadTexturePopup");
+                            if (ImGui::Button("Load Texture..."))
+                                ImGui::OpenPopup("LoadTexturePopup");
 
                             if (ImGui::BeginPopup("LoadTexturePopup"))
                             {
                                 static char pathBuf[128] = "resources/textures/container2.jpg";
                                 static int typeIdx = 0;
-                                const char* typeNames[] = { "Diffuse", "Specular", "Normal", "Displacement", "Metallic", "Roughness" };
+                                const char *typeNames[] = {"Diffuse",      "Specular", "Normal",
+                                                           "Displacement", "Metallic", "Roughness"};
 
                                 ImGui::InputText("File Path", pathBuf, 128);
                                 ImGui::Combo("Type", &typeIdx, typeNames, 6);
 
                                 TextureType selectedType = TextureType::TEX_DIFFUSE;
-                                const char* keyName = "material_diffuse";
+                                const char *keyName = "material_diffuse";
 
-                                if (typeIdx == 1) { selectedType = TextureType::TEX_SPECULAR; keyName = "material_specular"; }
-                                else if (typeIdx == 2) { selectedType = TextureType::TEX_NORMAL; keyName = "material_normal"; }
-                                else if (typeIdx == 3) { selectedType = TextureType::TEX_DISPLACEMENT; keyName = "material_displacement"; }
-                                else if (typeIdx == 4) { selectedType = TextureType::TEX_METALLIC; keyName = "material_metallic"; }
-                                else if (typeIdx == 5) { selectedType = TextureType::TEX_ROUGHNESS; keyName = "material_roughness"; }
+                                if (typeIdx == 1)
+                                {
+                                    selectedType = TextureType::TEX_SPECULAR;
+                                    keyName = "material_specular";
+                                }
+                                else if (typeIdx == 2)
+                                {
+                                    selectedType = TextureType::TEX_NORMAL;
+                                    keyName = "material_normal";
+                                }
+                                else if (typeIdx == 3)
+                                {
+                                    selectedType = TextureType::TEX_DISPLACEMENT;
+                                    keyName = "material_displacement";
+                                }
+                                else if (typeIdx == 4)
+                                {
+                                    selectedType = TextureType::TEX_METALLIC;
+                                    keyName = "material_metallic";
+                                }
+                                else if (typeIdx == 5)
+                                {
+                                    selectedType = TextureType::TEX_ROUGHNESS;
+                                    keyName = "material_roughness";
+                                }
 
                                 if (ImGui::Button("Load & Assign"))
                                 {

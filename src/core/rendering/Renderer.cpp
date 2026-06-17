@@ -393,7 +393,8 @@ void Renderer::RenderBatches(const std::shared_ptr<Shader> &overrideShader)
     for (auto &shaderPair : opaqueBatch)
     {
         std::shared_ptr<Shader> activeShader = overrideShader ? overrideShader : shaderPair.first;
-        if (!activeShader) continue;
+        if (!activeShader)
+            continue;
 
         activeShader->use();
 
@@ -435,7 +436,8 @@ void Renderer::RenderBatches(const std::shared_ptr<Shader> &overrideShader)
         for (auto &baseMaterialPair : shaderPair.second)
         {
             std::shared_ptr<Material> baseMaterial = baseMaterialPair.first;
-            if (!baseMaterial) baseMaterial = defaultMat;
+            if (!baseMaterial)
+                baseMaterial = defaultMat;
 
             for (auto &overrideMaterialPair : baseMaterialPair.second)
             {
@@ -446,16 +448,16 @@ void Renderer::RenderBatches(const std::shared_ptr<Shader> &overrideShader)
                 else
                     forceFwd = baseMaterial->GetBool("forceForward");
 
-                if (isGBufferPass && forceFwd) 
+                if (isGBufferPass && forceFwd)
                     continue;
-                    
+
                 bool castShadows = true;
                 if (overrideMaterial && overrideMaterial->bools.count("castShadows"))
                     castShadows = overrideMaterial->GetBool("castShadows");
                 else
                     castShadows = baseMaterial->GetBool("castShadows", true);
 
-                if (isShadowPass && !castShadows) 
+                if (isShadowPass && !castShadows)
                     continue;
 
                 bool wireframe = false;
@@ -498,13 +500,14 @@ void Renderer::RenderBatches(const std::shared_ptr<Shader> &overrideShader)
                     doNormals = baseMaterial->GetBool("showNormals");
 
                 // bind textures if we are doing standard drawing (not depth/shadow passes)
-                if (overrideShader == nullptr || overrideShader == gBufferShader) 
+                if (overrideShader == nullptr || overrideShader == gBufferShader)
                 {
                     baseMaterial->ApplyToShader(*activeShader, false);
-                    if (overrideMaterial) overrideMaterial->ApplyToShader(*activeShader, true);
+                    if (overrideMaterial)
+                        overrideMaterial->ApplyToShader(*activeShader, true);
                 }
 
-                if (wireframe) 
+                if (wireframe)
                     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
                 if (currentCull == CullMode::None)
@@ -519,30 +522,33 @@ void Renderer::RenderBatches(const std::shared_ptr<Shader> &overrideShader)
 
                 for (auto &meshPair : overrideMaterialPair.second)
                 {
-                    Mesh* mesh = meshPair.first;
-                    std::vector<glm::mat4>& matrices = meshPair.second;
+                    Mesh *mesh = meshPair.first;
+                    std::vector<glm::mat4> &matrices = meshPair.second;
 
-                    if (!mesh || matrices.empty()) continue;
+                    if (!mesh || matrices.empty())
+                        continue;
 
-                    mesh->SetupInstancing(matrices); 
+                    mesh->SetupInstancing(matrices);
                     mesh->DrawInstanced(*activeShader, matrices.size());
 
                     if (doOutline && activeShader != gBufferShader)
                     {
-                        for (const auto& mat : matrices) {
+                        for (const auto &mat : matrices)
+                        {
                             RenderMeshOutline(*mesh, mat, outlineCol, bloomFactor, outlineThickness);
                         }
                     }
 
                     if (doNormals && !isShadowPass)
                     {
-                        for (const auto& mat : matrices) {
+                        for (const auto &mat : matrices)
+                        {
                             RenderMeshNormals(*mesh, mat);
                         }
                     }
                 }
 
-                if (wireframe) 
+                if (wireframe)
                     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
                 if (currentCull != CullMode::Back)
@@ -806,9 +812,9 @@ void Renderer::CategorizeEntities(const std::vector<std::shared_ptr<Entity>> &so
                 isTransparent = true;
             else
             {
-                for (const auto& node : e->renderComp->nodes) 
+                for (const auto &node : e->renderComp->nodes)
                 {
-                    if (node.baseMaterial && node.baseMaterial->isTransparent) 
+                    if (node.baseMaterial && node.baseMaterial->isTransparent)
                     {
                         isTransparent = true;
                         break;
@@ -822,7 +828,8 @@ void Renderer::CategorizeEntities(const std::vector<std::shared_ptr<Entity>> &so
         else
         {
             opaqueEntities.push_back(e);
-            if (e->renderComp && e->renderComp->instanceCount > 1) continue;
+            if (e->renderComp && e->renderComp->instanceCount > 1)
+                continue;
 
             // batching
             std::shared_ptr<Shader> shader = e->renderComp->shader;
@@ -831,7 +838,8 @@ void Renderer::CategorizeEntities(const std::vector<std::shared_ptr<Entity>> &so
 
             for (const auto &node : e->renderComp->nodes)
             {
-                if (!node.mesh) continue;
+                if (!node.mesh)
+                    continue;
 
                 std::shared_ptr<Material> baseMat = node.baseMaterial ? node.baseMaterial : defaultMat;
                 std::shared_ptr<Material> overrideMat = e->renderComp->materialOverride;
@@ -998,7 +1006,8 @@ void Renderer::RenderShadowMap(const glm::vec3 &lightDir, const Camera &camera)
     // pass identity matrices (geometry shader uses the ubo data)
     RenderBatches(depthShader);
 
-    for (auto &e : opaqueEntities) {
+    for (auto &e : opaqueEntities)
+    {
         if (e->renderComp && e->renderComp->instanceCount > 1)
             DrawEntityInPass(e.get(), depthShader, true);
     }
@@ -1052,9 +1061,10 @@ void Renderer::RenderPointShadows(const LightManager &lightManager)
 
         RenderBatches(pointShadowShader);
 
-        for (auto &e : opaqueEntities) {
-        if (e->renderComp && e->renderComp->instanceCount > 1)
-            DrawEntityInPass(e.get(), pointShadowShader, true);
+        for (auto &e : opaqueEntities)
+        {
+            if (e->renderComp && e->renderComp->instanceCount > 1)
+                DrawEntityInPass(e.get(), pointShadowShader, true);
         }
 
         shadowLayerIndex++;
@@ -1096,7 +1106,7 @@ void Renderer::RenderLightingPass(std::shared_ptr<Entity> skybox, LightManager &
     // 1. draw opaque geometry first as they write to the depth buffer
     RenderBatches();
 
-    for (auto &e : opaqueEntities) 
+    for (auto &e : opaqueEntities)
     {
         if (e->renderComp && e->renderComp->instanceCount > 1)
             DrawEntityInPass(e.get(), nullptr, false);
