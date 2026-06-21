@@ -22,6 +22,7 @@ Renderer::Renderer()
     defaultMat->floats["material_shininess"] = 32.0f;
     defaultMat->floats["material_reflectivity"] = 0.0f;
     defaultMat->vec3s["material_diffuseColor"] = glm::vec3(1.0f);
+    ResourceManager::GenerateBRDFLUT();
 }
 
 Renderer::~Renderer()
@@ -421,6 +422,8 @@ void Renderer::RenderBatches(const std::shared_ptr<Shader> &overrideShader)
         if (activeShader->hasUniform("irradianceMap"))
         {
             activeShader->setInt("irradianceMap", 16);
+            activeShader->setInt("prefilterMap", 17);
+            activeShader->setInt("brdfLUT", 18);
             if (activeIrradianceMap != 0)
             {
                 activeShader->setInt("hasIrradianceMap", 1);
@@ -430,6 +433,19 @@ void Renderer::RenderBatches(const std::shared_ptr<Shader> &overrideShader)
             else
             {
                 activeShader->setInt("hasIrradianceMap", 0);
+            }
+
+            if (activePrefilterMap != 0)
+            {
+                glActiveTexture(GL_TEXTURE0 + 17);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, activePrefilterMap);
+            }
+
+            auto brdfTex = ResourceManager::GetTexture("BRDF_LUT");
+            if (brdfTex)
+            {
+                glActiveTexture(GL_TEXTURE0 + 18);
+                glBindTexture(GL_TEXTURE_2D, brdfTex->ID);
             }
         }
 
@@ -644,6 +660,8 @@ void Renderer::RenderDeferredLightingPass(LightManager &lightManager, Framebuffe
     deferredLightingShader->setInt("ssaoMap", 12);
 
     deferredLightingShader->setInt("irradianceMap", 16);
+    deferredLightingShader->setInt("prefilterMap", 17);
+    deferredLightingShader->setInt("brdfLUT", 18);
     if (activeIrradianceMap != 0)
     {
         deferredLightingShader->setInt("hasIrradianceMap", 1);
@@ -653,6 +671,19 @@ void Renderer::RenderDeferredLightingPass(LightManager &lightManager, Framebuffe
     else
     {
         deferredLightingShader->setInt("hasIrradianceMap", 0);
+    }
+
+    if (activePrefilterMap != 0) 
+    {
+        glActiveTexture(GL_TEXTURE0 + 17);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, activePrefilterMap);
+    }
+
+    auto brdfTex = ResourceManager::GetTexture("BRDF_LUT");
+    if (brdfTex) 
+    {
+        glActiveTexture(GL_TEXTURE0 + 18);
+        glBindTexture(GL_TEXTURE_2D, brdfTex->ID);
     }
 
     deferredLightingShader->setInt("skyboxTexture", 15);
@@ -782,6 +813,7 @@ void Renderer::CategorizeEntities(const std::vector<std::shared_ptr<Entity>> &so
 
     // reset the active map at the start of every frame
     activeIrradianceMap = 0;
+    activePrefilterMap = 0;
 
     // we iterate through the raw list of entities and sort them into buckets
     // this is crucial because opaque objects must be drawn first, followed by the skybox, and finally transparent
@@ -800,6 +832,11 @@ void Renderer::CategorizeEntities(const std::vector<std::shared_ptr<Entity>> &so
                 if (skybox->skyboxComp->material && skybox->skyboxComp->material->textures.count("irradiance"))
                 {
                     activeIrradianceMap = skybox->skyboxComp->material->textures["irradiance"]->ID;
+                }
+
+                if (skybox->skyboxComp->material && skybox->skyboxComp->material->textures.count("prefilter"))
+                {
+                    activePrefilterMap = skybox->skyboxComp->material->textures["prefilter"]->ID;
                 }
             }
             continue;
@@ -1274,6 +1311,11 @@ void Renderer::RenderGBufferImGuiWindow()
     if (ImGui::CollapsingHeader("World Position (RGB) + Linear Depth (A)", ImGuiTreeNodeFlags_DefaultOpen))
     {
         ImGui::Image((void *) gBufferFBO->GetColorTexture(0), texSize, uv0, uv1);
+    }
+
+    if(ImGui::CollapsingHeader("BRDF LUT", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::Image((void *) ResourceManager::GetTexture("BRDF_LUT")->ID, texSize, uv0, uv1);
     }
 
     if (ImGui::CollapsingHeader("World Normal (RGB) + Shininess (A)", ImGuiTreeNodeFlags_DefaultOpen))

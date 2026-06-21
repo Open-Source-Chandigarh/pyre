@@ -34,6 +34,7 @@ void Test::Init(AppState &appState)
 
     auto skyBox = ResourceManager::LoadIBLCubeMap("resources\\photo_studio_loft_hall_4k.hdr");
     auto irradianceMap = ResourceManager::ConvoluteIrradianceMap(skyBox);
+    auto prefilterMap = ResourceManager::PreFilterEnvironmentMap(skyBox);
 
     cube = GeometryFactory::CreateCube();
     plane = GeometryFactory::CreatePlane();
@@ -43,6 +44,7 @@ void Test::Init(AppState &appState)
         auto skyMat = std::make_shared<Material>();
         skyMat->textures["skybox"] = skyBox;
         skyMat->textures["irradiance"] = irradianceMap;
+        skyMat->textures["prefilter"] = prefilterMap;
         std::shared_ptr<Entity> e = Entity::Create("Skybox");
         e->AddSkybox(skyMesh.get(), skyMat, ResourceManager::GetShader("skybox"));
         entities.push_back(e);

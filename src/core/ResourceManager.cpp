@@ -356,6 +356,142 @@ std::shared_ptr<Texture> ResourceManager::ConvoluteIrradianceMap(const std::shar
     return finalCubemap;
 }
 
+std::shared_ptr<Texture> ResourceManager::PreFilterEnvironmentMap(const std::shared_ptr<Texture> &envMap)
+{
+    unsigned int prefilterMap;
+    glGenTextures(1, &prefilterMap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
+
+    for (unsigned int i = 0; i < 6; i++)
+    {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 128, 128, 0, GL_RGB, GL_FLOAT, nullptr);
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // trilinear filtering
+    // filter mip maps linearly and texture also linearly
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
+
+    glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+
+    glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+    glm::mat4 captureViews[] =
+    {
+        glm::lookAt(glm::vec3(0.0f), glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+        glm::lookAt(glm::vec3(0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+        glm::lookAt(glm::vec3(0.0f), glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+        glm::lookAt(glm::vec3(0.0f), glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+        glm::lookAt(glm::vec3(0.0f), glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+        glm::lookAt(glm::vec3(0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+    };
+
+    std::shared_ptr<Shader> prefilterShader = LoadShader("prefilter", "shaders\\ibl\\hdrCube.vs", "shaders\\ibl\\preFilter.fs");
+    prefilterShader->use();
+    prefilterShader->setInt("environmentMap", 0);
+    prefilterShader->setMat4("projection", captureProjection);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, envMap->ID);
+
+    std::unique_ptr<Framebuffer> captureFBO = std::make_unique<Framebuffer>(128, 128, true, false, false);
+
+    std::shared_ptr<Mesh> unitCube = GeometryFactory::CreateCube();
+    glDisable(GL_CULL_FACE);
+
+    unsigned int maxMipLevels = 5;
+    // generate textures for each cube map mip map level
+    for (unsigned int mip = 0; mip < maxMipLevels; mip++)
+    {
+        // calculate dimensions for this mip map level
+        unsigned int mipWidth = static_cast<unsigned int>(128 * std::pow(0.5, mip));
+        unsigned int mipHeight = static_cast<unsigned int>(128 * std::pow(0.5, mip));
+
+        // resize the fbo this rebuilts the depth buffer with the current mip size
+        captureFBO->Resize(mipWidth, mipHeight);
+        captureFBO->Bind();
+        // force the FBO to accept color output, overriding the withColor=false default
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+        // roughness scales linearly from 0.0 to 1.0 across the 5 levels
+        float roughness = float(mip) / (float)(maxMipLevels - 1);
+        prefilterShader->setFloat("roughness", roughness);
+
+        // render all the 6 faces
+        for (unsigned int i = 0; i < 6; i++)
+        {
+            prefilterShader->setMat4("view", captureViews[i]);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap, mip);
+
+            glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+            unitCube->DrawSimple();
+        }
+    }
+
+    glEnable(GL_CULL_FACE);
+    Framebuffer::Unbind();
+
+    auto finalPrefilterMap = std::make_shared<Texture>();
+    finalPrefilterMap->ID = prefilterMap;
+    finalPrefilterMap->type = TextureType::TEX_ENVIRONMENT;
+    finalPrefilterMap->width = 128;
+    finalPrefilterMap->height = 128;
+    finalPrefilterMap->channels = 3;
+    finalPrefilterMap->path = "PREFILTER_" + envMap->path;
+
+    textures[finalPrefilterMap->path] = finalPrefilterMap;
+
+    return finalPrefilterMap;
+}
+
+std::shared_ptr<Texture> ResourceManager::GenerateBRDFLUT()
+{
+    std::string pathKey = "BRDF_LUT";
+    if (textures.count(pathKey))
+        return textures[pathKey];
+
+    unsigned int brdfTexId;
+    glGenTextures(1, &brdfTexId);
+    glBindTexture(GL_TEXTURE_2D, brdfTexId);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 512, 512, 0, GL_RG, GL_FLOAT, nullptr);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    std::unique_ptr<Framebuffer> lutFbo = std::make_unique<Framebuffer>(512, 512, true, false, false);
+
+    lutFbo->Bind();
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfTexId, 0);
+
+    std::shared_ptr<Shader> brdfLutShader = LoadShader("brdfLut", "shaders\\ibl\\brdf.vs", "shaders\\ibl\\brdfLut.fs");
+    brdfLutShader->use();
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    std::shared_ptr<Mesh> unitQuad = GeometryFactory::CreateQuad();
+    unitQuad->DrawSimple();
+
+    Framebuffer::Unbind();
+
+    std::shared_ptr<Texture> finalLUT = std::make_shared<Texture>();
+    finalLUT->ID = brdfTexId;
+    finalLUT->type = TextureType::TEX_ENVIRONMENT;
+    finalLUT->width = 512;
+    finalLUT->height = 512;
+    finalLUT->channels = 2;
+    finalLUT->path = pathKey;
+
+    textures[finalLUT->path] = finalLUT;
+
+    return finalLUT;
+}
+
 std::shared_ptr<Texture> ResourceManager::GetTexture(const std::string &path)
 {
     auto it = textures.find(path);

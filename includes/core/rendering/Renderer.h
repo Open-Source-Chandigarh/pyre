@@ -191,6 +191,7 @@ class Renderer
 
     // ibl
     GLuint activeIrradianceMap = 0;
+    GLuint activePrefilterMap = 0;
 
     // ssao
     GLuint noiseTexture = 0;

@@ -354,3 +354,30 @@ std::shared_ptr<Mesh> GeometryFactory::CreateTorus(float radius, float tubeRadiu
 
     return BuildMeshFromData(data, indices);
 }
+
+std::shared_ptr<Mesh> GeometryFactory::CreateQuad()
+{
+    std::vector<float> data;
+    std::vector<unsigned int> indices = {0, 1, 2, 0, 2, 3};
+
+    glm::vec3 p1 = {-1.0f,  1.0f, 0.0f};
+    glm::vec3 p2 = {-1.0f, -1.0f, 0.0f};
+    glm::vec3 p3 = { 1.0f, -1.0f, 0.0f};
+    glm::vec3 p4 = { 1.0f,  1.0f, 0.0f};
+
+    glm::vec3 n = {0.0f, 0.0f, 1.0f};
+
+    glm::vec2 uv1 = {0.0f, 1.0f};
+    glm::vec2 uv2 = {0.0f, 0.0f};
+    glm::vec2 uv3 = {1.0f, 0.0f};
+    glm::vec2 uv4 = {1.0f, 1.0f};
+
+    glm::vec3 t = {1.0f, 0.0f, 0.0f};
+
+    PushVertex(data, p1, n, uv1, t);
+    PushVertex(data, p2, n, uv2, t);
+    PushVertex(data, p3, n, uv3, t);
+    PushVertex(data, p4, n, uv4, t);
+
+    return BuildMeshFromData(data, indices);
+}

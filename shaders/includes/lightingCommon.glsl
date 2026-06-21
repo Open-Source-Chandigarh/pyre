@@ -7,6 +7,9 @@ uniform samplerCubeArrayShadow pointShadowMap;
 uniform samplerCube irradianceMap;
 uniform int hasIrradianceMap;
 
+uniform samplerCube prefilterMap;
+uniform sampler2D brdfLUT;
+
 // Poisson Disk Sample Pattern (Standard 20 samples)
 vec3 sampleOffsetDirections[20] = vec3[]
 (
@@ -263,7 +266,21 @@ vec3 CalcDirLight(vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv, vec3 albedo,
         vec3 irradiance = texture(irradianceMap, normal).rgb;
         vec3 diffuseAmbient = irradiance * albedo;
 
-        ambient = (kDAmbient * diffuseAmbient) * ssao;
+        vec3 R = reflect(-viewDir, normal);
+
+        // sample the prefilter map, we use textureLod to pick the correct blur level based on roughness
+        // we baked 5 mip levels (0 to 4), so max LOD is 4.0
+        const float MAX_REFLECTION_LOD = 4.0;
+        vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+
+        // sample our BRDF LUT
+        vec2 envBRDF = texture(brdfLUT, vec2(max(dot(normal, viewDir), 0.0), roughness)).rg;
+
+        // combine prefilteredColor and envBRDF
+        vec3 specularAmbient = prefilteredColor * (F0 * envBRDF.x + envBRDF.y);
+
+        // combine diffuseAmbient with specularAmbient and ssao
+        ambient = (kDAmbient * diffuseAmbient + specularAmbient) * ssao;
     }
     else 
     {

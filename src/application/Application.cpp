@@ -54,6 +54,7 @@ void Application::Init()
     ConfigureInput();
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Setup ImGui context

@@ -24,7 +24,9 @@ class ResourceManager
     static std::shared_ptr<Texture> LoadHDRTexture(const std::string &path);
     static std::shared_ptr<Texture> LoadIBLCubeMap(const std::string &path);
     static std::shared_ptr<Texture> ConvoluteIrradianceMap(const std::shared_ptr<Texture> &envMap);
-
+    static std::shared_ptr<Texture> PreFilterEnvironmentMap(const std::shared_ptr<Texture> &envMap);
+    static std::shared_ptr<Texture> GenerateBRDFLUT();
+    
     // Cleanup GPU resources
     static void Clear();
 
