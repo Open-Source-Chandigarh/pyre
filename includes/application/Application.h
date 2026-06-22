@@ -17,6 +17,7 @@ class Application
     void AddScene(Scene *scene);
     // The entry point to start the game loop
     void Run();
+    void TakeScreenshot();
 
   private:
     // core Subsystems

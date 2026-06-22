@@ -14,6 +14,9 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 #include "imgui.h"
+#include <sstream>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <thirdparty/stb_image_write.h>
 
 Application::Application(const std::string &title, int width, int height)
 {
@@ -121,6 +124,10 @@ void Application::ConfigureInput()
                             app->wireframeEnabled = !app->wireframeEnabled;
                             glPolygonMode(GL_FRONT_AND_BACK, app->wireframeEnabled ? GL_LINE : GL_FILL);
                         });
+
+    input->BindKeyEvent(GLFW_KEY_F12, GLFW_RELEASE, [this]() {
+        this->TakeScreenshot();
+    });
 }
 
 void Application::Update(float dt)
@@ -844,4 +851,28 @@ void Application::AddScene(Scene *scene)
 {
     // take ownership convert raw pointer to unique_ptr
     appState->scenes.push_back(std::unique_ptr<Scene>(scene));
+}
+
+void Application::TakeScreenshot()
+{
+    Render();
+
+    std::vector<unsigned char> pixels(appState->width * appState->height * 3);
+
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glReadPixels(0, 0, appState->width, appState->height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+
+    stbi_flip_vertically_on_write(true);
+
+    std::filesystem::create_directory("screenshots");
+    auto now = std::chrono::system_clock::now();
+    auto in_time_t = std::chrono::system_clock::to_time_t(now);
+    std::stringstream ss;
+    ss << "screenshots/Capture_" << appState->width << "x" << appState->height << "_"
+       << std::put_time(std::localtime(&in_time_t), "%Y%m%d_%H%M%S") << ".png";
+
+    if (stbi_write_png(ss.str().c_str(), appState->width, appState->height, 3, pixels.data(), appState->width * 3))
+    {
+        std::cout << "Successfully saved screenshot: " << ss.str() << std::endl;
+    }
 }
