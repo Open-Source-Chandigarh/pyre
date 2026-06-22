@@ -76,6 +76,7 @@ struct Material
         shader.setInt("material_roughness", Bindings::TEX_SLOT_ROUGHNESS);
         shader.setInt("material_ao", Bindings::TEX_SLOT_AO);
         shader.setInt("material_displacement", Bindings::TEX_SLOT_DISPLACEMENT);
+        shader.setInt("material_emissive", Bindings::TEX_SLOT_EMISSIVE);
         shader.setInt("material_skybox", Bindings::TEX_SLOT_SKYBOX);
 
         // reset present flags to 0 if no override (default state)
@@ -93,6 +94,8 @@ struct Material
                 shader.setInt("material_metallic_present", 0);
             if (shader.hasUniform("material_roughness_present"))
                 shader.setInt("material_roughness_present", 0);
+            if (shader.hasUniform("material_emissive_present"))
+                shader.setInt("material_emissive_present", 0);
             if (shader.hasUniform("material_ao_present"))
                 shader.setInt("material_ao_present", 0);
             if (shader.hasUniform("material_skybox_present"))
@@ -109,6 +112,10 @@ struct Material
                 shader.setVec3("material_diffuseColor", glm::vec3(1.0f));
             if (shader.hasUniform("material_specularColor"))
                 shader.setVec3("material_specularColor", glm::vec3(0.0f));
+            if (shader.hasUniform("material_emissiveColor"))
+                shader.setVec3("material_emissiveColor", glm::vec3(0.0f));
+            if (shader.hasUniform("emission_tint"))
+                shader.setVec3("emission_tint", glm::vec3(1.0f));
         }
 
         // iterate available textures and bind based on type
@@ -152,6 +159,9 @@ struct Material
                 break;
             case TextureType::TEX_DISPLACEMENT:
                 slot = Bindings::TEX_SLOT_DISPLACEMENT;
+                break;
+            case TextureType::TEX_EMISSIVE:
+                slot = Bindings::TEX_SLOT_EMISSIVE;
                 break;
             case TextureType::TEX_CUBEMAP:
             case TextureType::TEX_ENVIRONMENT:

@@ -6,6 +6,7 @@ layout (location = 1) out vec4 BrightColor;
 layout (binding = 5) uniform sampler2D gPosition;
 layout (binding = 6) uniform sampler2D gNormal;
 layout (binding = 7) uniform sampler2D gAlbedoSpec;
+layout (binding = 14) uniform sampler2D gEmissive;
 
 #include "../includes/globalUbos.glsl"
 

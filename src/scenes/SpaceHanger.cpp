@@ -41,6 +41,7 @@ void SpaceHanger::Init(AppState &appState)
         skyMat->textures["skybox"] = skyBox;
         skyMat->textures["irradiance"] = irradianceMap;
         skyMat->textures["prefilter"] = prefilterMap;
+        skyMat->vec3s["emission_tint"] = glm::vec3(0.8f, 0.4f, 1.5f);
         std::shared_ptr<Entity> e = Entity::Create("Skybox");
         e->AddSkybox(skyMesh.get(), skyMat, ResourceManager::GetShader("skybox"));
         entities.push_back(e);

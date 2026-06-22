@@ -2,6 +2,7 @@
 layout (location = 0) out vec4 gPosition; // A = Linear Depth
 layout (location = 1) out vec4 gNormal;   // A = Roughness
 layout (location = 2) out vec4 gAlbedo;   // A = Metallic
+layout (location = 3) out vec3 gEmissive;
 
 in vec3 FragPos;
 in vec2 TexCoords;
@@ -79,6 +80,16 @@ void main()
     {
         metallic = texture(material_metallic, uv).b;
     }
+
+    vec3 emission = material_emissiveColor;
+    if (material_emissive_present == 1)
+    {
+        emission = texture(material_emissive, TexCoords).rgb;
+        emission *= 10.0;
+        emission *= emission_tint;
+    }
+
+    gEmissive = emission;
 
     if (material_skybox_present == 1) // inverse sign to let lighting pass know that we want env mapping
         gAlbedo.a = -max(metallic, material_reflectivity); 

@@ -116,7 +116,7 @@ void Renderer::EnsureGBuffer(unsigned int width, unsigned int height)
     if (!gBufferFBO || gBufferFBO->Width() != width || gBufferFBO->Height() != height)
     {
         // 3 color attachments, 1 layer, not multisampled, not a cubemap
-        gBufferFBO = std::make_unique<Framebuffer>(width, height, true, false, true, 1, false, 3);
+        gBufferFBO = std::make_unique<Framebuffer>(width, height, true, false, true, 1, false, 4);
     }
 
     if (!gBufferShader)
@@ -710,6 +710,9 @@ void Renderer::RenderDeferredLightingPass(LightManager &lightManager, Framebuffe
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_ALBEDO);
     glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(2));
 
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_EMISSIVE);
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(3));
+
     // bind shadow maps
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_CSM_SHADOW);
     glBindTexture(GL_TEXTURE_2D_ARRAY, shadowFBO->GetDepthTexture());
@@ -761,6 +764,9 @@ void Renderer::RenderLocalLightVolumes(LightManager &lightManager, Framebuffer &
 
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_ALBEDO);
     glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(2));
+
+    glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_EMISSIVE);
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(3));
 
     if (pointShadowFBO)
     {
@@ -1330,6 +1336,11 @@ void Renderer::RenderGBufferImGuiWindow()
     if (ImGui::CollapsingHeader("Albedo (RGB) + Specular (A)", ImGuiTreeNodeFlags_DefaultOpen))
     {
         ImGui::Image((void *) gBufferFBO->GetColorTexture(2), texSize, uv0, uv1);
+    }
+
+    if (ImGui::CollapsingHeader("Emissive Map", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::Image((void *) gBufferFBO->GetColorTexture(3), texSize, uv0, uv1);
     }
 
     ImGui::End();

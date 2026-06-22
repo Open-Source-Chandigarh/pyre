@@ -26,6 +26,10 @@ uniform int material_metallic_present;
 uniform int material_roughness_present;
 uniform int material_ao_present;
 uniform float material_heightScale;
+uniform sampler2D material_emissive;
+uniform vec3 material_emissiveColor;
+uniform int material_emissive_present;
+uniform vec3 emission_tint;
 
 // Helper accessors used by lighting_common.glsl
 vec3 GetDiffuseColor(vec2 uv)

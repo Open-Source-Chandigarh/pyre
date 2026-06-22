@@ -16,9 +16,11 @@ constexpr int TEX_SLOT_DISPLACEMENT = 3;
 constexpr int TEX_SLOT_METALLIC = 4;
 constexpr int TEX_SLOT_ROUGHNESS = 8;
 constexpr int TEX_SLOT_AO = 9;
+constexpr int TEX_SLOT_EMISSIVE = 12;
 constexpr int TEX_SLOT_GBUFFER_POSITION = 5;
 constexpr int TEX_SLOT_GBUFFER_NORMAL = 6;
 constexpr int TEX_SLOT_GBUFFER_ALBEDO = 7;
+constexpr int TEX_SLOT_GBUFFER_EMISSIVE = 14;
 constexpr int TEX_SLOT_SSAO_NOISE = 8;
 
 constexpr int TEX_SLOT_CSM_SHADOW = 10;

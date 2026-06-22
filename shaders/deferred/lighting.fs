@@ -7,6 +7,7 @@ in vec2 TexCoords;
 layout (binding = 5) uniform sampler2D gPosition;
 layout (binding = 6) uniform sampler2D gNormal;
 layout (binding = 7) uniform sampler2D gAlbedoSpec;
+layout (binding = 14) uniform sampler2D gEmissive;
 layout (binding = 15) uniform samplerCube skyboxTexture;
 layout (binding = 12) uniform sampler2D ssaoMap;
 
@@ -53,6 +54,7 @@ void main()
     float depth = texture(gPosition, TexCoords).a;
     float reflectivity = texture(gAlbedoSpec, TexCoords).a;
     float ssao = texture(ssaoMap, TexCoords).r;
+    vec3 textureEmission = texture(gEmissive, TexCoords).rgb;
 
     vec3 viewDir = normalize(viewPos - fragPos);
     vec3 lightingResult = vec3(0.0);
@@ -78,7 +80,7 @@ void main()
         reflectionColor = texture(skyboxTexture, R).rgb;
     }
     float reflectionMix = max(metallic, material_reflectivity);
-    vec3 finalColor = mix(lightingResult, reflectionColor, (wantsEnvMap ? reflectionMix : 0.0));
+    vec3 finalColor = mix(lightingResult, reflectionColor, (wantsEnvMap ? reflectionMix : 0.0)) + textureEmission;
     FragColor = vec4(finalColor, 1.0);
 
     float brightness = dot(FragColor.rgb, vec3(0.2126, 0.7152, 0.0722));

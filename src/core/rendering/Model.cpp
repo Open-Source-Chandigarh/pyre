@@ -140,6 +140,10 @@ std::shared_ptr<Texture> Model::LoadStandardMap(TextureType type)
     {
         standardNames = {"displacement.png", "displacement.jpg", "disp.png", "disp.jpg", "height.png", "height.jpg"};
     }
+    else if (type == TextureType::TEX_EMISSIVE)
+    {
+        standardNames = {"emissive.png", "emissive.jpg", "emit.png", "emit.jpg", "emission.png", "emission.jpg"};
+    }
 
     // Scan the directory
     for (const auto &name : standardNames)
@@ -274,6 +278,22 @@ ModelNode Model::processMesh(aiMesh *mesh, const aiScene *scene, glm::mat4 trans
             roughTex = LoadStandardMap(TextureType::TEX_ROUGHNESS);
         if (roughTex)
             baseMat->textures["material_roughness"] = roughTex;
+        
+        auto emissiveTex = LoadMaterialTexture(aMat, aiTextureType_EMISSIVE, TextureType::TEX_EMISSIVE);
+        if (!emissiveTex)
+            emissiveTex = LoadStandardMap(TextureType::TEX_EMISSIVE);
+        if (emissiveTex)
+            baseMat->textures["material_emissive"] = emissiveTex;
+
+        aiColor3D emissiveColor(0.0f, 0.0f, 0.0f);
+        if (AI_SUCCESS == aMat->Get(AI_MATKEY_COLOR_EMISSIVE, emissiveColor))
+        {
+            baseMat->vec3s["material_emissiveColor"] = glm::vec3(emissiveColor.r, emissiveColor.g, emissiveColor.b);
+        }
+        else
+        {
+            baseMat->vec3s["material_emissiveColor"] = glm::vec3(0.0f);
+        }
 
         // B. Load Fallback Properties from Assimp (Colors/Shininess)
         // We still read these just in case the model has specific color data we want to respect

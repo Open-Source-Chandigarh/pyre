@@ -413,6 +413,31 @@ void Application::Run()
                                                     overrideMat->GetFloat("bloomFactor", 0.0f), ot);
                         }
                     }
+
+                    ImGui::Separator();
+
+                    bool overrideEmissive = overrideMat->GetBool("overrideEmissiveTint");
+                    if (ImGui::Checkbox("Override Emissive Tint", &overrideEmissive))
+                    {
+                        overrideMat->bools["overrideEmissiveTint"] = overrideEmissive;
+                        if (!overrideEmissive)
+                        {
+                            overrideMat->vec3s.erase("emission_tint");
+                        }
+                        else
+                        {
+                            overrideMat->vec3s["emission_tint"] = glm::vec3(1.0f);
+                        }
+                    }
+
+                    if (overrideEmissive)
+                    {
+                        glm::vec3 eTint = overrideMat->GetVec3("emission_tint", glm::vec3(1.0f));
+                        if (ImGui::ColorEdit3("Global Emissive Tint", &eTint.x))
+                        {
+                            overrideMat->vec3s["emission_tint"] = eTint;
+                        }
+                    }
                 }
             }
 
@@ -705,13 +730,23 @@ void Application::Run()
                     ImGui::SetTooltip("Toggle between Deferred and Forward rendering pipelines");
 
                 if (ImGui::CollapsingHeader("IBL Settings"))
-                    ImGui::SliderFloat("IBL Strength", &renderer->iblStrength, 0.0f, 50.0f);
+                {
+                    ImGui::Text("IBL Strength");
+                    ImGui::SetNextItemWidth(-1.0f);
+                    ImGui::SliderFloat("##IBL Strength", &renderer->iblStrength, 0.0f, 50.0f);
+                }
 
                 ImGui::Separator();
 
                 ImGui::Checkbox("Force Outlines", &renderer->forceOutlines);
                 if (ImGui::IsItemHovered())
                     ImGui::SetTooltip("Globally force outlines on all objects");
+
+                ImGui::Separator();
+
+                ImGui::Text("Camera Speed");
+                ImGui::SetNextItemWidth(-1.0f);
+                ImGui::SliderFloat("##Camera Speed", &appState->camera.MovementSpeed, 0.0f, 200.0f);
 
                 ImGui::Separator();
 
