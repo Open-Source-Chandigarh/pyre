@@ -112,22 +112,12 @@ void Space::OnActivate(AppState &appState)
 
     PointLight fillLight;
     fillLight.position = glm::vec3(50.0f, 20.0f, 50.0f);
-    fillLight.ambient = glm::vec3(0.0f);
     fillLight.diffuse = glm::vec3(0.1f, 0.1f, 0.3f);
-    fillLight.specular = glm::vec3(0.1f);
-    fillLight.constant = 1.0f;
-    fillLight.linear = 0.007f;
-    fillLight.quadratic = 0.0002f;
     appState.lightManager->AddPointLight(fillLight);
 
     PointLight rimLight;
     rimLight.position = glm::vec3(-30.0f, 10.0f, -30.0f);
-    rimLight.ambient = glm::vec3(0.0f);
     rimLight.diffuse = glm::vec3(0.4f, 0.3f, 0.2f) * 2.0f;
-    rimLight.specular = glm::vec3(0.3f);
-    rimLight.constant = 1.0f;
-    rimLight.linear = 0.022f;
-    rimLight.quadratic = 0.0019f;
     appState.lightManager->AddPointLight(rimLight);
 }
 

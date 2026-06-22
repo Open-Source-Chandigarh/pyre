@@ -123,6 +123,20 @@ void Shader::setVec3(const std::string &name, float x, float y, float z) const
     setVec3(name, glm::vec3(x, y, z));
 }
 
+void Shader::setVec4(const std::string &name, const glm::vec4 &value) const
+{
+    if (!hasUniform(name))
+        return;
+    glUniform4fv(getUniformLocation(name), 1, glm::value_ptr(value));
+}
+
+void Shader::setVec2(const std::string &name, const glm::vec2 &value) const
+{
+    if (!hasUniform(name))
+        return;
+    glUniform2fv(getUniformLocation(name), 1, glm::value_ptr(value));
+}
+
 int Shader::getUniformLocation(const std::string &name) const
 {
     if (uniformCache.find(name) != uniformCache.end())

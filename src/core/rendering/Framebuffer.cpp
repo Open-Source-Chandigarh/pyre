@@ -51,13 +51,20 @@ void Framebuffer::CreateResources()
             GLenum target = multiSampled ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
             glBindTexture(target, tex);
 
+            // if the FBO has 3 or more attachments, we assume attachment 0 is the gBuffer Position
+            GLenum internalFormat = GL_RGBA16F;
+            if (numColorAttachments >= 3 && i == 0)
+            {
+                internalFormat = GL_RGBA32F;
+            }
+
             if (multiSampled)
             {
-                glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, GL_RGBA16F, width, height, GL_TRUE);
+                glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, internalFormat, width, height, GL_TRUE);
             }
             else
             {
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+                glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

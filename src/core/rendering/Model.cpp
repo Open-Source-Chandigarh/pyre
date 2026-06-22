@@ -15,13 +15,45 @@ std::string SanitizePath(std::string path)
     return path;
 }
 
+inline glm::mat4 AssimpToGLM(const aiMatrix4x4 &from)
+{
+    glm::mat4 to;
+    // assimp is row-major, glm is column-major we transpose it during assignment
+    to[0][0] = from.a1;
+    to[1][0] = from.a2;
+    to[2][0] = from.a3;
+    to[3][0] = from.a4;
+    to[0][1] = from.b1;
+    to[1][1] = from.b2;
+    to[2][1] = from.b3;
+    to[3][1] = from.b4;
+    to[0][2] = from.c1;
+    to[1][2] = from.c2;
+    to[2][2] = from.c3;
+    to[3][2] = from.c4;
+    to[0][3] = from.d1;
+    to[1][3] = from.d2;
+    to[2][3] = from.d3;
+    to[3][3] = from.d4;
+    return to;
+}
+
 void Model::loadModel(std::string path)
 {
     Assimp::Importer importer;
-    // We keep GenNormals and FlipUVs as they are essential for standard rendering
-    // added calctangentspace for normal mapping
-    const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals |
-                                                       aiProcess_CalcTangentSpace);
+    unsigned int importFlags = aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_CalcTangentSpace;
+    
+    std::string ext = std::filesystem::path(path).extension().string();
+    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+    
+    // conditionally add FlipUVs for formats like .obj and .fbx
+    // glTF natively defines UVs differently, so applying FlipUVs to them causes a double flip
+    if (ext != ".gltf" && ext != ".glb")
+    {
+        importFlags |= aiProcess_FlipUVs;
+    }
+    
+    const aiScene *scene = importer.ReadFile(path, importFlags);
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
     {
@@ -31,19 +63,22 @@ void Model::loadModel(std::string path)
 
     directory = std::filesystem::path(path).parent_path().string();
     directory = SanitizePath(directory); // Ensure generic format immediately
-    processNode(scene->mRootNode, scene);
+    processNode(scene->mRootNode, scene, glm::mat4(1.0f));
 }
 
-void Model::processNode(aiNode *node, const aiScene *scene)
+void Model::processNode(aiNode *node, const aiScene *scene, glm::mat4 parentTransform)
 {
+    glm::mat4 nodeTransform = AssimpToGLM(node->mTransformation);
+    glm::mat4 globalTransform = parentTransform * nodeTransform;
+
     for (unsigned int i = 0; i < node->mNumMeshes; i++)
     {
         aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
-        nodes.push_back(processMesh(mesh, scene));
+        nodes.push_back(processMesh(mesh, scene, globalTransform));
     }
     for (unsigned int i = 0; i < node->mNumChildren; i++)
     {
-        processNode(node->mChildren[i], scene);
+        processNode(node->mChildren[i], scene, globalTransform);
     }
 }
 
@@ -120,7 +155,7 @@ std::shared_ptr<Texture> Model::LoadStandardMap(TextureType type)
     return nullptr; // No standard map found
 }
 
-ModelNode Model::processMesh(aiMesh *mesh, const aiScene *scene)
+ModelNode Model::processMesh(aiMesh *mesh, const aiScene *scene, glm::mat4 transform)
 {
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
@@ -268,6 +303,6 @@ ModelNode Model::processMesh(aiMesh *mesh, const aiScene *scene)
     // Pass the baseMat into the Mesh constructor
     node.mesh = std::make_shared<Mesh>(vertices, indices, baseMat);
     node.baseMaterial = baseMat;
-    node.localTransform = glm::mat4(1.0f); // Default transform (Assimp node transform handling can be added here)
+    node.localTransform = transform;
     return node;
 }

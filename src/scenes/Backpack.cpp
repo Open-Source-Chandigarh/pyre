@@ -70,32 +70,17 @@ void Backpack::OnActivate(AppState &appState)
 
     PointLight p;
     p.position = glm::vec3(0.7f, 0.2f, 2.0f);
-    p.ambient = glm::vec3(0.2f, 1.0f, 1.5f) * 0.1f;
     p.diffuse = glm::vec3(0.2f, 1.5f, 1.5f) * 0.8f;
-    p.specular = glm::vec3(1.0f);
-    p.constant = 1.0f;
-    p.linear = 0.09f;
-    p.quadratic = 0.032f;
     appState.lightManager->AddPointLight(p);
 
     PointLight p2;
     p2.position = glm::vec3(2.3f, -3.3f, -4.0f);
-    p2.ambient = glm::vec3(1.5f, 1.0f, 2.0f) * 0.1f;
     p2.diffuse = glm::vec3(2.0f, 1.5f, 2.0f) * 0.9f;
-    p2.specular = glm::vec3(1.0f);
-    p2.constant = 1.0f;
-    p2.linear = 0.09f;
-    p2.quadratic = 0.032f;
     appState.lightManager->AddPointLight(p2);
 
     PointLight p3;
     p3.position = glm::vec3(-4.0f, 2.0f, -12.0f);
-    p3.ambient = glm::vec3(1.0f, 5.0f, 0.6f) * 0.1f;
     p3.diffuse = glm::vec3(1.0f, 7.0f, 0.6f) * 0.8f;
-    p3.specular = glm::vec3(1.0f);
-    p3.constant = 1.0f;
-    p3.linear = 0.09f;
-    p3.quadratic = 0.032f;
     appState.lightManager->AddPointLight(p3);
 }
 

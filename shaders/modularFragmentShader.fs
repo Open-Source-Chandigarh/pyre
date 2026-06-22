@@ -61,16 +61,27 @@ void main()
         albedo = texture(material_diffuse, uv).rgb;
     }
 
-    float roughness = clamp(1.0 - (GetShininess() / 256.0), 0.05, 1.0);;
+    float roughness = clamp(1.0 - (GetShininess() / 256.0), 0.05, 1.0);
     if (material_roughness_present == 1) 
     {
-        roughness = texture(material_roughness, uv).r;
-    }
+        roughness = texture(material_roughness, uv).g;
+    } 
+
+    // specular anti-aliasing (geometric variance)
+    // calculate how fast the normal is changing from pixel to pixel
+    vec3 dNdx = dFdx(N);
+    vec3 dNdy = dFdy(N);
+    
+    // the scale factor dictates how aggressively roughness increases on edges
+    float variance = 0.1 * (dot(dNdx, dNdx) + dot(dNdy, dNdy));
+    
+    // widen the specular lobe where the normal variance is high
+    roughness = min(sqrt(roughness * roughness + variance), 1.0);
 
     float metallic = material_reflectivity;
     if (material_metallic_present == 1) 
     {
-        metallic = texture(material_metallic, uv).r;
+        metallic = texture(material_metallic, uv).b;
     }
 
     vec3 result = vec3(0.0);

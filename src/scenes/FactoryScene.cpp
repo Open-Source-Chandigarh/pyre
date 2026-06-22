@@ -99,22 +99,12 @@ void FactoryScene::OnActivate(AppState &appState)
 
     PointLight keyLight;
     keyLight.position = glm::vec3(0.0f, 2.0f, 2.0f);
-    keyLight.ambient = glm::vec3(0.0f);
     keyLight.diffuse = glm::vec3(1.0f, 0.6f, 0.3f) * 1.5f;
-    keyLight.specular = glm::vec3(1.0f, 0.8f, 0.6f);
-    keyLight.constant = 1.0f;
-    keyLight.linear = 0.09f;
-    keyLight.quadratic = 0.032f;
     appState.lightManager->AddPointLight(keyLight);
 
     PointLight rimLight;
     rimLight.position = glm::vec3(-3.0f, 1.0f, -5.0f);
-    rimLight.ambient = glm::vec3(0.0f);
     rimLight.diffuse = glm::vec3(0.0f, 0.5f, 1.0f) * 1.0f;
-    rimLight.specular = glm::vec3(0.0f, 1.0f, 1.0f);
-    rimLight.constant = 1.0f;
-    rimLight.linear = 0.09f;
-    rimLight.quadratic = 0.032f;
     appState.lightManager->AddPointLight(rimLight);
 }
 

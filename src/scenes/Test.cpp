@@ -140,39 +140,13 @@ void Test::OnActivate(AppState &appState)
 
     PointLight k;
     k.position = glm::vec3(1.5f, 2, 1.5f);
-    k.ambient = glm::vec3(0.05f); // Ambient should be tiny (e.g. 0.01 to 0.1)
     k.diffuse = glm::vec3(10.0f); // 5.0 to 10.0 is plenty bright for HDR
-    k.specular = glm::vec3(10.0f);
-    k.constant = 1;
-    k.linear = 0.09f;
-    k.quadratic = 0.032f;
     appState.lightManager->AddPointLight(k);
 
     PointLight s;
     s.position = glm::vec3(-3.0f, 1.5f, 0.0f);
-    s.ambient = glm::vec3(0.03f);
     s.diffuse = glm::vec3(0.8f, 0.9f, 0.2f);
-    s.specular = glm::vec3(0.2f);
-    s.constant = 1;
-    s.linear = 0.09f;
-    s.quadratic = 0.032f;
     appState.lightManager->AddPointLight(s);
-
-    // PointLight f;
-    // f.position = glm::vec3(-1, 2, 1);
-    // f.ambient = glm::vec3(0.04f);
-    // f.diffuse = glm::vec3(0.7, 0.4, 0.1);
-    // f.specular = glm::vec3(0.4f);
-    // f.constant = 1; f.linear = 0.14f; f.quadratic = 0.07f;
-    // appState.lightManager -> AddPointLight(f);
-
-    // PointLight r;
-    // r.position = glm::vec3(-1, 2, -2);
-    // r.ambient = glm::vec3(0.01f);
-    // r.diffuse = glm::vec3(0.2, 0.5, 0.4);
-    // r.specular = glm::vec3(0.2f);
-    // r.constant = 1; r.linear = 0.09f; r.quadratic = 0.032f;
-    // appState.lightManager->AddPointLight(r);
 
     appState.lightManager->ShowDebugLights(true);
 }

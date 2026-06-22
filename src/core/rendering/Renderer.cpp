@@ -418,6 +418,7 @@ void Renderer::RenderBatches(const std::shared_ptr<Shader> &overrideShader)
             glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_POINT_SHADOW);
             glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, pointShadowFBO->GetDepthTexture());
         }
+        activeShader->setFloat("iblStrength", iblStrength);
 
         if (activeShader->hasUniform("irradianceMap"))
         {
@@ -659,6 +660,8 @@ void Renderer::RenderDeferredLightingPass(LightManager &lightManager, Framebuffe
     deferredLightingShader->setInt("pointShadowMap", Bindings::TEX_SLOT_POINT_SHADOW);
     deferredLightingShader->setInt("ssaoMap", 12);
 
+    deferredLightingShader->setFloat("iblStrength", iblStrength);
+
     deferredLightingShader->setInt("irradianceMap", 16);
     deferredLightingShader->setInt("prefilterMap", 17);
     deferredLightingShader->setInt("brdfLUT", 18);
@@ -673,14 +676,14 @@ void Renderer::RenderDeferredLightingPass(LightManager &lightManager, Framebuffe
         deferredLightingShader->setInt("hasIrradianceMap", 0);
     }
 
-    if (activePrefilterMap != 0) 
+    if (activePrefilterMap != 0)
     {
         glActiveTexture(GL_TEXTURE0 + 17);
         glBindTexture(GL_TEXTURE_CUBE_MAP, activePrefilterMap);
     }
 
     auto brdfTex = ResourceManager::GetTexture("BRDF_LUT");
-    if (brdfTex) 
+    if (brdfTex)
     {
         glActiveTexture(GL_TEXTURE0 + 18);
         glBindTexture(GL_TEXTURE_2D, brdfTex->ID);
@@ -968,11 +971,10 @@ glm::mat4 Renderer::GetLightSpaceMatrix(const float nearPlane, const float farPl
         maxZ = std::max(maxZ, trf.z);
     }
 
-    // we expand the z bounds significantly to ensure geometry behind the camera or far away
-    // still casts valid shadows into the visible area
-    constexpr float zMult = 5.0f;
-    minZ = (minZ < 0) ? minZ * zMult : minZ / zMult;
-    maxZ = (maxZ < 0) ? maxZ / zMult : maxZ * zMult;
+    // we expand the z bounds to ensure geometry behind the camera or far away also casts shadows
+    constexpr float zPadding = 200.0f;
+    minZ -= zPadding;
+    maxZ += zPadding;
 
     const glm::mat4 lightProjection = glm::ortho(minX, maxX, minY, maxY, minZ, maxZ);
     return lightProjection * lightView;
@@ -1034,10 +1036,11 @@ void Renderer::RenderShadowMap(const glm::vec3 &lightDir, const Camera &camera)
     glViewport(0, 0, shadowFBO->Width(), shadowFBO->Height());
     glClear(GL_DEPTH_BUFFER_BIT);
 
-    // we cull front faces during shadow mapping to solve peter panning artifacts
-    // this effectively renders the back of objects into the shadow map
     glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
+    glCullFace(GL_BACK);
+
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(4.0f, 4.0f); // push depth values back slightly based on their slope
 
     // perform the actual draw calls for all opaque objects that should cast
     // pass identity matrices (geometry shader uses the ubo data)
@@ -1049,6 +1052,7 @@ void Renderer::RenderShadowMap(const glm::vec3 &lightDir, const Camera &camera)
             DrawEntityInPass(e.get(), depthShader, true);
     }
 
+    glDisable(GL_POLYGON_OFFSET_FILL);
     Framebuffer::Unbind();
     glCullFace(GL_BACK);
 }
@@ -1313,7 +1317,7 @@ void Renderer::RenderGBufferImGuiWindow()
         ImGui::Image((void *) gBufferFBO->GetColorTexture(0), texSize, uv0, uv1);
     }
 
-    if(ImGui::CollapsingHeader("BRDF LUT", ImGuiTreeNodeFlags_DefaultOpen))
+    if (ImGui::CollapsingHeader("BRDF LUT", ImGuiTreeNodeFlags_DefaultOpen))
     {
         ImGui::Image((void *) ResourceManager::GetTexture("BRDF_LUT")->ID, texSize, uv0, uv1);
     }

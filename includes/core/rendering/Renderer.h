@@ -46,6 +46,7 @@ class Renderer
     bool forceOutlines = false;
     bool useDeferred = false;
     float ssaoRadius = 0.5f;
+    float iblStrength = 1.0f;
 
   private:
     // internal initialization helpers
@@ -209,7 +210,7 @@ class Renderer
     std::shared_ptr<Shader> depthShader;
     glm::mat4 lightSpaceMatrix;
     // 3 splits = 4 generic shadow maps (near, mid, far, veryFar)
-    std::vector<float> shadowCascadeLevels = {10.0f, 25.0f, 50.0f};
+    std::vector<float> shadowCascadeLevels = {30.0f, 100.0f, 250.0f};
 
     // spot light shadows (omni)
     std::unique_ptr<Framebuffer> pointShadowFBO;

@@ -47,6 +47,6 @@ class Model
     void loadModel(std::string path);
     std::shared_ptr<Texture> LoadStandardMap(TextureType type);
     std::shared_ptr<Texture> LoadMaterialTexture(aiMaterial *mat, aiTextureType type, TextureType typeName);
-    void processNode(aiNode *node, const aiScene *scene);
-    ModelNode processMesh(aiMesh *mesh, const aiScene *scene);
+    void processNode(aiNode *node, const aiScene *scene, glm::mat4 parentTransform);
+    ModelNode processMesh(aiMesh *mesh, const aiScene *scene, glm::mat4 transform);
 };

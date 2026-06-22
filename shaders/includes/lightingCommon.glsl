@@ -10,6 +10,8 @@ uniform int hasIrradianceMap;
 uniform samplerCube prefilterMap;
 uniform sampler2D brdfLUT;
 
+uniform float iblStrength;
+
 // Poisson Disk Sample Pattern (Standard 20 samples)
 vec3 sampleOffsetDirections[20] = vec3[]
 (
@@ -75,7 +77,7 @@ vec3 FresnelSchlick(float cosTheta, vec3 F0)
 // Sébastien Lagarde's Roughness Fresnel Hack for Ambient Light
 vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 {
-    return F0 + (max(vec3(1.0 - roughness), F0) - pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0));
+    return F0 + (max(vec3(1.0 - roughness), F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0));
 }
 
 float CalcPointShadow(int lightIndex, vec3 fragPos, vec3 lightPos, vec3 normal)
@@ -167,33 +169,9 @@ float ShadowCalculation(vec3 fragPosWorldSpace, vec3 normal, vec3 lightDir)
     projCoords = projCoords * 0.5 + 0.5;
 
     // step 4: calculate bias
-    // bias prevents shadow acne (weird lines on objects)
-    // we calculate it based on the angle of the light
-    float bias = max(0.001 * (1.0 - dot(normal, lightDir)), 0.00025);
-
-    // distant cascades cover huge areas, so one pixel is very large
-    // if we use a small bias, shadows will detach from objects (peter panning)
-    // so we scale the bias based on how far away the cascade is
-    
-    const float biasModifier = 0.15;
-    
-    if (layer == cascadeCount)
-    {
-        // far plane logic
-        bias *= 1.0 / (shadowFarPlane * biasModifier);
-        bias *= 10.0; // massive bias for the furthest hills to kill acne
-    }
-    else
-    {
-        int vecIdx = layer / 4;
-        int compIdx = layer % 4;
-        float splitDist = cascadePlaneDistances[vecIdx][compIdx];
-        bias *= 1.0 / (splitDist * biasModifier);
-        
-        // progressively increase bias for further layers
-        // layer 0 gets 1.0 (no change), layer 1 gets 4.0, layer 2 gets 8.0, etc.
-        bias *= (1.0 + (layer * 4.0));
-    }
+    // since we are now using glPolygonOffset in C++, the hardware handles slope bias dynamically
+    // we only need a tiny bias to prevent minor floating point inaccuracies
+    float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.001);
 
     // step 5: pcf (soft shadows)
     // instead of testing just one pixel, we test the surrounding pixels and average them
@@ -249,7 +227,7 @@ vec3 CalcDirLight(vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv, vec3 albedo,
     kD *= 1.0 - metallic;
 
     vec3 numerator = NDF * G * F;
-    float denominator = 4.0 * max(dot(normal, viewDir), 0.0) * max(dot(normal, L), 0.0) + 0.0001;
+    float denominator = 4.0 * max(dot(normal, viewDir), 0.05) * max(dot(normal, L), 0.05) + 0.0001;
     vec3 specular = numerator / denominator;
 
     float NdotL = max(dot(normal, L), 0.0);
@@ -263,7 +241,7 @@ vec3 CalcDirLight(vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv, vec3 albedo,
         vec3 kDAmbient = 1.0 - kSAmbient;
         kDAmbient *= 1.0 - metallic; // pure metals have no diffuse light
 
-        vec3 irradiance = texture(irradianceMap, normal).rgb;
+        vec3 irradiance = texture(irradianceMap, normal).rgb * iblStrength;
         vec3 diffuseAmbient = irradiance * albedo;
 
         vec3 R = reflect(-viewDir, normal);
@@ -271,7 +249,7 @@ vec3 CalcDirLight(vec3 normal, vec3 fragPos, vec3 viewDir, vec2 uv, vec3 albedo,
         // sample the prefilter map, we use textureLod to pick the correct blur level based on roughness
         // we baked 5 mip levels (0 to 4), so max LOD is 4.0
         const float MAX_REFLECTION_LOD = 4.0;
-        vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+        vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb * iblStrength;
 
         // sample our BRDF LUT
         vec2 envBRDF = texture(brdfLUT, vec2(max(dot(normal, viewDir), 0.0), roughness)).rg;
@@ -360,8 +338,7 @@ vec3 CalcPointLight(int idx, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 albed
     kD *= 1.0 - metallic;
 
     vec3 numerator = NDF * G * F;
-    float denominator = 4.0 * max(dot(normal, viewDir), 0.0) 
-                        * max(dot(normal, L), 0.0) + 0.0001;
+    float denominator = 4.0 * max(dot(normal, viewDir), 0.05) * max(dot(normal, L), 0.05) + 0.0001;
     vec3 specular = numerator / denominator;
 
     // final outgoing radiance (Lo)

@@ -1,6 +1,7 @@
 ﻿#include "application/Application.h"
 #include "core/ResourceManager.h"
 #include "scenes/Space.h"
+#include "scenes/SpaceHanger.h"
 #include "scenes/ToonScene.h"
 #include "scenes/backpack.h"
 #include "scenes/factoryScene.h"
@@ -18,6 +19,7 @@ int main()
         app.AddScene(new ToonScene());
         app.AddScene(new Space());
         app.AddScene(new Test());
+        app.AddScene(new SpaceHanger());
 
         app.Run();
     }

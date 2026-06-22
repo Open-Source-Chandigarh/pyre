@@ -360,10 +360,10 @@ std::shared_ptr<Mesh> GeometryFactory::CreateQuad()
     std::vector<float> data;
     std::vector<unsigned int> indices = {0, 1, 2, 0, 2, 3};
 
-    glm::vec3 p1 = {-1.0f,  1.0f, 0.0f};
+    glm::vec3 p1 = {-1.0f, 1.0f, 0.0f};
     glm::vec3 p2 = {-1.0f, -1.0f, 0.0f};
-    glm::vec3 p3 = { 1.0f, -1.0f, 0.0f};
-    glm::vec3 p4 = { 1.0f,  1.0f, 0.0f};
+    glm::vec3 p3 = {1.0f, -1.0f, 0.0f};
+    glm::vec3 p4 = {1.0f, 1.0f, 0.0f};
 
     glm::vec3 n = {0.0f, 0.0f, 1.0f};
 

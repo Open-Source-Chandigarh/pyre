@@ -619,6 +619,7 @@ void Application::Run()
                         ImGui::ColorEdit3("Ambient", &lm->points[i].ambient.x);
                         ImGui::ColorEdit3("Diffuse", &lm->points[i].diffuse.x);
                         ImGui::ColorEdit3("Specular", &lm->points[i].specular.x);
+                        ImGui::DragFloat("Radius", &lm->points[i].radius);
 
                         ImGui::Separator();
                         ImGui::Text("Attenuation");
@@ -702,6 +703,9 @@ void Application::Run()
                 ImGui::Checkbox("Deferred Rendering", &renderer->useDeferred);
                 if (ImGui::IsItemHovered())
                     ImGui::SetTooltip("Toggle between Deferred and Forward rendering pipelines");
+
+                if (ImGui::CollapsingHeader("IBL Settings"))
+                    ImGui::SliderFloat("IBL Strength", &renderer->iblStrength, 0.0f, 50.0f);
 
                 ImGui::Separator();
 
