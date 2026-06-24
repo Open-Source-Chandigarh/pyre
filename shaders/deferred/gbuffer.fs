@@ -1,8 +1,7 @@
 #version 420 core
-layout (location = 0) out vec4 gPosition; // A = Linear Depth
-layout (location = 1) out vec4 gNormal;   // A = Roughness
-layout (location = 2) out vec4 gAlbedo;   // A = Metallic
-layout (location = 3) out vec3 gEmissive;
+layout (location = 0) out vec4 gNormal;   // A = Roughness
+layout (location = 1) out vec4 gAlbedo;   // A = Metallic
+layout (location = 2) out vec3 gEmissive;
 
 in vec3 FragPos;
 in vec2 TexCoords;
@@ -16,11 +15,6 @@ in float LinearDepth;
 
 void main()
 {
-    // position and linear depth
-    gPosition.rgb = FragPos;
-    // store linear depth in alpha for generic post processing (ssao)
-    gPosition.a = LinearDepth;
-
     vec3 V = normalize(vec3(viewPos) - FragPos); // viewDir in world space
 
     // Parallax Mapping
@@ -50,7 +44,7 @@ void main()
     float roughness = clamp(1.0 - (GetShininess() / 256.0), 0.05, 1.0);
     if (material_roughness_present == 1) 
     {
-        roughness = texture(material_roughness, uv).g;
+        roughness *= texture(material_roughness, uv).g;
     } 
 
     // specular anti-aliasing (geometric variance)
@@ -59,7 +53,7 @@ void main()
     vec3 dNdy = dFdy(N);
     
     // the scale factor dictates how aggressively roughness increases on edges
-    float variance = 0.1 * (dot(dNdx, dNdx) + dot(dNdy, dNdy));
+    float variance = 5.0 * (dot(dNdx, dNdx) + dot(dNdy, dNdy));
     
     // widen the specular lobe where the normal variance is high
     roughness = min(sqrt(roughness * roughness + variance), 1.0);
@@ -78,7 +72,7 @@ void main()
     float metallic = material_reflectivity;
     if (material_metallic_present == 1) 
     {
-        metallic = texture(material_metallic, uv).b;
+        metallic *= texture(material_metallic, uv).b;
     }
 
     vec3 emission = material_emissiveColor;
@@ -92,7 +86,7 @@ void main()
     gEmissive = emission;
 
     if (material_skybox_present == 1) // inverse sign to let lighting pass know that we want env mapping
-        gAlbedo.a = -max(metallic, material_reflectivity); 
+        gAlbedo.a = -metallic; 
     else
-        gAlbedo.a = max(metallic, material_reflectivity);
+        gAlbedo.a = metallic;
 }

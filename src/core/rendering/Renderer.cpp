@@ -116,7 +116,7 @@ void Renderer::EnsureGBuffer(unsigned int width, unsigned int height)
     if (!gBufferFBO || gBufferFBO->Width() != width || gBufferFBO->Height() != height)
     {
         // 3 color attachments, 1 layer, not multisampled, not a cubemap
-        gBufferFBO = std::make_unique<Framebuffer>(width, height, true, false, true, 1, false, 4);
+        gBufferFBO = std::make_unique<Framebuffer>(width, height, true, false, true, 1, false, 3);
     }
 
     if (!gBufferShader)
@@ -621,10 +621,10 @@ void Renderer::RenderSSAOPass(unsigned int width, unsigned int height)
     ssaoShader->setFloat("radius", ssaoRadius);
     ssaoShader->setInt("gPosition", Bindings::TEX_SLOT_GBUFFER_POSITION);
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_POSITION);
-    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(0));
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetDepthTexture());
     ssaoShader->setInt("gNormal", Bindings::TEX_SLOT_GBUFFER_NORMAL);
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_NORMAL);
-    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(1));
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(0));
     ssaoShader->setInt("texNoise", Bindings::TEX_SLOT_SSAO_NOISE);
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_SSAO_NOISE);
     glBindTexture(GL_TEXTURE_2D, noiseTexture);
@@ -702,16 +702,16 @@ void Renderer::RenderDeferredLightingPass(LightManager &lightManager, Framebuffe
 
     // bind g-buffer textures
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_POSITION);
-    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(0));
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetDepthTexture());
 
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_NORMAL);
-    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(1));
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(0));
 
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_ALBEDO);
-    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(2));
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(1));
 
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_EMISSIVE);
-    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(3));
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(2));
 
     // bind shadow maps
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_CSM_SHADOW);
@@ -757,16 +757,16 @@ void Renderer::RenderLocalLightVolumes(LightManager &lightManager, Framebuffer &
     pointLightVolumeShader->use();
 
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_POSITION);
-    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(0));
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetDepthTexture());
 
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_NORMAL);
-    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(1));
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(0));
 
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_ALBEDO);
-    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(2));
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(1));
 
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_EMISSIVE);
-    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(3));
+    glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetColorTexture(2));
 
     if (pointShadowFBO)
     {
@@ -1318,9 +1318,9 @@ void Renderer::RenderGBufferImGuiWindow()
     ImVec2 uv0 = ImVec2(0, 1);
     ImVec2 uv1 = ImVec2(1, 0);
 
-    if (ImGui::CollapsingHeader("World Position (RGB) + Linear Depth (A)", ImGuiTreeNodeFlags_DefaultOpen))
+    if (ImGui::CollapsingHeader("Depth", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        ImGui::Image((void *) gBufferFBO->GetColorTexture(0), texSize, uv0, uv1);
+        ImGui::Image((void *) gBufferFBO->GetDepthTexture(), texSize, uv0, uv1);
     }
 
     if (ImGui::CollapsingHeader("BRDF LUT", ImGuiTreeNodeFlags_DefaultOpen))
@@ -1330,17 +1330,17 @@ void Renderer::RenderGBufferImGuiWindow()
 
     if (ImGui::CollapsingHeader("World Normal (RGB) + Shininess (A)", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        ImGui::Image((void *) gBufferFBO->GetColorTexture(1), texSize, uv0, uv1);
+        ImGui::Image((void *) gBufferFBO->GetColorTexture(0), texSize, uv0, uv1);
     }
 
     if (ImGui::CollapsingHeader("Albedo (RGB) + Specular (A)", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        ImGui::Image((void *) gBufferFBO->GetColorTexture(2), texSize, uv0, uv1);
+        ImGui::Image((void *) gBufferFBO->GetColorTexture(1), texSize, uv0, uv1);
     }
 
     if (ImGui::CollapsingHeader("Emissive Map", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        ImGui::Image((void *) gBufferFBO->GetColorTexture(3), texSize, uv0, uv1);
+        ImGui::Image((void *) gBufferFBO->GetColorTexture(2), texSize, uv0, uv1);
     }
 
     ImGui::End();

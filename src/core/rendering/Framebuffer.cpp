@@ -51,13 +51,7 @@ void Framebuffer::CreateResources()
             GLenum target = multiSampled ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
             glBindTexture(target, tex);
 
-            // if the FBO has 3 or more attachments, we assume attachment 0 is the gBuffer Position
             GLenum internalFormat = GL_RGBA16F;
-            if (numColorAttachments >= 3 && i == 0)
-            {
-                internalFormat = GL_RGBA32F;
-            }
-
             if (multiSampled)
             {
                 glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, 4, internalFormat, width, height, GL_TRUE);
@@ -151,17 +145,25 @@ void Framebuffer::CreateResources()
         }
         else
         {
-            glGenRenderbuffers(1, &rbo);
-            glBindRenderbuffer(GL_RENDERBUFFER, rbo);
             if (multiSampled)
             {
+                glGenRenderbuffers(1, &rbo);
+                glBindRenderbuffer(GL_RENDERBUFFER, rbo);
                 glRenderbufferStorageMultisample(GL_RENDERBUFFER, 4, GL_DEPTH24_STENCIL8, width, height);
+                glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
             }
             else
             {
-                glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+                glGenTextures(1, &depthTexture);
+                glBindTexture(GL_TEXTURE_2D, depthTexture);
+
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr);
+
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, depthTexture, 0);
             }
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
         }
     }
 

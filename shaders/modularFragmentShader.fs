@@ -64,7 +64,7 @@ void main()
     float roughness = clamp(1.0 - (GetShininess() / 256.0), 0.05, 1.0);
     if (material_roughness_present == 1) 
     {
-        roughness = texture(material_roughness, uv).g;
+        roughness *= texture(material_roughness, uv).g;
     } 
 
     // specular anti-aliasing (geometric variance)
@@ -81,7 +81,7 @@ void main()
     float metallic = material_reflectivity;
     if (material_metallic_present == 1) 
     {
-        metallic = texture(material_metallic, uv).b;
+        metallic *= texture(material_metallic, uv).b;
     }
 
     vec3 result = vec3(0.0);

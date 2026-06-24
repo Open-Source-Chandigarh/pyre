@@ -128,6 +128,10 @@ void Application::ConfigureInput()
     input->BindKeyEvent(GLFW_KEY_F12, GLFW_RELEASE, [this]() {
         this->TakeScreenshot();
     });
+
+    input->BindKeyEvent(GLFW_KEY_SPACE, GLFW_RELEASE, [this]() {
+        this->showUI = !this->showUI;
+    });
 }
 
 void Application::Update(float dt)
@@ -154,6 +158,600 @@ void Application::Render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     activeScene->Render(*appState);
+}
+
+void Application::RenderUI()
+{
+    // Render UI
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    Scene *currentScene = appState->scenes[appState->currentSceneIndex].get();
+
+    // Status toast state
+    static float toastTimer = 0.0f;
+    static std::string toastMsg;
+
+    // Shortcuts
+    if (ImGui::GetIO().KeyCtrl)
+    {
+        if (ImGui::IsKeyPressed(ImGuiKey_S))
+        {
+            std::string filepath = "scenes/" + currentScene->Name() + ".json";
+            if (SceneSerializer::Serialize(currentScene, appState->lightManager.get(), filepath))
+            {
+                toastMsg = "Scene saved!";
+                toastTimer = 2.0f;
+            }
+        }
+        if (ImGui::IsKeyPressed(ImGuiKey_O))
+        {
+            std::string filepath = "scenes/" + currentScene->Name() + ".json";
+            if (SceneSerializer::Deserialize(currentScene, appState->lightManager.get(), filepath))
+            {
+                toastMsg = "Scene loaded!";
+                toastTimer = 2.0f;
+            }
+        }
+    }
+
+    // Toast notification
+    if (toastTimer > 0.0f)
+    {
+        toastTimer -= appState->deltaTime;
+        float alpha = (toastTimer < 0.5f) ? toastTimer * 2.0f : 1.0f;
+        ImGui::SetNextWindowPos(ImVec2(appState->width * 0.5f, 40.0f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+        ImGui::SetNextWindowBgAlpha(alpha * 0.85f);
+        ImGui::Begin("##Toast", nullptr,
+                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
+                         ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs);
+        ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.5f, alpha), "%s", toastMsg.c_str());
+        ImGui::End();
+    }
+
+    // 1. Scene Hierarchy Panel (positioned on the right side)
+    float panelWidth = 280.0f;
+    float panelHeight = 350.0f;
+    float padding = 10.0f;
+    ImGui::SetNextWindowPos(ImVec2(appState->width - panelWidth - padding, padding), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(panelWidth, panelHeight), ImGuiCond_Always);
+    ImGui::Begin("Scene Hierarchy", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+    auto &sceneEntities = currentScene->GetEntities();
+
+    // Scene switcher combo
+    if (appState->scenes.size() > 1)
+    {
+        if (ImGui::BeginCombo("##SceneCombo", currentScene->Name().c_str()))
+        {
+            for (int s = 0; s < (int) appState->scenes.size(); s++)
+            {
+                bool isCurrent = (s == appState->currentSceneIndex);
+                if (ImGui::Selectable(appState->scenes[s]->Name().c_str(), isCurrent))
+                {
+                    if (!isCurrent)
+                    {
+                        appState->currentSceneIndex = s;
+                        appState->selectedEntity = nullptr;
+                        appState->scenes[s]->OnActivate(*appState);
+                        appState->camera.SetDefault();
+                        currentScene = appState->scenes[s].get();
+                    }
+                }
+                if (isCurrent)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+    }
+    else
+    {
+        ImGui::TextColored(ImVec4(0.6f, 0.8f, 1.0f, 1.0f), "Scene: %s", currentScene->Name().c_str());
+    }
+
+    // Save/Load buttons
+    if (ImGui::Button("Save"))
+    {
+        std::string filepath = "scenes/" + currentScene->Name() + ".json";
+        if (SceneSerializer::Serialize(currentScene, appState->lightManager.get(), filepath))
+        {
+            toastMsg = "Scene saved!";
+            toastTimer = 2.0f;
+        }
+    }
+
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Ctrl+S");
+    ImGui::SameLine();
+
+    if (ImGui::Button("Load"))
+    {
+        std::string filepath = "scenes/" + currentScene->Name() + ".json";
+        if (SceneSerializer::Deserialize(currentScene, appState->lightManager.get(), filepath))
+        {
+            toastMsg = "Scene loaded!";
+            toastTimer = 2.0f;
+        }
+    }
+
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Ctrl+O");
+    ImGui::Separator();
+
+    for (int i = 0; i < sceneEntities.size(); i++)
+    {
+        ImGui::PushID(i);
+        Entity *entity = sceneEntities[i].get();
+        std::string nameText = entity->name.empty() ? "Entity #" + std::to_string(i) : entity->name;
+        bool isSelected = (appState->selectedEntity == sceneEntities[i]);
+
+        // selection highlighting with background color
+        if (isSelected)
+        {
+            ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.2f, 0.5f, 0.8f, 1.0f)); // Blue background when selected
+            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.3f, 0.6f, 0.9f, 1.0f)); // Lighter blue on hover
+            ImGui::PushStyleColor(ImGuiCol_HeaderActive,
+                                  ImVec4(0.1f, 0.4f, 0.7f, 1.0f));                // Darker blue when clicked
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f)); // White text
+        }
+        if (ImGui::Selectable(nameText.c_str(), isSelected))
+        {
+            if (isSelected)
+            {
+                appState->selectedEntity = nullptr;
+            }
+            else
+            {
+                appState->selectedEntity = sceneEntities[i];
+            }
+        }
+        if (isSelected)
+        {
+            ImGui::PopStyleColor(4);
+        }
+        ImGui::PopID();
+    }
+
+    ImGui::End();
+    // 2. Inspector Panel (positioned below hierarchy)
+    float inspectorY = padding + panelHeight + padding;
+    float inspectorHeight = appState->height - inspectorY - padding - 50.0f; // Leave space for stats
+    ImGui::SetNextWindowPos(ImVec2(appState->width - panelWidth - padding, inspectorY), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(panelWidth, inspectorHeight), ImGuiCond_Always);
+    ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+
+    if (appState->selectedEntity)
+    {
+        Entity *entity = appState->selectedEntity.get();
+        ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f), "%s", entity->name.c_str());
+        ImGui::Separator();
+        // Transform Component
+        if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            ImGui::DragFloat3("Position", &entity->transform.position.x, 0.1f);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("World-space position (X, Y, Z)");
+            ImGui::DragFloat3("Rotation", &entity->transform.rotation.x, 1.0f);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Euler rotation in degrees");
+            ImGui::DragFloat3("Scale", &entity->transform.scale.x, 0.05f);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Scale multiplier per axis");
+        }
+        // Render Component (Material Editing)
+        if (entity->renderComp && ImGui::CollapsingHeader("Entity Overrides", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            Material *overrideMat = entity->GetOverrideMaterial().get();
+            if (overrideMat)
+            {
+                bool wireframe = overrideMat->GetBool("wireframe");
+                if (ImGui::Checkbox("Force Wireframe", &wireframe))
+                    overrideMat->SetWireframe(wireframe);
+                bool forceFwd = overrideMat->GetBool("forceForward");
+                if (ImGui::Checkbox("Force Forward Pass", &forceFwd))
+                    overrideMat->bools["forceForward"] = forceFwd;
+                bool shadows = overrideMat->GetBool("castShadows", true);
+                if (ImGui::Checkbox("Override Cast Shadows", &shadows))
+                    overrideMat->SetShadows(shadows);
+                // Outline / Bloom
+                bool outline = overrideMat->GetBool("outlineEnabled");
+                if (ImGui::Checkbox("Entity Outline / Glow", &outline))
+                {
+                    overrideMat->SetOutline(outline, overrideMat->GetVec3("outlineColor", glm::vec3(1.0f)),
+                                            overrideMat->GetFloat("bloomFactor", 0.0f),
+                                            overrideMat->GetFloat("outlineThickness", 0.05f));
+                }
+                if (outline)
+                {
+                    glm::vec3 gc = overrideMat->GetVec3("outlineColor", glm::vec3(1.0f));
+                    if (ImGui::ColorEdit3("Glow Color", &gc.x))
+                    {
+                        overrideMat->SetOutline(outline, gc, overrideMat->GetFloat("bloomFactor", 0.0f),
+                                                overrideMat->GetFloat("outlineThickness", 0.05f));
+                    }
+                    float bf = overrideMat->GetFloat("bloomFactor", 0.0f);
+                    if (ImGui::DragFloat("Bloom Factor", &bf, 0.1f, 0.0f, 10.0f))
+                    {
+                        overrideMat->SetOutline(outline, overrideMat->GetVec3("outlineColor", glm::vec3(1.0f)), bf,
+                                                overrideMat->GetFloat("outlineThickness", 0.05f));
+                    }
+                    float ot = overrideMat->GetFloat("outlineThickness", 0.05f);
+                    if (ImGui::DragFloat("Outline Thickness", &ot, 0.005f, 0.0f, 5.0f))
+                    {
+                        overrideMat->SetOutline(outline, overrideMat->GetVec3("outlineColor", glm::vec3(1.0f)),
+                                                overrideMat->GetFloat("bloomFactor", 0.0f), ot);
+                    }
+                }
+                ImGui::Separator();
+                bool overrideEmissive = overrideMat->GetBool("overrideEmissiveTint");
+                if (ImGui::Checkbox("Override Emissive Tint", &overrideEmissive))
+                {
+                    overrideMat->bools["overrideEmissiveTint"] = overrideEmissive;
+                    if (!overrideEmissive)
+                    {
+                        overrideMat->vec3s.erase("emission_tint");
+                    }
+                    else
+                    {
+                        overrideMat->vec3s["emission_tint"] = glm::vec3(1.0f);
+                    }
+                }
+                if (overrideEmissive)
+                {
+                    glm::vec3 eTint = overrideMat->GetVec3("emission_tint", glm::vec3(1.0f));
+                    if (ImGui::ColorEdit3("Global Emissive Tint", &eTint.x))
+                    {
+                        overrideMat->vec3s["emission_tint"] = eTint;
+                    }
+                }
+            }
+        }
+        if (entity->renderComp && ImGui::CollapsingHeader("Mesh Materials", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            for (size_t n = 0; n < entity->renderComp->nodes.size(); n++)
+            {
+                auto &node = entity->renderComp->nodes[n];
+                if (!node.mesh || !node.baseMaterial)
+                    continue;
+                std::string matHeader = "Mesh " + std::to_string(n) + " Base Material";
+                if (ImGui::TreeNode(matHeader.c_str()))
+                {
+                    Material *mat = node.baseMaterial.get();
+                    // Local helper lambdas
+                    auto EditFloat = [&](const char *label, const char *key, float def, float min, float max,
+                                         const char *tooltip, bool isSlider = false)
+                    {
+                        float v = mat->GetFloat(key, def);
+                        bool changed = isSlider ? ImGui::SliderFloat(label, &v, min, max)
+                                                : ImGui::DragFloat(label, &v, 1.0f, min, max);
+                        if (changed)
+                            mat->floats[key] = v;
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip(tooltip);
+                    };
+                    auto EditColor = [&](const char *label, const char *key, glm::vec3 def, const char *tooltip)
+                    {
+                        glm::vec3 v = mat->GetVec3(key, def);
+                        if (ImGui::ColorEdit3(label, &v.x))
+                            mat->vec3s[key] = v;
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip(tooltip);
+                    };
+                    // Standard Properties
+                    EditFloat("Shininess", "material_shininess", 32.0f, 1.0f, 256.0f, "Specular exponent");
+                    EditColor("Diffuse", "material_diffuseColor", glm::vec3(1.0f), "Base color");
+                    EditColor("Specular", "material_specularColor", glm::vec3(0.0f), "Specular color");
+                    EditFloat("Reflectivity", "material_reflectivity", 0.0f, 0.0f, 1.0f,
+                              "Environment reflection strength", true);
+                    EditFloat("Height Scale", "material_heightScale", 0.1f, 0.0f, 1.0f,
+                              "Parallax mapping displacement depth", true);
+                    const char *cullModes[] = {"Back", "Front", "None (Double-Sided)"};
+                    int cullIdx = (mat->cullMode == CullMode::Back)    ? 0
+                                  : (mat->cullMode == CullMode::Front) ? 1
+                                                                       : 2;
+                    if (ImGui::Combo("Cull Mode", &cullIdx, cullModes, 3))
+                    {
+                        mat->cullMode = (cullIdx == 0)   ? CullMode::Back
+                                        : (cullIdx == 1) ? CullMode::Front
+                                                         : CullMode::None;
+                    }
+                    ImGui::Checkbox("Transparent", &mat->isTransparent);
+                    // Texture Preview & Management
+                    if (ImGui::TreeNode("Textures"))
+                    {
+                        std::string keyToRemove;
+                        for (auto &[name, tex] : mat->textures)
+                        {
+                            if (!tex || tex->type == TextureType::TEX_CUBEMAP ||
+                                tex->type == TextureType::TEX_ENVIRONMENT)
+                                continue;
+                            ImGui::PushID(name.c_str());
+                            ImGui::Image((void *) (intptr_t) tex->ID, ImVec2(48, 48), ImVec2(0, 1), ImVec2(1, 0));
+                            if (ImGui::IsItemHovered())
+                            {
+                                ImGui::BeginTooltip();
+                                ImGui::Text("ID: %u (%dx%d)", tex->ID, tex->width, tex->height);
+                                ImGui::Image((void *) (intptr_t) tex->ID, ImVec2(128, 128), ImVec2(0, 1),
+                                             ImVec2(1, 0));
+                                ImGui::EndTooltip();
+                            }
+                            ImGui::SameLine();
+                            ImGui::BeginGroup();
+                            ImGui::TextColored(ImVec4(0.8f, 0.8f, 1.0f, 1.0f), "%s", name.c_str());
+                            ImGui::TextDisabled("%s", tex->path.c_str());
+                            if (ImGui::SmallButton("Remove"))
+                                keyToRemove = name;
+                            ImGui::EndGroup();
+                            ImGui::PopID();
+                            ImGui::Separator();
+                        }
+                        if (!keyToRemove.empty())
+                            mat->textures[keyToRemove] = nullptr;
+                        if (ImGui::Button("Load Texture..."))
+                            ImGui::OpenPopup("LoadTexturePopup");
+                        if (ImGui::BeginPopup("LoadTexturePopup"))
+                        {
+                            static char pathBuf[128] = "resources/textures/container2.jpg";
+                            static int typeIdx = 0;
+                            const char *typeNames[] = {"Diffuse",      "Specular", "Normal",
+                                                       "Displacement", "Metallic", "Roughness"};
+                            ImGui::InputText("File Path", pathBuf, 128);
+                            ImGui::Combo("Type", &typeIdx, typeNames, 6);
+                            TextureType selectedType = TextureType::TEX_DIFFUSE;
+                            const char *keyName = "material_diffuse";
+                            if (typeIdx == 1)
+                            {
+                                selectedType = TextureType::TEX_SPECULAR;
+                                keyName = "material_specular";
+                            }
+                            else if (typeIdx == 2)
+                            {
+                                selectedType = TextureType::TEX_NORMAL;
+                                keyName = "material_normal";
+                            }
+                            else if (typeIdx == 3)
+                            {
+                                selectedType = TextureType::TEX_DISPLACEMENT;
+                                keyName = "material_displacement";
+                            }
+                            else if (typeIdx == 4)
+                            {
+                                selectedType = TextureType::TEX_METALLIC;
+                                keyName = "material_metallic";
+                            }
+                            else if (typeIdx == 5)
+                            {
+                                selectedType = TextureType::TEX_ROUGHNESS;
+                                keyName = "material_roughness";
+                            }
+                            if (ImGui::Button("Load & Assign"))
+                            {
+                                auto newTex = ResourceManager::LoadTexture(pathBuf, selectedType);
+                                if (newTex)
+                                {
+                                    mat->textures[keyName] = newTex;
+                                    ImGui::CloseCurrentPopup();
+                                }
+                            }
+                            ImGui::EndPopup();
+                        }
+                        ImGui::TreePop();
+                    }
+                    ImGui::TreePop();
+                }
+            }
+        }
+    }
+    else
+    {
+        ImGui::TextDisabled("Select an entity to inspect.");
+    }
+    ImGui::End();
+
+    // 4. Lights Panel
+    ImGui::SetNextWindowPos(ImVec2(appState->width - panelWidth * 2.0f - padding * 2.0f, padding),
+                            ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(panelWidth, panelHeight + inspectorHeight + padding), ImGuiCond_Always);
+    ImGui::Begin("Lighting", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+    LightManager *lm = appState->lightManager.get();
+
+    if (lm)
+    {
+        if (ImGui::CollapsingHeader("Directional Light", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            ImGui::DragFloat3("Direction", &lm->GetDirLightDirection().x, 0.05f, -1.0f, 1.0f);
+            ImGui::ColorEdit3("Ambient##Dir", &lm->GetDirLightAmbient().x);
+            ImGui::ColorEdit3("Diffuse##Dir", &lm->GetDirLightDiffuse().x);
+            ImGui::ColorEdit3("Specular##Dir", &lm->GetDirLightSpecular().x);
+        }
+        if (ImGui::CollapsingHeader("Point Lights", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            for (int i = 0; i < lm->points.size(); i++)
+            {
+                ImGui::PushID(i);
+                bool &enabled = lm->points[i].enabled;
+                // Dim the tree node text if the light is disabled
+                if (!enabled)
+                    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
+                std::string lightLabel = "Point Light " + std::to_string(i);
+                if (ImGui::TreeNode(lightLabel.c_str()))
+                {
+                    if (!enabled)
+                        ImGui::PopStyleVar();
+                    ImGui::Checkbox("Enabled", &enabled);
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("Toggle this light on/off without deleting it");
+                    ImGui::DragFloat3("Position", &lm->points[i].position.x, 0.1f);
+                    ImGui::ColorEdit3("Ambient", &lm->points[i].ambient.x);
+                    ImGui::ColorEdit3("Diffuse", &lm->points[i].diffuse.x);
+                    ImGui::ColorEdit3("Specular", &lm->points[i].specular.x);
+                    ImGui::DragFloat("Radius", &lm->points[i].radius);
+                    ImGui::Separator();
+                    ImGui::Text("Attenuation");
+                    ImGui::DragFloat("Constant", &lm->points[i].constant, 0.01f, 0.0f, 2.0f);
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("Base intensity (usually 1.0)");
+                    ImGui::DragFloat("Linear", &lm->points[i].linear, 0.001f, 0.0f, 1.0f);
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("How fast light fades over distance");
+                    ImGui::DragFloat("Quadratic", &lm->points[i].quadratic, 0.0001f, 0.0f, 1.0f);
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("How fast light fades over distance squared (realistic falloff)");
+                    ImGui::Separator();
+                    if (ImGui::Button("Delete Light"))
+                    {
+                        lm->points.erase(lm->points.begin() + i);
+                        ImGui::TreePop();
+                        ImGui::PopID();
+                        break;
+                    }
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("Permanently remove this light from the scene");
+                    ImGui::TreePop();
+                }
+                else if (!enabled)
+                {
+                    ImGui::PopStyleVar();
+                }
+                ImGui::PopID();
+            }
+            if (ImGui::Button("+ Add Point Light"))
+            {
+                PointLight pl;
+                pl.position = appState->camera.Position + appState->camera.Front * 2.0f;
+                pl.diffuse = glm::vec3(1.0f);
+                pl.ambient = glm::vec3(0.1f);
+                pl.specular = glm::vec3(1.0f);
+                pl.constant = 1.0f;
+                pl.linear = 0.09f;
+                pl.quadratic = 0.032f;
+                lm->AddPointLight(pl);
+            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Spawn a new light in front of the camera");
+        }
+    }
+    ImGui::End();
+
+    // Performance Stats (bottom-left corner)
+    ImGui::SetNextWindowPos(ImVec2(padding, appState->height - 40.0f), ImGuiCond_Always);
+    ImGui::Begin("Stats", nullptr,
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
+                     ImGuiWindowFlags_NoMove);
+    ImGui::Text("FPS: %.1f (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
+    ImGui::End();
+
+    // 3. Global Settings Panel (positioned at top-left)
+    ImGui::SetNextWindowPos(ImVec2(padding, padding), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(260, 0), ImGuiCond_Always);
+    ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
+    if (ImGui::CollapsingHeader("Rendering", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        if (ImGui::Checkbox("Wireframe Mode (F)", &appState->wireframeEnabled))
+        {
+            glPolygonMode(GL_FRONT_AND_BACK, appState->wireframeEnabled ? GL_LINE : GL_FILL);
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Global toggle for wireframe rendering");
+        Renderer *renderer = appState->renderer.get();
+        if (renderer)
+        {
+            ImGui::Separator();
+            ImGui::Checkbox("Deferred Rendering", &renderer->useDeferred);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Toggle between Deferred and Forward rendering pipelines");
+            if (ImGui::CollapsingHeader("IBL Settings"))
+            {
+                ImGui::Text("IBL Strength");
+                ImGui::SetNextItemWidth(-1.0f);
+                ImGui::SliderFloat("##IBL Strength", &renderer->iblStrength, 0.0f, 50.0f);
+            }
+            ImGui::Separator();
+            ImGui::Checkbox("Force Outlines", &renderer->forceOutlines);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Globally force outlines on all objects");
+            ImGui::Separator();
+            ImGui::Text("Camera Speed");
+            ImGui::SetNextItemWidth(-1.0f);
+            ImGui::SliderFloat("##Camera Speed", &appState->camera.MovementSpeed, 0.0f, 200.0f);
+            ImGui::Separator();
+            // MSAA Toggle (Informational / Toggle bit)
+            static bool msaa = true;
+            if (ImGui::Checkbox("Anti-Aliasing (MSAA)", &msaa))
+            {
+                if (msaa)
+                    glEnable(GL_MULTISAMPLE);
+                else
+                    glDisable(GL_MULTISAMPLE);
+            }
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Smooth jagged edges using hardware multisampling. (Applies to main scene FBO)");
+        }
+    }
+
+    if (ImGui::CollapsingHeader("Scene"))
+    {
+        ImGui::ColorEdit3("Clear Color", &currentScene->clearColor.x);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Background color of the viewport");
+    }
+    if (ImGui::CollapsingHeader("Post-Processing", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        PostProcessingPipeline *pipeline = currentScene->GetPostPipeline();
+        if (pipeline)
+        {
+            ImGui::Checkbox("Bloom", &pipeline->IsBloomEnabled());
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Enable high-intensity glow effect for bright surfaces");
+            if (pipeline->IsBloomEnabled())
+            {
+                ImGui::Indent();
+                ImGui::SliderInt("Intensity (Blur)", &pipeline->bloomIterations, 1, 20);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Number of blur passes. Higher = smoother, wider glow (impacts performance)");
+                ImGui::Unindent();
+            }
+            ImGui::Separator();
+            auto &effects = pipeline->GetEffects();
+            for (auto &effect : effects)
+            {
+                ImGui::PushID(effect->name.c_str());
+                ImGui::Checkbox(effect->name.c_str(), &effect->enabled);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip(("Toggle " + effect->name + " effect").c_str());
+                if (effect->enabled)
+                {
+                    ImGui::Indent();
+                    if (effect->name == "Tone Mapping")
+                    {
+                        ImGui::SliderFloat("Exposure", &effect->intensity, 0.1f, 5.0f);
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("Overall brightness of the scene (HDR)");
+                    }
+                    else if (effect->name == "Gamma Correction")
+                    {
+                        ImGui::SliderFloat("Gamma", &effect->intensity, 1.0f, 3.0f);
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("Brightness curve adjustment (usually 2.2)");
+                    }
+                    else if (effect->name == "Sharpen")
+                    {
+                        ImGui::SliderFloat("Strength", &effect->intensity, 0.0f, 5.0f);
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("Edge enhancement strength");
+                    }
+                    ImGui::Unindent();
+                }
+                ImGui::PopID();
+            }
+        }
+    }
+
+    if (appState->renderer)
+        appState->renderer->RenderGBufferImGuiWindow();
+    
+    ImGui::End();
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void Application::Run()
@@ -185,663 +783,8 @@ void Application::Run()
         Update(appState->deltaTime);
         Render();
 
-        // Render UI
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        Scene *currentScene = appState->scenes[appState->currentSceneIndex].get();
-
-        // Status toast state
-        static float toastTimer = 0.0f;
-        static std::string toastMsg;
-
-        // Shortcuts
-        if (ImGui::GetIO().KeyCtrl)
-        {
-            if (ImGui::IsKeyPressed(ImGuiKey_S))
-            {
-                std::string filepath = "scenes/" + currentScene->Name() + ".json";
-                if (SceneSerializer::Serialize(currentScene, appState->lightManager.get(), filepath))
-                {
-                    toastMsg = "Scene saved!";
-                    toastTimer = 2.0f;
-                }
-            }
-            if (ImGui::IsKeyPressed(ImGuiKey_O))
-            {
-                std::string filepath = "scenes/" + currentScene->Name() + ".json";
-                if (SceneSerializer::Deserialize(currentScene, appState->lightManager.get(), filepath))
-                {
-                    toastMsg = "Scene loaded!";
-                    toastTimer = 2.0f;
-                }
-            }
-        }
-
-        // Toast notification
-        if (toastTimer > 0.0f)
-        {
-            toastTimer -= appState->deltaTime;
-            float alpha = (toastTimer < 0.5f) ? toastTimer * 2.0f : 1.0f;
-            ImGui::SetNextWindowPos(ImVec2(appState->width * 0.5f, 40.0f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-            ImGui::SetNextWindowBgAlpha(alpha * 0.85f);
-            ImGui::Begin("##Toast", nullptr,
-                         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
-                             ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoInputs);
-            ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.5f, alpha), "%s", toastMsg.c_str());
-            ImGui::End();
-        }
-
-        // 1. Scene Hierarchy Panel (positioned on the right side)
-        float panelWidth = 280.0f;
-        float panelHeight = 350.0f;
-        float padding = 10.0f;
-
-        ImGui::SetNextWindowPos(ImVec2(appState->width - panelWidth - padding, padding), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(panelWidth, panelHeight), ImGuiCond_Always);
-        ImGui::Begin("Scene Hierarchy", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
-
-        auto &sceneEntities = currentScene->GetEntities();
-
-        // Scene switcher combo
-        if (appState->scenes.size() > 1)
-        {
-            if (ImGui::BeginCombo("##SceneCombo", currentScene->Name().c_str()))
-            {
-                for (int s = 0; s < (int) appState->scenes.size(); s++)
-                {
-                    bool isCurrent = (s == appState->currentSceneIndex);
-                    if (ImGui::Selectable(appState->scenes[s]->Name().c_str(), isCurrent))
-                    {
-                        if (!isCurrent)
-                        {
-                            appState->currentSceneIndex = s;
-                            appState->selectedEntity = nullptr;
-                            appState->scenes[s]->OnActivate(*appState);
-                            appState->camera.SetDefault();
-                            currentScene = appState->scenes[s].get();
-                        }
-                    }
-                    if (isCurrent)
-                        ImGui::SetItemDefaultFocus();
-                }
-                ImGui::EndCombo();
-            }
-        }
-        else
-        {
-            ImGui::TextColored(ImVec4(0.6f, 0.8f, 1.0f, 1.0f), "Scene: %s", currentScene->Name().c_str());
-        }
-
-        // Save/Load buttons
-        if (ImGui::Button("Save"))
-        {
-            std::string filepath = "scenes/" + currentScene->Name() + ".json";
-            if (SceneSerializer::Serialize(currentScene, appState->lightManager.get(), filepath))
-            {
-                toastMsg = "Scene saved!";
-                toastTimer = 2.0f;
-            }
-        }
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Ctrl+S");
-        ImGui::SameLine();
-        if (ImGui::Button("Load"))
-        {
-            std::string filepath = "scenes/" + currentScene->Name() + ".json";
-            if (SceneSerializer::Deserialize(currentScene, appState->lightManager.get(), filepath))
-            {
-                toastMsg = "Scene loaded!";
-                toastTimer = 2.0f;
-            }
-        }
-        if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Ctrl+O");
-        ImGui::Separator();
-
-        for (int i = 0; i < sceneEntities.size(); i++)
-        {
-            ImGui::PushID(i);
-            Entity *entity = sceneEntities[i].get();
-            std::string nameText = entity->name.empty() ? "Entity #" + std::to_string(i) : entity->name;
-
-            bool isSelected = (appState->selectedEntity == sceneEntities[i]);
-
-            // selection highlighting with background color
-            if (isSelected)
-            {
-                ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.2f, 0.5f, 0.8f, 1.0f)); // Blue background when selected
-                ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.3f, 0.6f, 0.9f, 1.0f)); // Lighter blue on hover
-                ImGui::PushStyleColor(ImGuiCol_HeaderActive,
-                                      ImVec4(0.1f, 0.4f, 0.7f, 1.0f));                // Darker blue when clicked
-                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 1.0f, 1.0f, 1.0f)); // White text
-            }
-
-            if (ImGui::Selectable(nameText.c_str(), isSelected))
-            {
-                if (isSelected)
-                {
-                    appState->selectedEntity = nullptr;
-                }
-                else
-                {
-                    appState->selectedEntity = sceneEntities[i];
-                }
-            }
-
-            if (isSelected)
-            {
-                ImGui::PopStyleColor(4);
-            }
-
-            ImGui::PopID();
-        }
-        ImGui::End();
-
-        // 2. Inspector Panel (positioned below hierarchy)
-        float inspectorY = padding + panelHeight + padding;
-        float inspectorHeight = appState->height - inspectorY - padding - 50.0f; // Leave space for stats
-
-        ImGui::SetNextWindowPos(ImVec2(appState->width - panelWidth - padding, inspectorY), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(panelWidth, inspectorHeight), ImGuiCond_Always);
-        ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
-
-        if (appState->selectedEntity)
-        {
-            Entity *entity = appState->selectedEntity.get();
-            ImGui::TextColored(ImVec4(0.4f, 0.9f, 0.4f, 1.0f), "%s", entity->name.c_str());
-            ImGui::Separator();
-
-            // Transform Component
-            if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
-            {
-                ImGui::DragFloat3("Position", &entity->transform.position.x, 0.1f);
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("World-space position (X, Y, Z)");
-
-                ImGui::DragFloat3("Rotation", &entity->transform.rotation.x, 1.0f);
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Euler rotation in degrees");
-
-                ImGui::DragFloat3("Scale", &entity->transform.scale.x, 0.05f);
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Scale multiplier per axis");
-            }
-
-            // Render Component (Material Editing)
-            if (entity->renderComp && ImGui::CollapsingHeader("Entity Overrides", ImGuiTreeNodeFlags_DefaultOpen))
-            {
-                Material *overrideMat = entity->GetOverrideMaterial().get();
-
-                if (overrideMat)
-                {
-                    bool wireframe = overrideMat->GetBool("wireframe");
-                    if (ImGui::Checkbox("Force Wireframe", &wireframe))
-                        overrideMat->SetWireframe(wireframe);
-
-                    bool forceFwd = overrideMat->GetBool("forceForward");
-                    if (ImGui::Checkbox("Force Forward Pass", &forceFwd))
-                        overrideMat->bools["forceForward"] = forceFwd;
-
-                    bool shadows = overrideMat->GetBool("castShadows", true);
-                    if (ImGui::Checkbox("Override Cast Shadows", &shadows))
-                        overrideMat->SetShadows(shadows);
-
-                    // Outline / Bloom
-                    bool outline = overrideMat->GetBool("outlineEnabled");
-                    if (ImGui::Checkbox("Entity Outline / Glow", &outline))
-                    {
-                        overrideMat->SetOutline(outline, overrideMat->GetVec3("outlineColor", glm::vec3(1.0f)),
-                                                overrideMat->GetFloat("bloomFactor", 0.0f),
-                                                overrideMat->GetFloat("outlineThickness", 0.05f));
-                    }
-
-                    if (outline)
-                    {
-                        glm::vec3 gc = overrideMat->GetVec3("outlineColor", glm::vec3(1.0f));
-                        if (ImGui::ColorEdit3("Glow Color", &gc.x))
-                        {
-                            overrideMat->SetOutline(outline, gc, overrideMat->GetFloat("bloomFactor", 0.0f),
-                                                    overrideMat->GetFloat("outlineThickness", 0.05f));
-                        }
-
-                        float bf = overrideMat->GetFloat("bloomFactor", 0.0f);
-                        if (ImGui::DragFloat("Bloom Factor", &bf, 0.1f, 0.0f, 10.0f))
-                        {
-                            overrideMat->SetOutline(outline, overrideMat->GetVec3("outlineColor", glm::vec3(1.0f)), bf,
-                                                    overrideMat->GetFloat("outlineThickness", 0.05f));
-                        }
-
-                        float ot = overrideMat->GetFloat("outlineThickness", 0.05f);
-                        if (ImGui::DragFloat("Outline Thickness", &ot, 0.005f, 0.0f, 5.0f))
-                        {
-                            overrideMat->SetOutline(outline, overrideMat->GetVec3("outlineColor", glm::vec3(1.0f)),
-                                                    overrideMat->GetFloat("bloomFactor", 0.0f), ot);
-                        }
-                    }
-
-                    ImGui::Separator();
-
-                    bool overrideEmissive = overrideMat->GetBool("overrideEmissiveTint");
-                    if (ImGui::Checkbox("Override Emissive Tint", &overrideEmissive))
-                    {
-                        overrideMat->bools["overrideEmissiveTint"] = overrideEmissive;
-                        if (!overrideEmissive)
-                        {
-                            overrideMat->vec3s.erase("emission_tint");
-                        }
-                        else
-                        {
-                            overrideMat->vec3s["emission_tint"] = glm::vec3(1.0f);
-                        }
-                    }
-
-                    if (overrideEmissive)
-                    {
-                        glm::vec3 eTint = overrideMat->GetVec3("emission_tint", glm::vec3(1.0f));
-                        if (ImGui::ColorEdit3("Global Emissive Tint", &eTint.x))
-                        {
-                            overrideMat->vec3s["emission_tint"] = eTint;
-                        }
-                    }
-                }
-            }
-
-            if (entity->renderComp && ImGui::CollapsingHeader("Mesh Materials", ImGuiTreeNodeFlags_DefaultOpen))
-            {
-                for (size_t n = 0; n < entity->renderComp->nodes.size(); n++)
-                {
-                    auto &node = entity->renderComp->nodes[n];
-                    if (!node.mesh || !node.baseMaterial)
-                        continue;
-
-                    std::string matHeader = "Mesh " + std::to_string(n) + " Base Material";
-                    if (ImGui::TreeNode(matHeader.c_str()))
-                    {
-                        Material *mat = node.baseMaterial.get();
-
-                        // Local helper lambdas
-                        auto EditFloat = [&](const char *label, const char *key, float def, float min, float max,
-                                             const char *tooltip, bool isSlider = false)
-                        {
-                            float v = mat->GetFloat(key, def);
-                            bool changed = isSlider ? ImGui::SliderFloat(label, &v, min, max)
-                                                    : ImGui::DragFloat(label, &v, 1.0f, min, max);
-                            if (changed)
-                                mat->floats[key] = v;
-                            if (ImGui::IsItemHovered())
-                                ImGui::SetTooltip(tooltip);
-                        };
-
-                        auto EditColor = [&](const char *label, const char *key, glm::vec3 def, const char *tooltip)
-                        {
-                            glm::vec3 v = mat->GetVec3(key, def);
-                            if (ImGui::ColorEdit3(label, &v.x))
-                                mat->vec3s[key] = v;
-                            if (ImGui::IsItemHovered())
-                                ImGui::SetTooltip(tooltip);
-                        };
-
-                        // Standard Properties
-                        EditFloat("Shininess", "material_shininess", 32.0f, 1.0f, 256.0f, "Specular exponent");
-                        EditColor("Diffuse", "material_diffuseColor", glm::vec3(1.0f), "Base color");
-                        EditColor("Specular", "material_specularColor", glm::vec3(0.0f), "Specular color");
-                        EditFloat("Reflectivity", "material_reflectivity", 0.0f, 0.0f, 1.0f,
-                                  "Environment reflection strength", true);
-                        EditFloat("Height Scale", "material_heightScale", 0.1f, 0.0f, 1.0f,
-                                  "Parallax mapping displacement depth", true);
-
-                        const char *cullModes[] = {"Back", "Front", "None (Double-Sided)"};
-                        int cullIdx = (mat->cullMode == CullMode::Back)    ? 0
-                                      : (mat->cullMode == CullMode::Front) ? 1
-                                                                           : 2;
-                        if (ImGui::Combo("Cull Mode", &cullIdx, cullModes, 3))
-                        {
-                            mat->cullMode = (cullIdx == 0)   ? CullMode::Back
-                                            : (cullIdx == 1) ? CullMode::Front
-                                                             : CullMode::None;
-                        }
-
-                        ImGui::Checkbox("Transparent", &mat->isTransparent);
-
-                        // Texture Preview & Management
-                        if (ImGui::TreeNode("Textures"))
-                        {
-                            std::string keyToRemove;
-
-                            for (auto &[name, tex] : mat->textures)
-                            {
-                                if (!tex || tex->type == TextureType::TEX_CUBEMAP ||
-                                    tex->type == TextureType::TEX_ENVIRONMENT)
-                                    continue;
-
-                                ImGui::PushID(name.c_str());
-                                ImGui::Image((void *) (intptr_t) tex->ID, ImVec2(48, 48), ImVec2(0, 1), ImVec2(1, 0));
-
-                                if (ImGui::IsItemHovered())
-                                {
-                                    ImGui::BeginTooltip();
-                                    ImGui::Text("ID: %u (%dx%d)", tex->ID, tex->width, tex->height);
-                                    ImGui::Image((void *) (intptr_t) tex->ID, ImVec2(128, 128), ImVec2(0, 1),
-                                                 ImVec2(1, 0));
-                                    ImGui::EndTooltip();
-                                }
-
-                                ImGui::SameLine();
-                                ImGui::BeginGroup();
-                                ImGui::TextColored(ImVec4(0.8f, 0.8f, 1.0f, 1.0f), "%s", name.c_str());
-                                ImGui::TextDisabled("%s", tex->path.c_str());
-
-                                if (ImGui::SmallButton("Remove"))
-                                    keyToRemove = name;
-                                ImGui::EndGroup();
-                                ImGui::PopID();
-                                ImGui::Separator();
-                            }
-
-                            if (!keyToRemove.empty())
-                                mat->textures[keyToRemove] = nullptr;
-
-                            if (ImGui::Button("Load Texture..."))
-                                ImGui::OpenPopup("LoadTexturePopup");
-
-                            if (ImGui::BeginPopup("LoadTexturePopup"))
-                            {
-                                static char pathBuf[128] = "resources/textures/container2.jpg";
-                                static int typeIdx = 0;
-                                const char *typeNames[] = {"Diffuse",      "Specular", "Normal",
-                                                           "Displacement", "Metallic", "Roughness"};
-
-                                ImGui::InputText("File Path", pathBuf, 128);
-                                ImGui::Combo("Type", &typeIdx, typeNames, 6);
-
-                                TextureType selectedType = TextureType::TEX_DIFFUSE;
-                                const char *keyName = "material_diffuse";
-
-                                if (typeIdx == 1)
-                                {
-                                    selectedType = TextureType::TEX_SPECULAR;
-                                    keyName = "material_specular";
-                                }
-                                else if (typeIdx == 2)
-                                {
-                                    selectedType = TextureType::TEX_NORMAL;
-                                    keyName = "material_normal";
-                                }
-                                else if (typeIdx == 3)
-                                {
-                                    selectedType = TextureType::TEX_DISPLACEMENT;
-                                    keyName = "material_displacement";
-                                }
-                                else if (typeIdx == 4)
-                                {
-                                    selectedType = TextureType::TEX_METALLIC;
-                                    keyName = "material_metallic";
-                                }
-                                else if (typeIdx == 5)
-                                {
-                                    selectedType = TextureType::TEX_ROUGHNESS;
-                                    keyName = "material_roughness";
-                                }
-
-                                if (ImGui::Button("Load & Assign"))
-                                {
-                                    auto newTex = ResourceManager::LoadTexture(pathBuf, selectedType);
-                                    if (newTex)
-                                    {
-                                        mat->textures[keyName] = newTex;
-                                        ImGui::CloseCurrentPopup();
-                                    }
-                                }
-                                ImGui::EndPopup();
-                            }
-                            ImGui::TreePop();
-                        }
-                        ImGui::TreePop();
-                    }
-                }
-            }
-        }
-        else
-        {
-            ImGui::TextDisabled("Select an entity to inspect.");
-        }
-        ImGui::End();
-
-        // 4. Lights Panel
-        ImGui::SetNextWindowPos(ImVec2(appState->width - panelWidth * 2.0f - padding * 2.0f, padding),
-                                ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(panelWidth, panelHeight + inspectorHeight + padding), ImGuiCond_Always);
-        ImGui::Begin("Lighting", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
-
-        LightManager *lm = appState->lightManager.get();
-        if (lm)
-        {
-            if (ImGui::CollapsingHeader("Directional Light", ImGuiTreeNodeFlags_DefaultOpen))
-            {
-                ImGui::DragFloat3("Direction", &lm->GetDirLightDirection().x, 0.05f, -1.0f, 1.0f);
-                ImGui::ColorEdit3("Ambient##Dir", &lm->GetDirLightAmbient().x);
-                ImGui::ColorEdit3("Diffuse##Dir", &lm->GetDirLightDiffuse().x);
-                ImGui::ColorEdit3("Specular##Dir", &lm->GetDirLightSpecular().x);
-            }
-
-            if (ImGui::CollapsingHeader("Point Lights", ImGuiTreeNodeFlags_DefaultOpen))
-            {
-                for (int i = 0; i < lm->points.size(); i++)
-                {
-                    ImGui::PushID(i);
-                    bool &enabled = lm->points[i].enabled;
-
-                    // Dim the tree node text if the light is disabled
-                    if (!enabled)
-                        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.5f);
-
-                    std::string lightLabel = "Point Light " + std::to_string(i);
-                    if (ImGui::TreeNode(lightLabel.c_str()))
-                    {
-                        if (!enabled)
-                            ImGui::PopStyleVar();
-
-                        ImGui::Checkbox("Enabled", &enabled);
-                        if (ImGui::IsItemHovered())
-                            ImGui::SetTooltip("Toggle this light on/off without deleting it");
-
-                        ImGui::DragFloat3("Position", &lm->points[i].position.x, 0.1f);
-                        ImGui::ColorEdit3("Ambient", &lm->points[i].ambient.x);
-                        ImGui::ColorEdit3("Diffuse", &lm->points[i].diffuse.x);
-                        ImGui::ColorEdit3("Specular", &lm->points[i].specular.x);
-                        ImGui::DragFloat("Radius", &lm->points[i].radius);
-
-                        ImGui::Separator();
-                        ImGui::Text("Attenuation");
-                        ImGui::DragFloat("Constant", &lm->points[i].constant, 0.01f, 0.0f, 2.0f);
-                        if (ImGui::IsItemHovered())
-                            ImGui::SetTooltip("Base intensity (usually 1.0)");
-
-                        ImGui::DragFloat("Linear", &lm->points[i].linear, 0.001f, 0.0f, 1.0f);
-                        if (ImGui::IsItemHovered())
-                            ImGui::SetTooltip("How fast light fades over distance");
-
-                        ImGui::DragFloat("Quadratic", &lm->points[i].quadratic, 0.0001f, 0.0f, 1.0f);
-                        if (ImGui::IsItemHovered())
-                            ImGui::SetTooltip("How fast light fades over distance squared (realistic falloff)");
-
-                        ImGui::Separator();
-                        if (ImGui::Button("Delete Light"))
-                        {
-                            lm->points.erase(lm->points.begin() + i);
-                            ImGui::TreePop();
-                            ImGui::PopID();
-                            break;
-                        }
-                        if (ImGui::IsItemHovered())
-                            ImGui::SetTooltip("Permanently remove this light from the scene");
-
-                        ImGui::TreePop();
-                    }
-                    else if (!enabled)
-                    {
-                        ImGui::PopStyleVar();
-                    }
-                    ImGui::PopID();
-                }
-
-                if (ImGui::Button("+ Add Point Light"))
-                {
-                    PointLight pl;
-                    pl.position = appState->camera.Position + appState->camera.Front * 2.0f;
-                    pl.diffuse = glm::vec3(1.0f);
-                    pl.ambient = glm::vec3(0.1f);
-                    pl.specular = glm::vec3(1.0f);
-                    pl.constant = 1.0f;
-                    pl.linear = 0.09f;
-                    pl.quadratic = 0.032f;
-                    lm->AddPointLight(pl);
-                }
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Spawn a new light in front of the camera");
-            }
-        }
-        ImGui::End();
-
-        // Performance Stats (bottom-left corner)
-        ImGui::SetNextWindowPos(ImVec2(padding, appState->height - 40.0f), ImGuiCond_Always);
-        ImGui::Begin("Stats", nullptr,
-                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
-                         ImGuiWindowFlags_NoMove);
-        ImGui::Text("FPS: %.1f (%.3f ms/frame)", ImGui::GetIO().Framerate, 1000.0f / ImGui::GetIO().Framerate);
-        ImGui::End();
-
-        // 3. Global Settings Panel (positioned at top-left)
-        ImGui::SetNextWindowPos(ImVec2(padding, padding), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(260, 0), ImGuiCond_Always);
-        ImGui::Begin("Settings", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
-
-        if (ImGui::CollapsingHeader("Rendering", ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            if (ImGui::Checkbox("Wireframe Mode (F)", &appState->wireframeEnabled))
-            {
-                glPolygonMode(GL_FRONT_AND_BACK, appState->wireframeEnabled ? GL_LINE : GL_FILL);
-            }
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Global toggle for wireframe rendering");
-
-            Renderer *renderer = appState->renderer.get();
-            if (renderer)
-            {
-                ImGui::Separator();
-
-                ImGui::Checkbox("Deferred Rendering", &renderer->useDeferred);
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Toggle between Deferred and Forward rendering pipelines");
-
-                if (ImGui::CollapsingHeader("IBL Settings"))
-                {
-                    ImGui::Text("IBL Strength");
-                    ImGui::SetNextItemWidth(-1.0f);
-                    ImGui::SliderFloat("##IBL Strength", &renderer->iblStrength, 0.0f, 50.0f);
-                }
-
-                ImGui::Separator();
-
-                ImGui::Checkbox("Force Outlines", &renderer->forceOutlines);
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Globally force outlines on all objects");
-
-                ImGui::Separator();
-
-                ImGui::Text("Camera Speed");
-                ImGui::SetNextItemWidth(-1.0f);
-                ImGui::SliderFloat("##Camera Speed", &appState->camera.MovementSpeed, 0.0f, 200.0f);
-
-                ImGui::Separator();
-
-                // MSAA Toggle (Informational / Toggle bit)
-                static bool msaa = true;
-                if (ImGui::Checkbox("Anti-Aliasing (MSAA)", &msaa))
-                {
-                    if (msaa)
-                        glEnable(GL_MULTISAMPLE);
-                    else
-                        glDisable(GL_MULTISAMPLE);
-                }
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Smooth jagged edges using hardware multisampling. (Applies to main scene FBO)");
-            }
-        }
-
-        if (ImGui::CollapsingHeader("Scene"))
-        {
-            ImGui::ColorEdit3("Clear Color", &currentScene->clearColor.x);
-            if (ImGui::IsItemHovered())
-                ImGui::SetTooltip("Background color of the viewport");
-        }
-
-        if (ImGui::CollapsingHeader("Post-Processing", ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            PostProcessingPipeline *pipeline = currentScene->GetPostPipeline();
-            if (pipeline)
-            {
-                ImGui::Checkbox("Bloom", &pipeline->IsBloomEnabled());
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Enable high-intensity glow effect for bright surfaces");
-
-                if (pipeline->IsBloomEnabled())
-                {
-                    ImGui::Indent();
-                    ImGui::SliderInt("Intensity (Blur)", &pipeline->bloomIterations, 1, 20);
-                    if (ImGui::IsItemHovered())
-                        ImGui::SetTooltip("Number of blur passes. Higher = smoother, wider glow (impacts performance)");
-                    ImGui::Unindent();
-                }
-
-                ImGui::Separator();
-
-                auto &effects = pipeline->GetEffects();
-                for (auto &effect : effects)
-                {
-                    ImGui::PushID(effect->name.c_str());
-                    ImGui::Checkbox(effect->name.c_str(), &effect->enabled);
-                    if (ImGui::IsItemHovered())
-                        ImGui::SetTooltip(("Toggle " + effect->name + " effect").c_str());
-
-                    if (effect->enabled)
-                    {
-                        ImGui::Indent();
-                        if (effect->name == "Tone Mapping")
-                        {
-                            ImGui::SliderFloat("Exposure", &effect->intensity, 0.1f, 5.0f);
-                            if (ImGui::IsItemHovered())
-                                ImGui::SetTooltip("Overall brightness of the scene (HDR)");
-                        }
-                        else if (effect->name == "Gamma Correction")
-                        {
-                            ImGui::SliderFloat("Gamma", &effect->intensity, 1.0f, 3.0f);
-                            if (ImGui::IsItemHovered())
-                                ImGui::SetTooltip("Brightness curve adjustment (usually 2.2)");
-                        }
-                        else if (effect->name == "Sharpen")
-                        {
-                            ImGui::SliderFloat("Strength", &effect->intensity, 0.0f, 5.0f);
-                            if (ImGui::IsItemHovered())
-                                ImGui::SetTooltip("Edge enhancement strength");
-                        }
-                        ImGui::Unindent();
-                    }
-                    ImGui::PopID();
-                }
-            }
-        }
-
-        if (appState->renderer)
-            appState->renderer->RenderGBufferImGuiWindow();
-
-        ImGui::End();
-
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
+        if (showUI) RenderUI(); 
+        
         window->SwapBuffers();
         window->PollEvents();
     }

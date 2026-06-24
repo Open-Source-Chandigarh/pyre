@@ -320,6 +320,7 @@ static json SerializePointLight(const PointLight &pl)
     j["ambient"] = Vec3ToJson(pl.ambient);
     j["diffuse"] = Vec3ToJson(pl.diffuse);
     j["specular"] = Vec3ToJson(pl.specular);
+    j["radius"] = pl.radius;
     j["constant"] = pl.constant;
     j["linear"] = pl.linear;
     j["quadratic"] = pl.quadratic;
@@ -337,6 +338,8 @@ static void DeserializePointLight(PointLight &pl, const json &j)
         pl.diffuse = JsonToVec3(j["diffuse"]);
     if (j.contains("specular"))
         pl.specular = JsonToVec3(j["specular"]);
+    if (j.contains("radius"))
+        pl.radius = j["radius"].get<float>();
     if (j.contains("constant"))
         pl.constant = j["constant"].get<float>();
     if (j.contains("linear"))

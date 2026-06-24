@@ -364,7 +364,7 @@ std::shared_ptr<Texture> ResourceManager::PreFilterEnvironmentMap(const std::sha
 
     for (unsigned int i = 0; i < 6; i++)
     {
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 256, 256, 0, GL_RGB, GL_FLOAT, nullptr);
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 512, 512, 0, GL_RGB, GL_FLOAT, nullptr);
     }
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -395,7 +395,7 @@ std::shared_ptr<Texture> ResourceManager::PreFilterEnvironmentMap(const std::sha
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, envMap->ID);
 
-    std::unique_ptr<Framebuffer> captureFBO = std::make_unique<Framebuffer>(256, 256, true, false, false);
+    std::unique_ptr<Framebuffer> captureFBO = std::make_unique<Framebuffer>(512, 512, true, false, false);
 
     std::shared_ptr<Mesh> unitCube = GeometryFactory::CreateCube();
     glDisable(GL_CULL_FACE);
@@ -405,8 +405,8 @@ std::shared_ptr<Texture> ResourceManager::PreFilterEnvironmentMap(const std::sha
     for (unsigned int mip = 0; mip < maxMipLevels; mip++)
     {
         // calculate dimensions for this mip map level
-        unsigned int mipWidth = static_cast<unsigned int>(256 * std::pow(0.5, mip));
-        unsigned int mipHeight = static_cast<unsigned int>(256 * std::pow(0.5, mip));
+        unsigned int mipWidth = static_cast<unsigned int>(512 * std::pow(0.5, mip));
+        unsigned int mipHeight = static_cast<unsigned int>(512 * std::pow(0.5, mip));
 
         // resize the fbo this rebuilts the depth buffer with the current mip size
         captureFBO->Resize(mipWidth, mipHeight);
@@ -436,8 +436,8 @@ std::shared_ptr<Texture> ResourceManager::PreFilterEnvironmentMap(const std::sha
     auto finalPrefilterMap = std::make_shared<Texture>();
     finalPrefilterMap->ID = prefilterMap;
     finalPrefilterMap->type = TextureType::TEX_ENVIRONMENT;
-    finalPrefilterMap->width = 256;
-    finalPrefilterMap->height = 256;
+    finalPrefilterMap->width = 512;
+    finalPrefilterMap->height = 512;
     finalPrefilterMap->channels = 3;
     finalPrefilterMap->path = "PREFILTER_" + envMap->path;
 

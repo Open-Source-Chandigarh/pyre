@@ -3,7 +3,7 @@
 layout (location = 0) out vec4 FragColor;
 layout (location = 1) out vec4 BrightColor;
 
-layout (binding = 5) uniform sampler2D gPosition;
+layout (binding = 5) uniform sampler2D gDepth;
 layout (binding = 6) uniform sampler2D gNormal;
 layout (binding = 7) uniform sampler2D gAlbedoSpec;
 layout (binding = 14) uniform sampler2D gEmissive;
@@ -34,17 +34,25 @@ float GetShininess() {
     return max((1.0 - roughness) * 256.0, 0.001);
 }
 
+vec3 ReconstructPosition(vec2 uv, float depth) 
+{
+    float z = depth * 2.0 - 1.0; 
+    vec4 ndcPos = vec4(uv * 2.0 - 1.0, z, 1.0); 
+    vec4 worldPos = inverse(proj * view) * ndcPos; 
+    return worldPos.xyz / worldPos.w; 
+}
+
 #include "../includes/lightingCommon.glsl"
 
 void main()
 {
     // calculate UV based on screen coordinates
-    TexCoords = gl_FragCoord.xy / vec2(textureSize(gPosition, 0));
+    TexCoords = gl_FragCoord.xy / vec2(textureSize(gDepth, 0));
 
-    float depth = texture(gPosition, TexCoords).a;
-    if (depth <= 0.0) discard;
+    float depth = texture(gDepth, TexCoords).r;
+    if (depth == 1.0) discard;
 
-    vec3 fragPos = texture(gPosition, TexCoords).rgb;
+    vec3 fragPos = ReconstructPosition(TexCoords, depth);
     vec3 normal  = normalize(texture(gNormal, TexCoords).rgb);
     vec3 viewDir = normalize(vec3(viewPos) - fragPos);
 

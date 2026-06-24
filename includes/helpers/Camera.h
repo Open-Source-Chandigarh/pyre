@@ -150,14 +150,6 @@ class Camera
             Zoom = 45.0f;
     }
 
-  private:
-    // Initial State for Reset
-    glm::vec3 StartPosition;
-    glm::vec3 StartWorldUp;
-    float StartYaw;
-    float StartPitch;
-    float StartZoom;
-
     // calculates the front vector from the Camera's (updated) Euler Angles
     void updateCameraVectors()
     {
@@ -169,4 +161,12 @@ class Camera
         Right = glm::normalize(glm::cross(Front, WorldUp));
         Up = glm::normalize(glm::cross(Right, Front));
     }
+
+  private:
+    // Initial State for Reset
+    glm::vec3 StartPosition;
+    glm::vec3 StartWorldUp;
+    float StartYaw;
+    float StartPitch;
+    float StartZoom;
 };

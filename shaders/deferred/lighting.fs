@@ -4,7 +4,7 @@ layout (location = 1) out vec4 BrightColor;
 
 in vec2 TexCoords;
 
-layout (binding = 5) uniform sampler2D gPosition;
+layout (binding = 5) uniform sampler2D gDepth;
 layout (binding = 6) uniform sampler2D gNormal;
 layout (binding = 7) uniform sampler2D gAlbedoSpec;
 layout (binding = 14) uniform sampler2D gEmissive;
@@ -43,15 +43,27 @@ float GetShininess() {
     return max((1.0 - roughness) * 256.0, 0.001);
 }
 
+vec3 ReconstructPosition(vec2 uv, float depth)
+{
+    float z = depth * 2.0 - 1.0;
+    vec4 ndcPos = vec4(uv * 2.0 - 1.0, z, 1.0);
+    vec4 worldPos = inverse(proj * view) * ndcPos;
+    return worldPos.xyz / worldPos.w;
+}
+
 #include "../includes/lightingCommon.glsl"
 
 void main()
 {
     if (length(texture(gNormal, TexCoords).rgb) < 0.1) discard; 
+
+    // reconstruct the frag world pos using screenUvs and depth
+    float depth = texture(gDepth, TexCoords).r;
+    if (depth == 1.0) discard;
+    vec3 fragPos = ReconstructPosition(TexCoords, depth);
+
     // get base data from gBuffer geometry pass
-    vec3 fragPos = texture(gPosition, TexCoords).rgb;
     vec3 normal = normalize(texture(gNormal, TexCoords).rgb);
-    float depth = texture(gPosition, TexCoords).a;
     float reflectivity = texture(gAlbedoSpec, TexCoords).a;
     float ssao = texture(ssaoMap, TexCoords).r;
     vec3 textureEmission = texture(gEmissive, TexCoords).rgb;
@@ -79,8 +91,8 @@ void main()
         vec3 R = reflect(I, normal);
         reflectionColor = texture(skyboxTexture, R).rgb;
     }
-    float reflectionMix = max(metallic, material_reflectivity);
-    vec3 finalColor = mix(lightingResult, reflectionColor, (wantsEnvMap ? reflectionMix : 0.0)) + textureEmission;
+
+    vec3 finalColor = mix(lightingResult, reflectionColor, (wantsEnvMap ? metallic : 0.0)) + textureEmission;
     FragColor = vec4(finalColor, 1.0);
 
     float brightness = dot(FragColor.rgb, vec3(0.2126, 0.7152, 0.0722));

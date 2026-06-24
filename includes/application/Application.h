@@ -24,10 +24,12 @@ class Application
     std::unique_ptr<Window> window;
     std::unique_ptr<AppState> appState;
     InputMapper inputMapper;
+    bool showUI = true;
 
     // internal Helpers
     void Init();           // setup scenes, render defaults
     void ConfigureInput(); // bind keys to AppState logic
     void Update(float dt);
     void Render();
+    void RenderUI();
 };
