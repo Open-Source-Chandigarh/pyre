@@ -12,11 +12,11 @@ uniform sampler2D texNoise;
 uniform vec3 samples[64];
 uniform float radius;
 
-vec3 ReconstructPosition(vec2 uv, float depth) 
+vec3 ReconstructPosition(vec2 uv, float depth, mat4 inverseProj) 
 {
     float z = depth * 2.0 - 1.0; 
     vec4 ndcPos = vec4(uv * 2.0 - 1.0, z, 1.0); 
-    vec4 worldPos = inverse(proj * view) * ndcPos; 
+    vec4 worldPos = inverseProj * ndcPos; 
     return worldPos.xyz / worldPos.w; 
 }
 
@@ -25,12 +25,11 @@ void main()
     vec2 screenRes = vec2(textureSize(gDepth, 0));
     vec2 texCoords = gl_FragCoord.xy / screenRes;
     float depth = texture(gDepth, texCoords).r;
+    mat4 inverseProj = inverse(proj);
     if (depth == 1.0) discard;
-    vec3 fragPosWorld = ReconstructPosition(texCoords, depth);
     vec3 fragNormalWorld = texture(gNormal, texCoords).rgb;
-
-    vec3 fragPosView = (view * vec4(fragPosWorld, 1.0)).xyz;
     vec3 fragNormalView = normalize(mat3(view) * fragNormalWorld);
+    vec3 fragPosView = ReconstructPosition(texCoords, depth, inverseProj);
 
     vec2 noiseScale = screenRes / 4.0;
     vec3 randomVec = texture(texNoise, texCoords * noiseScale).xyz;
@@ -54,11 +53,12 @@ void main()
         offset.xyz /= offset.w; // perspective divide to convert to NDC (-1.0 - 1.0)
         offset.xyz  = offset.xyz * 0.5 + 0.5; // transform to range (0.0 - 1.0)  
 
-        float sampleDepth = -depth;
+        float sampleDepth = texture(gDepth, offset.xy).r;
+        float sampleZ = ReconstructPosition(offset.xy, sampleDepth, inverseProj).z;
 
-        float isOccluded = (sampleDepth >= samplePos.z + bias) ? 1.0 : 0.0;
+        float isOccluded = (sampleZ >= samplePos.z + bias) ? 1.0 : 0.0;
 
-        float rangeCheck = smoothstep(0.0, 1.0, radius / abs(fragPosView.z - sampleDepth));
+        float rangeCheck = smoothstep(0.0, 1.0, radius / abs(fragPosView.z - sampleZ));
 
         occlusion += isOccluded * rangeCheck;
     }

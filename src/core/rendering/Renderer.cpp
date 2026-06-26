@@ -619,7 +619,7 @@ void Renderer::RenderSSAOPass(unsigned int width, unsigned int height)
         ssaoShader->setVec3("samples[" + std::to_string(i) + "]", ssaoKernel[i]);
 
     ssaoShader->setFloat("radius", ssaoRadius);
-    ssaoShader->setInt("gPosition", Bindings::TEX_SLOT_GBUFFER_POSITION);
+    ssaoShader->setInt("gDepth", Bindings::TEX_SLOT_GBUFFER_POSITION);
     glActiveTexture(GL_TEXTURE0 + Bindings::TEX_SLOT_GBUFFER_POSITION);
     glBindTexture(GL_TEXTURE_2D, gBufferFBO->GetDepthTexture());
     ssaoShader->setInt("gNormal", Bindings::TEX_SLOT_GBUFFER_NORMAL);
@@ -653,7 +653,7 @@ void Renderer::RenderDeferredLightingPass(LightManager &lightManager, Framebuffe
     deferredLightingShader->use();
 
     // bind texture slots to the shader uniforms
-    deferredLightingShader->setInt("gPosition", Bindings::TEX_SLOT_GBUFFER_POSITION);
+    deferredLightingShader->setInt("gDepth", Bindings::TEX_SLOT_GBUFFER_POSITION);
     deferredLightingShader->setInt("gNormal", Bindings::TEX_SLOT_GBUFFER_NORMAL);
     deferredLightingShader->setInt("gAlbedoSpec", Bindings::TEX_SLOT_GBUFFER_ALBEDO);
     deferredLightingShader->setInt("shadowMap", Bindings::TEX_SLOT_CSM_SHADOW);
